@@ -1,4 +1,4 @@
-# BGYM Wireframes v2
+# BGYM Wireframes v3
 
 Mid-fidelity wireframes in the BGYM look. Open `index.html` in a browser to view or edit them (fonts are bundled in `fonts/`, logos come from `../../brand/svg/`). PNG renders are in `png/`.
 
@@ -28,7 +28,22 @@ Mid-fidelity wireframes in the BGYM look. Open `index.html` in a browser to view
 16. Overview (desktop): KPIs, check-ins, expiring members, recent payments
 17. Front-desk scanner (phone): scan member QR → valid / invalid
 
+## 4. Trainer dashboard (responsive web)
+![Trainer dashboard](png/4-trainer-dashboard.png)
+18. My week (desktop): weekly calendar of package and single sessions, pending requests, blocked time, earnings
+19. Today (phone): accept or decline requests, today's sessions, mark completed
+
+## 5. Store partner dashboard (responsive web)
+![Store partner dashboard](png/5-partner-dashboard.png)
+20. Orders (desktop): paid orders by status; "Mark ready" books the courier
+21. Add product (phone): photos, price, variants and stock; submitted for admin review
+
+## 6. Admin dashboard (responsive web)
+![Admin dashboard](png/6-admin-dashboard.png)
+22. Platform overview (desktop): members, live gyms, GMV, platform revenue, gym approvals, revenue by stream, reports
+23. Review a gym application (phone): verification checklist, fee, approve or reject
+
 ## Not yet wireframed
-Trainer dashboard, store partner dashboard, admin dashboard, onboarding profile step (name, photo, goal), notifications, order tracking, renewals and empty/error states.
+Onboarding profile step (name, photo, goal), notifications, order tracking, renewals, other dashboard pages (e.g. members list, payouts, product list) and empty/error states.
 
 All names, gyms, prices and figures are placeholders.

@@ -35,4 +35,4 @@ Logo, app icon, colours and typography: [brand/](brand/README.md). The earlier O
 
 ## Design
 
-Wireframes v1 (member app + gym dashboard): [design/wireframes/](design/wireframes/README.md)
+Wireframes (member app, plus gym, trainer, store partner and admin dashboards): [design/wireframes/](design/wireframes/README.md)

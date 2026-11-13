@@ -297,12 +297,95 @@ const scanner=phone(`
  <div class="card small" style="display:flex;gap:8px;align-items:center;color:var(--mute)"><span class="pill r">Invalid</span>Expired, wrong gym, or an old code shows red with the reason.</div>
  <div class="btn ghost" style="margin-top:auto">Look up by phone number</div>`);
 
+// ================= BOARDS 4–6: trainer, partner, admin dashboards =================
+Object.assign(P,{box:'<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+ shield:'<path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+ flag:'<path d="M5 21V4M5 4h12l-2 4 2 4H5"/>',percent:'<path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>',
+ file:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',img:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/>',
+ store:'<path d="M4 9l1.5-5h13L20 9M4 9v11h16V9M4 9h16"/><path d="M9 20v-6h6v6"/>'});
+const dash=(nav,acct,inner)=>`<div style="width:1280px;height:800px;border-radius:18px;overflow:hidden;background:var(--cloud);display:flex;box-shadow:0 24px 50px rgba(13,16,40,.22);border:1px solid var(--line)">
+ <div style="width:232px;background:var(--mid);color:#C9CDE0;padding:22px 16px;display:flex;flex-direction:column;gap:3px;flex:none">
+  <img src="${LOGO}bgym-lockup-on-dark.svg" style="height:34px;margin:0 6px 20px;align-self:flex-start">
+  ${nav.map(([i,n,on,badge])=>`<div style="display:flex;gap:11px;align-items:center;padding:9px 12px;border-radius:12px;font-weight:600;${on?'background:rgba(255,90,31,.15);color:#fff':''}"><span style="width:20px;height:20px;display:inline-block;color:${on?'#FF5A1F':'#8A90B0'}">${ic(i)}</span><span style="flex:1">${n}</span>${badge?`<span class="pill o" style="padding:1px 8px">${badge}</span>`:''}</div>`).join('')}
+  <div style="margin-top:auto;background:rgba(255,255,255,.06);border-radius:14px;padding:12px;font-size:13px">${acct}</div></div>
+ <div style="flex:1;padding:26px 30px;display:flex;flex-direction:column;gap:18px;min-width:0">${inner}</div></div>`;
+const kpis=list=>`<div style="display:grid;grid-template-columns:repeat(${list.length},1fr);gap:16px">${list.map(([l,n,d,c])=>`<div class="stat"><div class="muted small b">${l}</div><div class="n">${n}</div><div class="d"><span class="pill ${c}">${d}</span></div></div>`).join('')}</div>`;
+const head=(t,sub,right)=>`<div class="between"><div><div style="font-size:26px;font-weight:800">${t}</div><div class="muted">${sub}</div></div><div style="display:flex;gap:10px">${right}</div></div>`;
+const obtn=(t,i)=>`<div class="btn" style="height:44px;padding:0 18px;font-size:14px;gap:8px">${i?`<span style="width:18px;height:18px;display:inline-block">${ic(i,'#fff')}</span>`:''}${t}</div>`;
+const gbtn=t=>`<div class="btn ghost" style="height:44px;padding:0 16px;font-size:14px">${t}</div>`;
+const desk=(n,label,d,note)=>`<div><div class="cell" style="width:auto"><div class="lab"><span>${n}</span>${label}</div></div>${d}<div class="note" style="font-size:13.5px;color:var(--mute);margin-top:12px;max-width:1200px">${note}</div></div>`;
+
+// ---- Trainer: weekly schedule
+const hours=['6 AM','7 AM','8 AM','9 AM','4 PM','5 PM','6 PM','7 PM'];const days=['Mon 16','Tue 17','Wed 18','Thu 19','Fri 20','Sat 21'];
+const ev={'0-0':['Kojo D.','Package 3/8','v'],'0-6':['Ama O.','Single','o'],'1-1':['Esi Q.','Package 5/8','v'],'2-0':['Kojo D.','Package 4/8','v'],'2-5':['Yaw M.','Single','o'],'3-6':['Ama O.','Pending','p'],'3-7':['Selorm A.','Single','o'],'4-1':['Esi Q.','Package 6/8','v'],'5-2':['Group trial','3 people','o'],'1-6':['Blocked','Off','x']};
+const cal=`<div class="stat" style="padding:0;flex:1;display:grid;grid-template-columns:64px repeat(6,1fr);overflow:hidden">
+ <div></div>${days.map(d=>`<div style="padding:10px;font-weight:700;font-size:13px;border-left:1px solid var(--line);border-bottom:1px solid var(--line);${d==='Thu 19'?'color:var(--flare)':''}">${d}</div>`).join('')}
+ ${hours.map((h,r)=>`<div style="padding:8px;font-size:12px;color:var(--mute);border-bottom:1px solid var(--line)">${h}</div>${days.map((d,c)=>{const e=ev[c+'-'+r];const st=!e?'':e[2]==='v'?'background:#EEEBFF;border-left:3px solid var(--violet)':e[2]==='o'?'background:#FFF0EA;border-left:3px solid var(--flare)':e[2]==='p'?'background:#fff;border:1.5px dashed var(--flare)':'background:repeating-linear-gradient(45deg,#F0F1F6 0 6px,#E6E8F0 6px 12px)';
+ return `<div style="border-left:1px solid var(--line);border-bottom:1px solid var(--line);padding:4px">${e?`<div style="${st};border-radius:8px;padding:5px 7px;font-size:12px;height:100%"><div class="b">${e[0]}</div><div class="muted" style="font-size:11px">${e[1]}</div></div>`:''}</div>`}).join('')}`).join('')}</div>`;
+const trainerDesk=dash([['cal','Schedule',1],['check','Bookings',0,2],['users','Clients'],['box','Packages'],['clock','Availability'],['cash','Earnings'],['user','Profile'],['gear','Settings']],
+ '<div class="b" style="color:#fff">Kwame Asante</div>Trainer · Iron Haven',
+ head('My week','16–21 November · Iron Haven Fitness',gbtn('Block time')+obtn('Set availability','clock'))+
+ kpis([['Sessions this week','14','2 pending requests','o'],['Package clients','9','3 renew this month','v'],['Earnings this month','GH₵ 4,860','Paid to your MoMo','g'],['Rating','4.9 ★','87 reviews','g']])+cal);
+const trainerPhone=phone(`
+ <div class="between"><div><div class="small muted">Thursday, 19 Nov</div><div class="b" style="font-size:22px">Today</div></div>${ibtn('bell',2)}</div>
+ <div class="card" style="border:1.5px dashed var(--flare)"><div class="between"><div><div class="b">New request · Ama Owusu</div><div class="small muted">Single session · Thu 6:00 PM · GH₵ 120</div></div></div>
+  <div style="display:flex;gap:8px;margin-top:10px"><div class="btn" style="flex:1;height:40px;font-size:14px">Accept</div><div class="btn ghost" style="flex:1;height:40px;font-size:14px">Decline</div></div></div>
+ ${[['6:00 AM','Kojo Darko','Package · 4 of 8','Done','g'],['7:00 PM','Selorm Agbeko','Single · paid','Next','o']].map(([t,n,d,s,c])=>`
+ <div class="card" style="display:flex;gap:12px;align-items:center"><div style="width:46px;text-align:center;flex:none"><div class="b">${t.split(' ')[0]}</div><div class="small muted">${t.split(' ')[1]}</div></div><div class="av" style="width:40px;height:40px"></div><div style="flex:1"><div class="b">${n}</div><div class="small muted">${d}</div></div><span class="pill ${c}">${s}</span></div>`).join('')}
+ <div class="btn dark" style="margin-top:auto">Mark 7:00 PM as completed</div>`);
+
+// ---- Store partner: orders
+const orders=[['#BG-1042','Ama Owusu','Whey Protein 2kg ×1, Shaker ×1','GH₵ 860','Spintex','New','o','Start preparing'],['#BG-1041','Kojo Darko','Creatine 300g ×2','GH₵ 520','East Legon','Preparing','v','Mark ready'],['#BG-1040','Esi Quaye','Dumbbell pair 10kg ×1','GH₵ 450','Osu','Ready · courier booked','v','Track'],['#BG-1039','Nana Yeboah','BGYM training tee ×2','GH₵ 300','Labone','Out for delivery','o','Track'],['#BG-1038','Kwesi Appiah','Resistance bands set','GH₵ 180','Madina','Delivered','g','View']];
+const partnerDesk=dash([['bag','Orders',1,6],['box','Products'],['store','Inventory',0,'3 low'],['cash','Payouts'],['chart','Sales'],['gear','Settings']],
+ '<div class="b" style="color:#fff">Accra Fitness Supply</div>Store partner · Spintex warehouse',
+ head('Orders','Thursday, 19 November · paid orders only (prepaid)',gbtn('Export')+obtn('Add product','box'))+
+ kpis([['New orders','6','Respond within 30 min','o'],['Preparing','4','2 due for pickup','v'],['Out for delivery','3','Courier tracking live','v'],['Sales this month','GH₵ 28,400','After BGYM commission','g']])+
+ `<div class="chips"><div class="chip on">All</div><div class="chip">New (6)</div><div class="chip">Preparing</div><div class="chip">Ready</div><div class="chip">Out for delivery</div><div class="chip">Delivered</div><div class="chip">Issues</div></div>
+ <div class="stat" style="padding:6px 6px 0;flex:1"><table><tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Deliver to</th><th>Status</th><th></th></tr>
+ ${orders.map(o=>`<tr><td class="b">${o[0]}</td><td>${o[1]}</td><td class="muted">${o[2]}</td><td class="b">${o[3]}</td><td>${o[4]}</td><td><span class="pill ${o[6]}">${o[5]}</span></td><td><span class="b fl">${o[7]} →</span></td></tr>`).join('')}</table></div>`);
+const partnerPhone=phone(`
+ ${backbar('New product','<span class="b fl">Save</span>')}
+ <div style="display:flex;gap:8px"><div class="ph" style="width:96px;height:96px">Photo 1</div><div class="ph" style="width:96px;height:96px">Photo 2</div><div style="width:96px;height:96px;border-radius:14px;border:2px dashed #C9CDE0;display:flex;align-items:center;justify-content:center;color:var(--mute);font-weight:700;font-size:24px">+</div></div>
+ ${[['Product name','Whey Protein Isolate 2kg'],['Category','Supplements › Protein'],['Brand','PureLift']].map(([l,v])=>`<div><div class="small b" style="margin-bottom:5px">${l}</div><div class="search" style="color:var(--mid);font-weight:600">${v}</div></div>`).join('')}
+ <div style="display:flex;gap:8px"><div style="flex:1"><div class="small b" style="margin-bottom:5px">Price</div><div class="search" style="color:var(--mid);font-weight:600">GH₵ 780</div></div><div style="flex:1"><div class="small b" style="margin-bottom:5px">Compare-at</div><div class="search">GH₵ 900</div></div></div>
+ <div><div class="small b" style="margin-bottom:6px">Variants & stock</div><div class="card" style="padding:4px 12px">${[['Chocolate','24'],['Vanilla','3 · low']].map(([v,s])=>`<div class="between" style="padding:9px 0;border-bottom:1px solid var(--line)"><span class="b">${v}</span><span class="${s.includes('low')?'fl b':'muted'}">${s} in stock</span></div>`).join('')}<div class="small b fl" style="padding:9px 0">+ Add variant</div></div></div>
+ <div class="btn" style="margin-top:auto">Submit for review</div>`);
+
+// ---- Admin: platform overview + approvals
+const adminDesk=dash([['chart','Overview',1],['shield','Gym approvals',0,4],['pin','Gyms'],['dumbbell','Trainers'],['users','Members'],['store','Store & partners'],['bag','Orders',0,2],['cash','Payments & payouts'],['play','Workouts'],['flag','Reports',0,3],['percent','Fees'],['gear','Settings']],
+ '<div class="b" style="color:#fff">BGYM Admin</div>Operations · Super admin',
+ head('Platform overview','Accra · last 30 days',gbtn('Last 30 days ▾')+obtn('Export report'))+
+ kpis([['Members','12,480','+1,120 this month','g'],['Live gyms','38','4 awaiting approval','o'],['GMV','GH₵ 1.42M','Memberships, trainers, store','v'],['Platform revenue','GH₵ 118,600','Fees + store margin','g']])+
+ `<div style="display:grid;grid-template-columns:1.45fr 1fr;gap:16px;flex:1;min-height:0">
+ <div class="stat"><div class="between"><div class="b" style="font-size:16px">Gym approvals</div><span class="small fl b">View all 4 →</span></div>
+  <table style="margin-top:6px"><tr><th>Gym</th><th>Area</th><th>Submitted</th><th>Checks</th><th></th></tr>
+  ${[['Legon Strength Club','Legon','2 days ago','4/4'],['FitHub Tema','Tema Comm. 5','Yesterday','3/4'],['Curve Ladies Gym','Dzorwulu','Today','2/4'],['Body Lab Osu','Osu','Today','1/4']].map(r=>`<tr><td class="b">${r[0]}</td><td>${r[1]}</td><td class="muted">${r[2]}</td><td><span class="pill ${r[3]==='4/4'?'g':'o'}">${r[3]}</span></td><td><span class="b fl">Review →</span></td></tr>`).join('')}</table></div>
+ <div class="stat" style="display:flex;flex-direction:column"><div class="b" style="font-size:16px">Revenue by stream</div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;margin-top:8px">${[['Gym memberships',62,'GH₵ 73.5k'],['Store',27,'GH₵ 32.0k'],['Trainer bookings',11,'GH₵ 13.1k']].map(([n,p,v])=>`<div><div class="between small"><span class="b">${n}</span><span class="muted">${v}</span></div><div style="height:12px;border-radius:6px;background:#EEF0F6;margin-top:6px"><div style="width:${p}%;height:100%;border-radius:6px;background:${n==='Store'?'var(--violet)':n.startsWith('Gym')?'var(--flare)':'var(--ember)'}"></div></div></div>`).join('')}</div>
+  <div class="card small" style="background:#FDECEC;border-color:#F8C9C9;margin-top:10px"><span class="b" style="color:#DC2626">3 reports</span> need review: 2 feed posts, 1 order dispute</div></div></div>`);
+const adminPhone=phone(`
+ ${backbar('Gym application')}
+ <div class="ph" style="height:120px">Gym photos (6)</div>
+ <div><div class="b" style="font-size:20px">Legon Strength Club</div><div class="small muted">Legon, Accra · Owner: Kofi Mensah · submitted 2 days ago</div></div>
+ <div class="card list" style="padding:2px 12px">${[['Business registration','Verified'],['Location pin & photos','Verified'],['Payout account (Paystack)','Subaccount ready'],['Membership plans','3 plans']].map(([n,s])=>`<div class="it"><div class="ico" style="background:#E7F7EC">${ic('check','#16A34A',2.4)}</div><div style="flex:1"><div class="b">${n}</div><div class="small muted">${s}</div></div></div>`).join('')}</div>
+ <div class="card between"><div><div class="small muted">Platform fee</div><div class="b">Default rate</div></div><span class="b fl">Change</span></div>
+ <div style="display:flex;gap:8px;margin-top:auto"><div class="btn ghost" style="flex:1">Reject</div><div class="btn" style="flex:1.4;background:var(--ok)">Approve & go live</div></div>`);
+
 document.getElementById('app').innerHTML=`
 <section class="board" id="board1"><h1><b>BGYM</b> · Get started & join a gym</h1><p class="sub">Member app · wireframes v2 · splash → sign in (Apple, Google, email code) → find gyms nearby → pick a plan → pay with MoMo → QR membership</p><div class="row">${b1.join('')}</div></section>
 <section class="board" id="board2"><h1><b>BGYM</b> · Everyday app & store</h1><p class="sub">Member app · the five tabs (Home, Workouts, Gyms, Trainers, Me), trainer booking and the store</p><div class="row">${b2.join('')}</div></section>
 <section class="board" id="board3"><h1><b>BGYM</b> · Gym dashboard</h1><p class="sub">Responsive web app for gym owners and staff · desktop overview and the front-desk scanner on a phone</p>
 <div class="row"><div><div class="cell" style="width:auto"><div class="lab"><span>16</span>Overview · desktop</div></div>${desktop}<div class="note" style="font-size:13.5px;color:var(--mute);margin-top:12px;max-width:1200px">Members, expiring list with one-tap reminders, check-in stats, and payments split automatically through Paystack (the gym receives its share after the platform fee; the fee % is still to be decided).</div></div>
-${cell(17,'Front-desk scanner · phone',scanner,'The same web dashboard on a phone uses the camera to scan member QR codes: instant green or red result, logged as a check-in.')}</div></section>`;
+${cell(17,'Front-desk scanner · phone',scanner,'The same web dashboard on a phone uses the camera to scan member QR codes: instant green or red result, logged as a check-in.')}</div></section>
+<section class="board" id="board4"><h1><b>BGYM</b> · Trainer dashboard</h1><p class="sub">Responsive web app for personal trainers (linked to one gym) · schedule, bookings, packages, earnings paid directly to the trainer</p>
+<div class="row">${desk(18,'My week · desktop',trainerDesk,'Weekly calendar: violet = package sessions, orange = single sessions, dashed = request waiting for a reply, striped = blocked time. Availability rules drive the slots members can book.')}
+${cell(19,'Today · phone',trainerPhone,'On the go: accept or decline requests, see today\'s sessions, and mark them completed (completed package sessions are deducted from the client\'s balance).')}</div></section>
+<section class="board" id="board5"><h1><b>BGYM</b> · Store partner dashboard</h1><p class="sub">Responsive web app for the product partner · orders, products, stock, payouts</p>
+<div class="row">${desk(20,'Orders · desktop',partnerDesk,'Only paid orders appear. Moving an order to "Mark ready" books the courier automatically (Yango) or falls back to manual dispatch. Low-stock alerts appear on Inventory.')}
+${cell(21,'Add product · phone',partnerPhone,'Partners add products with photos, price, variants and stock. New products go to BGYM admin for review before they appear in the store.')}</div></section>
+<section class="board" id="board6"><h1><b>BGYM</b> · Admin dashboard</h1><p class="sub">Responsive web app for the BGYM team · approvals, gyms, trainers, members, store, payments, workouts, reports, fees</p>
+<div class="row">${desk(22,'Platform overview · desktop',adminDesk,'Growth and money at a glance, the gym approval queue, revenue by stream, and moderation reports. Fees can be set globally or per gym, trainer and partner.')}
+${cell(23,'Review a gym application · phone',adminPhone,'Checklist before a gym goes live: registration, location and photos, Paystack payout subaccount, and plans. Approve, or reject with a reason.')}</div></section>`;
 </script>
 </body>
 </html>
