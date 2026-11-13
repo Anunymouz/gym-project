@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BGYM Wireframes</title>
+<style>
+@font-face{font-family:Outfit;font-weight:400;src:url(fonts/outfit-latin-400-normal.woff2)}
+@font-face{font-family:Outfit;font-weight:500;src:url(fonts/outfit-latin-500-normal.woff2)}
+@font-face{font-family:Outfit;font-weight:600;src:url(fonts/outfit-latin-600-normal.woff2)}
+@font-face{font-family:Outfit;font-weight:700;src:url(fonts/outfit-latin-700-normal.woff2)}
+@font-face{font-family:Outfit;font-weight:800;src:url(fonts/outfit-latin-800-normal.woff2)}
+:root{--mid:#0D1028;--flare:#FF5A1F;--ember:#FF8A3D;--violet:#6C5CE7;--cloud:#F5F6FA;--line:#E6E8F0;--mute:#6B7280;--ok:#16A34A;--ph:#DDE0EA}
+*{box-sizing:border-box}
+body{margin:0;font-family:Outfit,system-ui,sans-serif;color:var(--mid);background:#E9EBF2}
+.board{padding:56px 56px 64px;width:max-content}
+.board>h1{font-size:40px;margin:0 0 4px;font-weight:800}.board>h1 b{color:var(--flare)}
+.board>p.sub{font-size:18px;color:var(--mute);margin:0 0 36px}
+.row{display:flex;gap:34px;align-items:flex-start}
+.cell{width:360px}.cell .lab{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:0 0 10px}
+.cell .lab span{display:inline-block;background:var(--mid);color:#fff;border-radius:6px;padding:1px 7px;margin-right:6px}
+.cell .note{font-size:13.5px;color:var(--mute);line-height:1.45;margin-top:12px}
+/* phone */
+.phone{width:360px;height:760px;border-radius:46px;background:#0B0D1C;padding:10px;box-shadow:0 24px 50px rgba(13,16,40,.28)}
+.scr{position:relative;height:100%;border-radius:37px;overflow:hidden;background:var(--cloud);display:flex;flex-direction:column;font-size:14px}
+.sb{height:34px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 26px;font-size:13px;font-weight:600}
+.dark .sb{color:#fff}
+.body{flex:1;overflow:hidden;padding:4px 16px 12px;display:flex;flex-direction:column;gap:12px}
+.tabbar{flex:none;height:70px;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:flex-start;padding-top:10px}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:#9AA0B4;font-weight:600}.tab.on{color:var(--flare)}
+.tab svg{width:22px;height:22px}
+.hdr{display:flex;align-items:center;justify-content:space-between}.hdr h2{margin:0;font-size:24px;font-weight:800}
+.icons{display:flex;gap:10px}.ib{width:38px;height:38px;border-radius:12px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;position:relative}
+.ib svg{width:19px;height:19px}.badge{position:absolute;top:-4px;right:-4px;background:var(--flare);color:#fff;font-size:10px;font-weight:700;border-radius:99px;padding:1px 5px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px}
+.ph{background:repeating-linear-gradient(45deg,#E3E6EF 0 10px,#DADDE8 10px 20px);border-radius:14px;display:flex;align-items:center;justify-content:center;color:#8C92A8;font-size:12px;font-weight:600}
+.btn{background:var(--flare);color:#fff;border-radius:14px;height:50px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px}
+.btn.dark{background:var(--mid)}.btn.ghost{background:#fff;color:var(--mid);border:1.5px solid var(--line)}
+.chips{display:flex;gap:7px;flex-wrap:wrap}.chip{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:6px 12px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.chip.on{background:var(--mid);color:#fff;border-color:var(--mid)}.chip.fl{background:#FFF0EA;color:var(--flare);border-color:#FFD5C4}
+.search{height:44px;border-radius:14px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 12px;color:#9AA0B4}
+.search svg{width:18px;height:18px}
+.muted{color:var(--mute)}.small{font-size:12px}.b{font-weight:700}.fl{color:var(--flare)}
+.between{display:flex;justify-content:space-between;align-items:center}
+.seg{display:flex;background:#E7E9F1;border-radius:12px;padding:3px}.seg div{flex:1;text-align:center;padding:7px 0;border-radius:10px;font-weight:600;font-size:13px;color:var(--mute)}.seg .on{background:#fff;color:var(--mid);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.av{border-radius:50%;background:linear-gradient(135deg,#C9CDE0,#A9AFC9);flex:none}
+.list .it{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.list .it:last-child{border:0}
+.ico{width:34px;height:34px;border-radius:10px;background:#F0F1F7;display:flex;align-items:center;justify-content:center;flex:none}.ico svg{width:18px;height:18px}
+.map{position:relative;border-radius:18px;overflow:hidden;background:#E4EBE3;background-image:linear-gradient(#D3DCD2 2px,transparent 2px),linear-gradient(90deg,#D3DCD2 2px,transparent 2px),linear-gradient(35deg,transparent 46%,#fff 46%,#fff 50%,transparent 50%),linear-gradient(-20deg,transparent 60%,#fff 60%,#fff 63%,transparent 63%);background-size:44px 44px,44px 44px,100% 100%,100% 100%}
+.pin{position:absolute;width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--flare);border:3px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.25)}
+.pin.m{background:var(--mid)}
+.me{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--violet);border:3px solid #fff;box-shadow:0 0 0 10px rgba(108,92,231,.18)}
+.radius{position:absolute;border:2px dashed var(--violet);border-radius:50%;background:rgba(108,92,231,.07)}
+.qr{display:grid;grid-template-columns:repeat(21,1fr);width:200px;height:200px;gap:0}
+.qr i{display:block}.qr i.k{background:var(--mid)}
+.slot{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:9px 0;text-align:center;font-weight:600;font-size:13px}
+.slot.on{background:var(--flare);color:#fff;border-color:var(--flare)}.slot.x{color:#C2C6D4;background:#F3F4F8;text-decoration:line-through}
+.day{flex:1;border-radius:14px;background:#fff;border:1.5px solid var(--line);text-align:center;padding:8px 0;font-size:11px;color:var(--mute);font-weight:600}
+.day b{display:block;font-size:17px;color:var(--mid)}.day.on{background:var(--mid);border-color:var(--mid);color:#C9CDE0}.day.on b{color:#fff}
+.lock{position:absolute;top:10px;right:10px;background:rgba(13,16,40,.75);color:#fff;border-radius:99px;padding:4px 9px;font-size:11px;font-weight:700;display:flex;gap:4px;align-items:center}
+.lock svg{width:12px;height:12px}
+.prod .ph{height:120px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px}.stat .n{font-size:30px;font-weight:800;margin-top:6px}.stat .d{font-size:13px;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;color:var(--mute);font-weight:600;font-size:12.5px;padding:10px 12px;border-bottom:1px solid var(--line)}td{padding:12px;border-bottom:1px solid var(--line)}
+.pill{display:inline-block;border-radius:99px;padding:3px 10px;font-size:12px;font-weight:700}.pill.g{background:#E7F7EC;color:var(--ok)}.pill.o{background:#FFF0EA;color:var(--flare)}.pill.r{background:#FDECEC;color:#DC2626}.pill.v{background:#EEEBFF;color:var(--violet)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ---------- icons (simple line icons) ----------
+const P={home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+dumbbell:'<path d="M6 7v10M3 9.5v5M18 7v10M21 9.5v5M6 12h12"/>',
+pin:'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.8"/><path d="M16 14.2a5.5 5.5 0 0 1 6 5.8"/>',
+user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+cart:'<path d="M3 4h2l2.5 11h11L21 7H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="18" cy="19.5" r="1.5"/>',
+heart:'<path d="M12 20s-8-4.8-8-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 2.5C20 15.2 12 20 12 20z"/>',
+lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+chev:'<path d="M9 6l6 6-6 6"/>',back:'<path d="M15 6l-6 6 6 6"/>',filter:'<path d="M4 6h16M7 12h10M10 18h4"/>',
+qr:'<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/>',
+card:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/>',cal:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+bag:'<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
+play:'<path d="M8 5l11 7-11 7z" fill="currentColor"/>',star:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" fill="currentColor" stroke="none"/>',
+check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',post:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 15l4-4 4 4 3-3 5 5"/>',
+cash:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',scan:'<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/>',
+truck:'<path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',
+target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',clock:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>'};
+const ic=(n,c='currentColor',w=1.9)=>`<svg viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${P[n]}</svg>`;
+const LOGO='../../brand/svg/';
+// ---------- building blocks ----------
+const sb=()=>`<div class="sb"><span>9:41</span><span>▪▪▪ 5G ▮</span></div>`;
+const tabs=on=>`<div class="tabbar">${[['home','Home'],['dumbbell','Workouts'],['pin','Gyms'],['users','Trainers'],['user','Me']].map(([i,l])=>`<div class="tab ${l===on?'on':''}">${ic(i)}${l}</div>`).join('')}</div>`;
+const phone=(inner,{tab,dark,bg}={})=>`<div class="phone"><div class="scr ${dark?'dark':''}" style="${bg?'background:'+bg:''}">${sb()}<div class="body">${inner}</div>${tab?tabs(tab):''}</div></div>`;
+const cell=(n,label,ph,note)=>`<div class="cell"><div class="lab"><span>${n}</span>${label}</div>${ph}${note?`<div class="note">${note}</div>`:''}</div>`;
+const topbar=(title,right='')=>`<div class="hdr"><h2>${title}</h2><div class="icons">${right}</div></div>`;
+const ibtn=(i,b)=>`<div class="ib">${ic(i)}${b?`<span class="badge">${b}</span>`:''}</div>`;
+const backbar=(t,r='')=>`<div class="between"><div class="ib">${ic('back')}</div><div class="b" style="font-size:16px">${t}</div>${r||'<div style="width:38px"></div>'}</div>`;
+// deterministic QR-like pattern
+function qr(){let s=7,h='';const rnd=()=>(s=(s*9301+49297)%233280)/233280;const finder=(r,c)=>{for(const [R,C] of [[0,0],[0,14],[14,0]]){const y=r-R,x=c-C;if(y>=0&&y<7&&x>=0&&x<7)return (y===0||y===6||x===0||x===6||(y>=2&&y<=4&&x>=2&&x<=4))?1:0;}return -1;};
+ for(let r=0;r<21;r++)for(let c=0;c<21;c++){const f=finder(r,c);h+=`<i class="${(f===1||(f===-1&&rnd()>.52))?'k':''}"></i>`;}return `<div class="qr">${h}</div>`;}
+
+// ================= BOARD 1: get started & join a gym =================
+const b1=[
+cell(1,'Welcome & sign-up',phone(`
+ <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;color:#fff;gap:10px">
+  <img src="${LOGO}bgym-mark-on-dark.svg" style="width:170px">
+  <img src="${LOGO}bgym-wordmark-on-dark.svg" style="height:40px;margin-top:6px">
+  <div style="opacity:.75;font-size:16px">Be my gym buddy.</div></div>
+ <div style="background:#fff;border-radius:24px;padding:18px;display:flex;flex-direction:column;gap:12px;margin:0 -4px 6px">
+  <div class="b" style="font-size:18px">Enter your phone number</div>
+  <div style="display:flex;gap:8px"><div class="search" style="color:var(--mid);font-weight:600;width:96px">+233</div><div class="search" style="flex:1;color:var(--mid);font-weight:600">24 123 4567</div></div>
+  <div class="btn">Send code</div><div class="small muted" style="text-align:center">We'll text you a 6-digit code. Standard SMS rates apply.</div></div>`,
+ {dark:1,bg:'radial-gradient(circle at 50% 22%,rgba(255,90,31,.28),transparent 45%),linear-gradient(160deg,#231B5E,#0D1028 60%)'}),
+ 'Phone + SMS code login (no password). After the code: name, optional photo and fitness goal.'),
+cell(2,'Location & radius',phone(`
+ ${backbar('Find gyms near you')}
+ <div class="map" style="height:330px">
+  <div class="radius" style="left:40px;top:45px;width:240px;height:240px"></div><div class="me" style="left:152px;top:157px"></div>
+  ${[[70,90],[200,70],[230,190],[110,230],[160,110]].map(([x,y])=>`<div class="pin" style="left:${x}px;top:${y}px"></div>`).join('')}
+  <div class="pin m" style="left:20px;top:280px"></div><div class="pin m" style="left:285px;top:20px"></div></div>
+ <div class="card" style="display:flex;gap:10px;align-items:center"><div class="ico" style="background:#EEEBFF">${ic('target','#6C5CE7')}</div><div><div class="b">East Legon, Accra</div><div class="small muted">Using your current location · Change</div></div></div>
+ <div><div class="b" style="margin-bottom:8px">Search radius</div><div class="chips">${['1 km','3 km','5 km','10 km','20 km'].map(k=>`<div class="chip ${k==='5 km'?'on':''}">${k}</div>`).join('')}</div></div>
+ <div class="btn" style="margin-top:auto">Show 12 gyms within 5 km</div>`),
+ 'Asks for location permission; if denied, the user searches an area or drops a pin. Orange pins are inside the radius.'),
+cell(3,'Gyms tab',phone(`
+ ${topbar('Gyms',ibtn('cart',2))}
+ <div class="search">${ic('search')}Search gyms, areas…</div>
+ <div class="between"><div class="seg" style="width:150px"><div class="on">List</div><div>Map</div></div><div class="chip">${'Within 5 km'} ▾</div></div>
+ <div class="chips"><div class="chip fl">Open now</div><div class="chip">Price</div><div class="chip">AC</div><div class="chip">Women-only</div></div>
+ ${[['Iron Haven Fitness','East Legon','1.2 km','4.8','250'],['Pulse Studio','Airport Residential','3.4 km','4.6','300']].map(([n,a,d,r,p])=>`
+ <div class="card" style="padding:0;overflow:hidden"><div class="ph" style="height:118px;border-radius:0">Gym photo</div>
+  <div style="padding:11px 12px"><div class="between"><div class="b" style="font-size:16px">${n}</div><div class="small b" style="display:flex;gap:3px;align-items:center;color:#F59E0B"><span style="width:14px;height:14px;display:inline-block">${ic('star')}</span>${r}</div></div>
+  <div class="small muted" style="margin-top:3px">${a} · ${d} · Open till 10pm</div>
+  <div style="margin-top:6px">from <span class="b fl">GH₵ ${p}</span><span class="small muted"> /month</span></div></div></div>`).join('')}`,{tab:'Gyms'}),
+ 'List and map views, sorted by distance. Filters: price, facilities, open now, women-only.'),
+cell(4,'Gym page · plans',phone(`
+ <div class="ph" style="height:150px;margin:-4px -16px 0;border-radius:0;position:relative">Cover photo / video<div class="ib" style="position:absolute;left:14px;top:12px">${ic('back')}</div></div>
+ <div><div class="b" style="font-size:21px">Iron Haven Fitness</div><div class="small muted">East Legon · 1.2 km · Open 5am–10pm · ★ 4.8 (212)</div></div>
+ <div class="seg"><div>Feed</div><div class="on">Plans</div><div>Trainers</div><div>Info</div></div>
+ ${[['Day pass','1 day access','40',0],['Monthly','Unlimited access · 30 days','350',1],['Quarterly','90 days · save 10%','950',0]].map(([n,d,p,pop])=>`
+ <div class="card between" style="${pop?'border:2px solid var(--flare)':''}"><div><div class="b">${n} ${pop?'<span class="pill o" style="margin-left:4px">Popular</span>':''}</div><div class="small muted">${d}</div></div><div class="b" style="font-size:17px">GH₵ ${p}</div></div>`).join('')}
+ <div class="chips"><div class="chip">AC</div><div class="chip">Showers</div><div class="chip">Parking</div><div class="chip">Sauna</div></div>
+ <div class="btn" style="margin-top:auto">Join · GH₵ 350 / month</div>`),
+ 'The gym\'s own space: Feed (its posts), Plans, Trainers, Info (hours, facilities, map, directions).'),
+cell(5,'Checkout',phone(`
+ ${backbar('Checkout')}
+ <div class="card"><div class="small muted">Membership</div><div class="between" style="margin-top:4px"><div class="b" style="font-size:16px">Iron Haven · Monthly</div><div class="b">GH₵ 350</div></div>
+  <div class="between small" style="margin-top:10px"><span class="muted">Starts</span><span class="b">Today, 13 Nov</span></div><div class="between small" style="margin-top:4px"><span class="muted">Ends</span><span class="b">12 Dec 2026</span></div></div>
+ <div class="b">Pay with</div>
+ ${[['MTN MoMo','024 ••• 4567',1],['Telecel Cash','',0],['AT Money','',0],['Debit / credit card','Auto-renew available',0]].map(([n,d,on])=>`
+ <div class="card between" style="${on?'border:2px solid var(--flare)':''}"><div style="display:flex;gap:10px;align-items:center"><div class="ico">${ic(n.includes('card')?'card':'cash')}</div><div><div class="b">${n}</div>${d?`<div class="small muted">${d}</div>`:''}</div></div>
+ <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${on?'var(--flare)':'#C9CDE0'};${on?'box-shadow:inset 0 0 0 4px #fff;background:var(--flare)':''}"></div></div>`).join('')}
+ <div style="margin-top:auto" class="between"><span class="muted">Total</span><span class="b" style="font-size:20px">GH₵ 350.00</span></div>
+ <div class="btn">Pay GH₵ 350</div><div class="small muted" style="text-align:center">🔒 Secured by Paystack · approve the prompt on your phone</div>`),
+ 'Mobile Money first. MoMo shows a PIN prompt on the phone; card users can opt into auto-renew.'),
+cell(6,'Membership & QR',phone(`
+ <div style="text-align:center;margin-top:6px"><div style="width:54px;height:54px;border-radius:50%;background:#E7F7EC;margin:0 auto;display:flex;align-items:center;justify-content:center">${ic('check','#16A34A',2.6)}</div>
+ <div class="b" style="font-size:22px;margin-top:10px">You're in!</div><div class="muted">Welcome to Iron Haven Fitness</div></div>
+ <div class="card" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px">${qr()}
+  <div class="small muted" style="display:flex;gap:5px;align-items:center"><span style="width:14px;height:14px;display:inline-block">${ic('clock')}</span>Code refreshes every 30 seconds</div>
+  <div class="between" style="width:100%;border-top:1px solid var(--line);padding-top:10px"><div><div class="small muted">Plan</div><div class="b">Monthly</div></div><div style="text-align:right"><div class="small muted">Valid until</div><div class="b">12 Dec 2026</div></div></div></div>
+ <div class="btn dark">Show at the front desk</div><div class="btn ghost">View receipt</div>`),
+ 'The gym scans this at the door. The QR rotates so screenshots can\'t be reused. It also lives in Me → My memberships.'),
+];
+
+// ================= BOARD 2: everyday app =================
+const b2=[
+cell(7,'Home feed',phone(`
+ <div class="between"><img src="${LOGO}bgym-lockup.svg" style="height:30px"><div class="icons">${ibtn('bell',3)}${ibtn('cart',2)}</div></div>
+ <div style="display:flex;gap:12px">${['Iron Haven','Pulse Studio','Legon Strength'].map((n,i)=>`<div style="text-align:center;font-size:11px;font-weight:600;width:66px"><div class="av" style="width:58px;height:58px;margin:0 auto 4px;box-shadow:0 0 0 2.5px #fff,0 0 0 4.5px ${i<2?'var(--flare)':'#C9CDE0'}"></div>${n}</div>`).join('')}</div>
+ <div class="card" style="padding:0;overflow:hidden">
+  <div style="display:flex;gap:9px;align-items:center;padding:10px 12px"><div class="av" style="width:34px;height:34px"></div><div><div class="b">Iron Haven Fitness</div><div class="small muted">2h ago</div></div></div>
+  <div class="ph" style="height:200px;border-radius:0;position:relative"><div style="position:absolute;width:52px;height:52px;border-radius:50%;background:rgba(13,16,40,.7);color:#fff;display:flex;align-items:center;justify-content:center"><span style="width:22px;height:22px;display:inline-block">${ic('play')}</span></div></div>
+  <div style="padding:10px 12px"><div class="b">Saturday leg-day circuit</div><div class="small muted" style="margin-top:2px">4 rounds · squats, lunges, step-ups. Who's joining at 7am?</div>
+  <div class="small muted" style="display:flex;gap:6px;align-items:center;margin-top:8px"><span style="width:16px;height:16px;display:inline-block">${ic('heart','#FF5A1F')}</span>128 likes</div></div></div>
+ <div class="card" style="background:var(--mid);color:#fff;display:flex;justify-content:space-between;align-items:center;border:0"><div><div class="b">BGYM Store</div><div class="small" style="opacity:.75">15% off whey protein this week</div></div><div class="chip" style="background:var(--flare);border:0;color:#fff">Shop</div></div>`,{tab:'Home'}),
+ 'Posts only from gyms the member belongs to. Store shortcut sits in the header and in a feed banner.'),
+cell(8,'Workouts',phone(`
+ ${topbar('Workouts',ibtn('search'))}
+ <div class="chips"><div class="chip on">All</div><div class="chip">Strength</div><div class="chip">Cardio</div><div class="chip">Mobility</div><div class="chip">Abs</div></div>
+ <div class="card" style="padding:0;overflow:hidden;position:relative"><div class="ph" style="height:140px;border-radius:0">Exercise animation</div>
+  <div style="padding:10px 12px"><div class="pill g">Free</div><div class="b" style="font-size:16px;margin-top:6px">Full-body starter</div><div class="small muted">20 min · Beginner · No equipment</div></div></div>
+ ${[['Upper-body push','30 min · Intermediate · Dumbbells'],['HIIT burner','25 min · Advanced · Bodyweight']].map(([n,d])=>`
+ <div class="card" style="display:flex;gap:12px;align-items:center;position:relative"><div class="ph" style="width:76px;height:64px;flex:none">GIF</div><div><div class="b">${n}</div><div class="small muted">${d}</div></div><div class="lock" style="top:8px;right:8px">${ic('lock')}</div></div>`).join('')}
+ <div class="card" style="background:#FFF0EA;border-color:#FFD5C4;display:flex;gap:10px;align-items:center"><div class="ico" style="background:#fff">${ic('lock','#FF5A1F')}</div><div class="small"><span class="b">Unlock 200+ workouts</span><br><span class="muted">Join any gym on BGYM to get the full library.</span></div></div>`,{tab:'Workouts'}),
+ 'A few basic workouts free; any active gym membership unlocks the full licensed animation library.'),
+cell(9,'Trainers',phone(`
+ ${topbar('Trainers',ibtn('filter'))}
+ <div class="search">${ic('search')}Search by name or goal</div>
+ <div class="chips"><div class="chip on">My gyms</div><div class="chip">Nearby</div><div class="chip">Weight loss</div><div class="chip">Strength</div></div>
+ ${[['Kwame Asante','Iron Haven · Strength, powerlifting','120','4.9'],['Efua Mensah','Pulse Studio · Weight loss, HIIT','100','4.8'],['Yaw Boateng','Legon Strength · Bodybuilding','150','4.7']].map(([n,g,p,r])=>`
+ <div class="card" style="display:flex;gap:12px;align-items:center"><div class="av" style="width:58px;height:58px"></div><div style="flex:1"><div class="between"><div class="b">${n}</div><div class="small b" style="color:#F59E0B">★ ${r}</div></div><div class="small muted">${g}</div><div class="small" style="margin-top:4px">from <span class="b fl">GH₵ ${p}</span> / session</div></div></div>`).join('')}`,{tab:'Trainers'}),
+ 'Trainers at the member\'s gyms first, then nearby. Members can book any trainer, not just their gym\'s.'),
+cell(10,'Trainer profile · booking',phone(`
+ ${backbar('Kwame Asante','<div class="ib">'+ic('heart')+'</div>')}
+ <div style="display:flex;gap:12px;align-items:center"><div class="av" style="width:64px;height:64px"></div><div><div class="b" style="font-size:17px">Kwame Asante</div><div class="small muted">Iron Haven · 6 yrs · ★ 4.9 (87)</div><div class="chips" style="margin-top:6px"><div class="chip" style="padding:3px 9px">Strength</div><div class="chip" style="padding:3px 9px">Powerlifting</div></div></div></div>
+ <div class="seg"><div class="on">Single session</div><div>Monthly package</div></div>
+ <div style="display:flex;gap:6px">${[['Mon',16],['Tue',17],['Wed',18],['Thu',19],['Fri',20]].map(([d,n])=>`<div class="day ${n===19?'on':''}">${d}<b>${n}</b></div>`).join('')}</div>
+ <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${['6:00 AM','7:00 AM','8:00 AM','5:00 PM','6:00 PM','7:00 PM'].map(t=>`<div class="slot ${t==='6:00 PM'?'on':''} ${t==='7:00 AM'||t==='5:00 PM'?'x':''}">${t}</div>`).join('')}</div>
+ <div class="card small" style="background:#F7F8FB"><span class="b">Monthly package:</span> 8 sessions · GH₵ 850 <span class="muted">(save GH₵ 110)</span></div>
+ <div class="btn" style="margin-top:auto">Book Thu 19, 6:00 PM · GH₵ 120</div>`),
+ 'Two models: a single time slot, or a monthly package with a session balance. Payment goes straight to the trainer.'),
+cell(11,'Me',phone(`
+ <div style="display:flex;gap:12px;align-items:center"><div class="av" style="width:58px;height:58px"></div><div style="flex:1"><div class="b" style="font-size:18px">Ama Owusu</div><div class="small muted">024 123 4567 · Goal: build strength</div></div>${ibtn('gear')}</div>
+ <div class="b">My memberships</div>
+ <div class="card"><div class="between"><div><div class="b">Iron Haven Fitness</div><div class="small muted">Monthly · ends 12 Dec</div></div><span class="pill g">Active</span></div>
+  <div style="display:flex;gap:8px;margin-top:10px"><div class="btn dark" style="flex:1;height:40px;font-size:14px;gap:6px"><span style="width:16px;height:16px;display:inline-block">${ic('qr','#fff')}</span>Show QR</div><div class="btn ghost" style="flex:1;height:40px;font-size:14px">Renew</div></div></div>
+ <div class="card between"><div><div class="b">Pulse Studio</div><div class="small muted">Day pass · expired 2 Nov</div></div><span class="pill r">Expired</span></div>
+ <div class="card list" style="padding:2px 12px">${[['cal','My bookings','1 upcoming'],['bag','My orders','1 on the way'],['card','Payments & receipts',''],['pin','Saved addresses','']].map(([i,n,d])=>`<div class="it"><div class="ico">${ic(i)}</div><div style="flex:1"><div class="b">${n}</div>${d?`<div class="small muted">${d}</div>`:''}</div><span style="width:18px;height:18px;color:#9AA0B4">${ic('chev')}</span></div>`).join('')}</div>`,{tab:'Me'}),
+ 'Memberships (with QR and renew), bookings, store orders, payments, addresses and settings.'),
+cell(12,'Store',phone(`
+ ${backbar('BGYM Store',ibtn('cart',2))}
+ <div class="search">${ic('search')}Search protein, creatine, dumbbells…</div>
+ <div class="chips"><div class="chip on">All</div><div class="chip">Supplements</div><div class="chip">Apparel</div><div class="chip">Equipment</div></div>
+ <div class="card" style="background:linear-gradient(120deg,#231B5E,#0D1028);color:#fff;border:0"><div class="small" style="color:var(--ember);font-weight:700">THIS WEEK</div><div class="b" style="font-size:17px">15% off whey protein</div><div class="small" style="opacity:.7">Delivered across Accra</div></div>
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['Whey Protein 2kg','780'],['Creatine 300g','260'],['Dumbbell pair 10kg','450'],['BGYM training tee','150']].map(([n,p])=>`
+ <div class="card prod" style="padding:8px"><div class="ph">Product</div><div class="b small" style="margin-top:7px;font-size:13px">${n}</div><div class="between" style="margin-top:4px"><span class="b fl">GH₵ ${p}</span><span style="width:26px;height:26px;border-radius:8px;background:var(--mid);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">+</span></div></div>`).join('')}</div>`),
+ 'Platform store: products listed by the partner and by admin. Reachable from Home, from any gym page, and from the cart icon.'),
+cell(13,'Store checkout · delivery',phone(`
+ ${backbar('Delivery')}
+ <div class="map" style="height:250px"><div class="pin" style="left:150px;top:96px;width:34px;height:34px"></div><div style="position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:#fff;border-radius:99px;padding:6px 12px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)">Drag the map to place the pin</div></div>
+ <div class="card"><div class="b">Spintex Road, near Shell</div><div class="small muted">Landmark: blue gate opposite the pharmacy</div><div class="small muted">Contact: 024 123 4567</div></div>
+ <div class="card between"><div style="display:flex;gap:10px;align-items:center"><div class="ico">${ic('truck')}</div><div><div class="b">Courier delivery</div><div class="small muted">About 45 min after dispatch</div></div></div><div class="b">GH₵ 35</div></div>
+ <div class="card small" style="display:flex;flex-direction:column;gap:5px"><div class="between"><span class="muted">Items (2)</span><span>GH₵ 1,040</span></div><div class="between"><span class="muted">Delivery</span><span>GH₵ 35</span></div><div class="between b" style="font-size:15px"><span>Total</span><span>GH₵ 1,075</span></div></div>
+ <div class="btn" style="margin-top:auto">Pay GH₵ 1,075</div>`),
+ 'Live location or a dropped pin, plus landmark and phone. The delivery fee is quoted by the courier API; the order is confirmed only after payment.'),
+];
+
+// ================= BOARD 3: gym dashboard =================
+const navItems=[['chart','Overview',1],['users','Members'],['scan','Check-in'],['cash','Plans'],['post','Feed'],['dumbbell','Trainers'],['card','Revenue'],['gear','Settings']];
+const desktop=`<div style="width:1280px;height:800px;border-radius:18px;overflow:hidden;background:var(--cloud);display:flex;box-shadow:0 24px 50px rgba(13,16,40,.22);border:1px solid var(--line)">
+ <div style="width:232px;background:var(--mid);color:#C9CDE0;padding:22px 16px;display:flex;flex-direction:column;gap:4px">
+  <img src="${LOGO}bgym-lockup-on-dark.svg" style="height:34px;margin:0 6px 22px;align-self:flex-start">
+  ${navItems.map(([i,n,on])=>`<div style="display:flex;gap:11px;align-items:center;padding:10px 12px;border-radius:12px;font-weight:600;${on?'background:rgba(255,90,31,.15);color:#fff':''}"><span style="width:20px;height:20px;display:inline-block;color:${on?'#FF5A1F':'#8A90B0'}">${ic(i)}</span>${n}</div>`).join('')}
+  <div style="margin-top:auto;background:rgba(255,255,255,.06);border-radius:14px;padding:12px;font-size:13px"><div class="b" style="color:#fff">Iron Haven Fitness</div>East Legon · Owner</div></div>
+ <div style="flex:1;padding:26px 30px;display:flex;flex-direction:column;gap:20px">
+  <div class="between"><div><div style="font-size:26px;font-weight:800">Good morning, Kofi</div><div class="muted">Thursday, 13 November</div></div>
+   <div style="display:flex;gap:10px"><div class="search" style="width:260px">${ic('search')}Search members…</div><div class="btn" style="height:44px;padding:0 18px;font-size:14px;gap:8px"><span style="width:18px;height:18px;display:inline-block">${ic('scan','#fff')}</span>Scan check-in</div></div></div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+   ${[['Active members','248','+12 this week','g'],['New this month','31','+18% vs October','g'],['Expiring in 7 days','19','Send reminder','o'],['Revenue this month','GH₵ 64,200','After platform fee','v']].map(([l,n,d,c])=>`<div class="stat"><div class="muted small b">${l}</div><div class="n">${n}</div><div class="d"><span class="pill ${c}">${d}</span></div></div>`).join('')}</div>
+  <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:16px;flex:1;min-height:0">
+   <div class="stat" style="display:flex;flex-direction:column"><div class="between"><div class="b" style="font-size:16px">Check-ins this week</div><div class="seg" style="width:180px"><div class="on">Week</div><div>Month</div></div></div>
+    <div style="flex:1;display:flex;align-items:flex-end;gap:22px;padding:18px 10px 0;border-bottom:1px solid var(--line)">${[62,80,74,95,88,120,54].map((v,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><div class="small b">${v}</div><div style="width:100%;height:${v*1.55}px;border-radius:8px 8px 0 0;background:${i===5?'var(--flare)':'#D9DCEA'}"></div></div>`).join('')}</div>
+    <div style="display:flex;gap:22px;padding:8px 10px 0" class="small muted">${['Fri','Sat','Sun','Mon','Tue','Wed','Thu'].map(d=>`<div style="flex:1;text-align:center">${d}</div>`).join('')}</div></div>
+   <div class="stat"><div class="between"><div class="b" style="font-size:16px">Expiring soon</div><span class="small fl b">Remind all</span></div>
+    <div class="list">${[['Ama Owusu','Monthly · 2 days'],['Kojo Darko','Quarterly · 3 days'],['Abena Ofori','Monthly · 5 days'],['Selorm Agbeko','Monthly · 6 days']].map(([n,d])=>`<div class="it"><div class="av" style="width:34px;height:34px"></div><div style="flex:1"><div class="b">${n}</div><div class="small muted">${d}</div></div><span class="pill o">Remind</span></div>`).join('')}</div></div></div>
+  <div class="stat" style="padding:6px 6px 0"><table><tr><th>Member</th><th>Plan</th><th>Paid via</th><th>Amount</th><th>Date</th><th>Status</th></tr>
+   ${[['Nana Yeboah','Monthly','MTN MoMo','GH₵ 350','Today, 08:12','Active','g'],['Esi Quaye','Day pass','Telecel Cash','GH₵ 40','Today, 07:40','Active','g'],['Kwesi Appiah','Quarterly','Card','GH₵ 950','Yesterday','Active','g']].map(r=>`<tr>${r.slice(0,5).map(c=>`<td>${c}</td>`).join('')}<td><span class="pill ${r[6]}">${r[5]}</span></td></tr>`).join('')}</table></div>
+ </div></div>`;
+const scanner=phone(`
+ ${backbar('Check-in')}
+ <div style="height:330px;border-radius:20px;background:#1B1F33;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center">
+  <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,#3A3F58,#14172A 70%)"></div>
+  <div style="position:relative;width:190px;height:190px;border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.35)"><div style="position:absolute;inset:0;border:4px solid var(--flare);border-radius:18px;clip-path:polygon(0 0,30% 0,30% 4px,4px 4px,4px 30%,0 30%,0 70%,4px 70%,4px calc(100% - 4px),30% calc(100% - 4px),30% 100%,70% 100%,70% calc(100% - 4px),calc(100% - 4px) calc(100% - 4px),calc(100% - 4px) 70%,100% 70%,100% 30%,calc(100% - 4px) 30%,calc(100% - 4px) 4px,70% 4px,70% 0,100% 0,100% 100%,0 100%)"></div>
+  <div style="position:absolute;left:10px;right:10px;top:50%;height:2px;background:var(--flare);box-shadow:0 0 12px var(--flare)"></div></div>
+  <div style="position:absolute;bottom:12px;color:#fff;font-size:13px;opacity:.8">Point the camera at the member's QR</div></div>
+ <div class="card" style="border:2px solid var(--ok);display:flex;gap:12px;align-items:center"><div style="width:46px;height:46px;border-radius:50%;background:#E7F7EC;display:flex;align-items:center;justify-content:center;flex:none">${ic('check','#16A34A',2.6)}</div>
+  <div style="flex:1"><div class="b" style="color:var(--ok);font-size:16px">Valid membership</div><div class="b">Ama Owusu</div><div class="small muted">Monthly · until 12 Dec · visit #14</div></div><div class="av" style="width:46px;height:46px"></div></div>
+ <div class="card small" style="display:flex;gap:8px;align-items:center;color:var(--mute)"><span class="pill r">Invalid</span>Expired, wrong gym, or an old code shows red with the reason.</div>
+ <div class="btn ghost" style="margin-top:auto">Look up by phone number</div>`);
+
+document.getElementById('app').innerHTML=`
+<section class="board" id="board1"><h1><b>BGYM</b> · Get started & join a gym</h1><p class="sub">Member app · wireframes v1 · sign-up → find gyms nearby → pick a plan → pay with MoMo → QR membership</p><div class="row">${b1.join('')}</div></section>
+<section class="board" id="board2"><h1><b>BGYM</b> · Everyday app & store</h1><p class="sub">Member app · the five tabs (Home, Workouts, Gyms, Trainers, Me), trainer booking and the store</p><div class="row">${b2.join('')}</div></section>
+<section class="board" id="board3"><h1><b>BGYM</b> · Gym dashboard</h1><p class="sub">Responsive web app for gym owners and staff · desktop overview and the front-desk scanner on a phone</p>
+<div class="row"><div><div class="cell" style="width:auto"><div class="lab"><span>14</span>Overview · desktop</div></div>${desktop}<div class="note" style="font-size:13.5px;color:var(--mute);margin-top:12px;max-width:1200px">Members, expiring list with one-tap reminders, check-in stats, and payments split automatically through Paystack (the gym receives its share after the platform fee; the fee % is still to be decided).</div></div>
+${cell(15,'Front-desk scanner · phone',scanner,'The same web dashboard on a phone uses the camera to scan member QR codes: instant green or red result, logged as a check-in.')}</div></section>`;
+</script>
+</body>
+</html>

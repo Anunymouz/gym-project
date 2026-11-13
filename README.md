@@ -32,3 +32,7 @@ A fitness marketplace for Ghana, starting in Accra. Members find partner gyms ne
 ## Brand
 
 Logo, app icon, colours and typography: [brand/](brand/README.md). The earlier Orbyt kit is archived in `brand/archive/orbyt/`.
+
+## Design
+
+Wireframes v1 (member app + gym dashboard): [design/wireframes/](design/wireframes/README.md)
