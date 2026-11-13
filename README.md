@@ -28,4 +28,6 @@ A fitness marketplace for Ghana, starting in Accra. Members find partner gyms ne
 8. [Decisions & open questions](docs/08-decisions-and-open-questions.md)
 9. [Name check: Orbyt](docs/09-name-check-orbyt.md)
 
+## Brand
 
+Logo, app icon, colours and typography: [brand/](brand/README.md)
