@@ -19,6 +19,7 @@ body{margin:0;font-family:Outfit,system-ui,sans-serif;color:var(--mid);backgroun
 .row{display:flex;gap:34px;align-items:flex-start}
 .cell{width:360px}.cell .lab{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:0 0 10px}
 .cell .lab span{display:inline-block;background:var(--mid);color:#fff;border-radius:6px;padding:1px 7px;margin-right:6px}
+.cell .note code{background:#E2E5EF;border-radius:5px;padding:1px 5px;font-size:12.5px}
 .cell .note{font-size:13.5px;color:var(--mute);line-height:1.45;margin-top:12px}
 /* phone */
 .phone{width:360px;height:760px;border-radius:46px;background:#0B0D1C;padding:10px;box-shadow:0 24px 50px rgba(13,16,40,.28)}
@@ -102,19 +103,49 @@ function qr(){let s=7,h='';const rnd=()=>(s=(s*9301+49297)%233280)/233280;const 
  for(let r=0;r<21;r++)for(let c=0;c<21;c++){const f=finder(r,c);h+=`<i class="${(f===1||(f===-1&&rnd()>.52))?'k':''}"></i>`;}return `<div class="qr">${h}</div>`;}
 
 // ================= BOARD 1: get started & join a gym =================
+const DARKBG='radial-gradient(circle at 50% 30%,rgba(255,90,31,.28),transparent 45%),linear-gradient(160deg,#231B5E,#0D1028 60%)';
+const frame=(inner)=>`<div style="flex:1;height:118px;border-radius:14px;background:${DARKBG};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;overflow:hidden">${inner}</div>`;
+const splashFrames=`<div style="display:flex;gap:8px;margin-top:12px">
+ ${frame('<div style="width:12px;height:12px;border-radius:50%;background:var(--flare);box-shadow:0 0 16px var(--flare)"></div>')}
+ ${frame(`<img src="${LOGO}bgym-mark-on-dark.svg" style="width:52px;opacity:.45;transform:scale(.8)">`)}
+ ${frame(`<img src="${LOGO}bgym-mark-on-dark.svg" style="width:60px">`)}
+ ${frame(`<img src="${LOGO}bgym-mark-on-dark.svg" style="width:52px"><img src="${LOGO}bgym-wordmark-on-dark.svg" style="height:12px">`)}</div>
+ <div style="display:flex;gap:8px;font-size:11px;font-weight:700;color:var(--mute);margin-top:5px"><span style="flex:1;text-align:center">0.0s</span><span style="flex:1;text-align:center">0.4s</span><span style="flex:1;text-align:center">0.9s</span><span style="flex:1;text-align:center">1.4s</span></div>`;
+const gIcon=`<span style="width:22px;height:22px;border-radius:50%;background:#fff;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;background:conic-gradient(from -45deg,#EA4335 0 25%,#4285F4 0 50%,#34A853 0 75%,#FBBC05 0);-webkit-background-clip:text;color:transparent">G</span>`;
+const aIcon=`<svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M16.4 12.6c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.9-3-.8C7 7.3 5.6 8.2 4.8 9.6c-1.6 2.8-.4 6.9 1.1 9.2.8 1.1 1.7 2.3 2.9 2.3 1.1 0 1.6-.7 3-.7s1.8.7 3 .7c1.2 0 2-1.1 2.8-2.2.9-1.3 1.2-2.5 1.2-2.6 0 0-2.4-.9-2.4-3.7zM14.2 5.6c.6-.8 1.1-1.8.9-2.8-.9 0-2 .6-2.6 1.4-.6.7-1.1 1.7-.9 2.7 1 .1 2-.5 2.6-1.3z"/></svg>`;
+const storeBar=`<div style="position:absolute;left:14px;right:14px;bottom:82px;background:var(--mid);color:#fff;border-radius:18px;padding:11px 12px;display:flex;align-items:center;gap:11px;box-shadow:0 10px 24px rgba(13,16,40,.35)">
+ <div style="width:38px;height:38px;border-radius:12px;background:var(--flare);display:flex;align-items:center;justify-content:center;flex:none">${ic('bag','#fff')}</div>
+ <div style="flex:1"><div class="b">BGYM Store</div><div class="small" style="opacity:.7">Supplements, apparel & equipment</div></div>
+ <div class="chip" style="background:#fff;border:0;color:var(--mid)">Shop →</div></div>`;
+const storePill=`<div style="position:absolute;right:14px;top:12px;background:#fff;border-radius:99px;padding:8px 13px 8px 10px;display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.15)"><span style="width:18px;height:18px;display:inline-block">${ic('bag','#FF5A1F')}</span>Store</div>`;
 const b1=[
-cell(1,'Welcome & sign-up',phone(`
+cell(1,'Splash · animated logo',phone(`
  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;color:#fff;gap:10px">
-  <img src="${LOGO}bgym-mark-on-dark.svg" style="width:170px">
-  <img src="${LOGO}bgym-wordmark-on-dark.svg" style="height:40px;margin-top:6px">
+  <img src="${LOGO}bgym-mark-on-dark.svg" style="width:190px">
+  <img src="${LOGO}bgym-wordmark-on-dark.svg" style="height:44px;margin-top:8px">
   <div style="opacity:.75;font-size:16px">Be my gym buddy.</div></div>
- <div style="background:#fff;border-radius:24px;padding:18px;display:flex;flex-direction:column;gap:12px;margin:0 -4px 6px">
-  <div class="b" style="font-size:18px">Enter your phone number</div>
-  <div style="display:flex;gap:8px"><div class="search" style="color:var(--mid);font-weight:600;width:96px">+233</div><div class="search" style="flex:1;color:var(--mid);font-weight:600">24 123 4567</div></div>
-  <div class="btn">Send code</div><div class="small muted" style="text-align:center">We'll text you a 6-digit code. Standard SMS rates apply.</div></div>`,
- {dark:1,bg:'radial-gradient(circle at 50% 22%,rgba(255,90,31,.28),transparent 45%),linear-gradient(160deg,#231B5E,#0D1028 60%)'}),
- 'Phone + SMS code login (no password). After the code: name, optional photo and fitness goal.'),
-cell(2,'Location & radius',phone(`
+ <div style="display:flex;justify-content:center;gap:6px;margin-bottom:34px">${[1,.5,.25].map(o=>`<span style="width:8px;height:8px;border-radius:50%;background:var(--flare);opacity:${o}"></span>`).join('')}</div>`,
+ {dark:1,bg:DARKBG}),
+ `Shown when the app icon is tapped (about 1.6 s): the orange dot appears, the athlete rises in, the orbit ring draws around him, then the wordmark and tagline slide up. Then it fades into sign-in. <b>Animated version: <code>splash.html</code></b>.${splashFrames}`),
+cell(2,'Sign in / sign up',phone(`
+ <div style="text-align:center;margin-top:14px"><img src="${LOGO}bgym-mark.svg" style="width:96px;margin:0 auto"></div>
+ <div style="text-align:center"><div class="b" style="font-size:24px">Welcome to BGYM</div><div class="muted">Sign in or create your account</div></div>
+ <div class="btn" style="background:#000;gap:10px">${aIcon}Continue with Apple</div>
+ <div class="btn ghost" style="gap:10px">${gIcon}Continue with Google</div>
+ <div style="display:flex;align-items:center;gap:10px;color:var(--mute);font-size:13px"><span style="flex:1;height:1px;background:var(--line)"></span>or<span style="flex:1;height:1px;background:var(--line)"></span></div>
+ <div><div class="small b" style="margin-bottom:6px">Email</div><div class="search" style="color:var(--mid);font-weight:600">ama@example.com</div></div>
+ <div class="btn">Continue with email</div>
+ <div class="small muted" style="text-align:center;margin-top:auto;margin-bottom:6px">By continuing you agree to the Terms and Privacy Policy.</div>`),
+ 'One screen for both sign-in and sign-up. Apple, Google, or email with a one-time code (no passwords). Apple sign-in is required by the App Store when Google sign-in is offered.'),
+cell(3,'Email code',phone(`
+ ${backbar('')}
+ <div style="width:58px;height:58px;border-radius:18px;background:#FFF0EA;display:flex;align-items:center;justify-content:center;margin-top:10px"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#FF5A1F" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></div>
+ <div><div class="b" style="font-size:24px">Check your email</div><div class="muted" style="margin-top:4px">We sent a 6-digit code to <span class="b" style="color:var(--mid)">ama@example.com</span></div></div>
+ <div style="display:flex;gap:8px">${['4','8','2','1','',''].map((d,i)=>`<div style="flex:1;height:58px;border-radius:14px;background:#fff;border:${i===4?'2px solid var(--flare)':'1.5px solid var(--line)'};display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800">${d}</div>`).join('')}</div>
+ <div class="small muted">Didn't get it? <span class="b">Resend in 0:42</span> · check your spam folder</div>
+ <div class="btn" style="margin-top:auto">Verify</div><div class="small muted" style="text-align:center;margin-bottom:6px">Wrong email? <span class="b fl">Change it</span></div>`),
+ 'The code expires after 10 minutes. New users then add their name, optional photo and fitness goal before location.'),
+cell(4,'Location & radius',phone(`
  ${backbar('Find gyms near you')}
  <div class="map" style="height:330px">
   <div class="radius" style="left:40px;top:45px;width:240px;height:240px"></div><div class="me" style="left:152px;top:157px"></div>
@@ -124,27 +155,28 @@ cell(2,'Location & radius',phone(`
  <div><div class="b" style="margin-bottom:8px">Search radius</div><div class="chips">${['1 km','3 km','5 km','10 km','20 km'].map(k=>`<div class="chip ${k==='5 km'?'on':''}">${k}</div>`).join('')}</div></div>
  <div class="btn" style="margin-top:auto">Show 12 gyms within 5 km</div>`),
  'Asks for location permission; if denied, the user searches an area or drops a pin. Orange pins are inside the radius.'),
-cell(3,'Gyms tab',phone(`
- ${topbar('Gyms',ibtn('cart',2))}
+cell(5,'Gyms tab · with Store',phone(`
+ ${topbar('Gyms',ibtn('bell',3))}
  <div class="search">${ic('search')}Search gyms, areas…</div>
  <div class="between"><div class="seg" style="width:150px"><div class="on">List</div><div>Map</div></div><div class="chip">${'Within 5 km'} ▾</div></div>
  <div class="chips"><div class="chip fl">Open now</div><div class="chip">Price</div><div class="chip">AC</div><div class="chip">Women-only</div></div>
  ${[['Iron Haven Fitness','East Legon','1.2 km','4.8','250'],['Pulse Studio','Airport Residential','3.4 km','4.6','300']].map(([n,a,d,r,p])=>`
- <div class="card" style="padding:0;overflow:hidden"><div class="ph" style="height:118px;border-radius:0">Gym photo</div>
+ <div class="card" style="padding:0;overflow:hidden;flex:none"><div class="ph" style="height:110px;border-radius:0">Gym photo</div>
   <div style="padding:11px 12px"><div class="between"><div class="b" style="font-size:16px">${n}</div><div class="small b" style="display:flex;gap:3px;align-items:center;color:#F59E0B"><span style="width:14px;height:14px;display:inline-block">${ic('star')}</span>${r}</div></div>
   <div class="small muted" style="margin-top:3px">${a} · ${d} · Open till 10pm</div>
-  <div style="margin-top:6px">from <span class="b fl">GH₵ ${p}</span><span class="small muted"> /month</span></div></div></div>`).join('')}`,{tab:'Gyms'}),
- 'List and map views, sorted by distance. Filters: price, facilities, open now, women-only.'),
-cell(4,'Gym page · plans',phone(`
- <div class="ph" style="height:150px;margin:-4px -16px 0;border-radius:0;position:relative">Cover photo / video<div class="ib" style="position:absolute;left:14px;top:12px">${ic('back')}</div></div>
+  <div style="margin-top:6px">from <span class="b fl">GH₵ ${p}</span><span class="small muted"> /month</span></div></div></div>`).join('')}
+ ${storeBar}`,{tab:'Gyms'}),
+ 'The <b>BGYM Store</b> bar floats at the bottom, above the tabs, so anyone can shop without joining a gym. It stays visible while the gym list scrolls.'),
+cell(6,'Gym page · Store at top',phone(`
+ <div class="ph" style="height:150px;margin:-4px -16px 0;border-radius:0;position:relative">Cover photo / video<div class="ib" style="position:absolute;left:14px;top:12px">${ic('back')}</div>${storePill}</div>
  <div><div class="b" style="font-size:21px">Iron Haven Fitness</div><div class="small muted">East Legon · 1.2 km · Open 5am–10pm · ★ 4.8 (212)</div></div>
  <div class="seg"><div>Feed</div><div class="on">Plans</div><div>Trainers</div><div>Info</div></div>
  ${[['Day pass','1 day access','40',0],['Monthly','Unlimited access · 30 days','350',1],['Quarterly','90 days · save 10%','950',0]].map(([n,d,p,pop])=>`
  <div class="card between" style="${pop?'border:2px solid var(--flare)':''}"><div><div class="b">${n} ${pop?'<span class="pill o" style="margin-left:4px">Popular</span>':''}</div><div class="small muted">${d}</div></div><div class="b" style="font-size:17px">GH₵ ${p}</div></div>`).join('')}
  <div class="chips"><div class="chip">AC</div><div class="chip">Showers</div><div class="chip">Parking</div><div class="chip">Sauna</div></div>
  <div class="btn" style="margin-top:auto">Join · GH₵ 350 / month</div>`),
- 'The gym\'s own space: Feed (its posts), Plans, Trainers, Info (hours, facilities, map, directions).'),
-cell(5,'Checkout',phone(`
+ 'A <b>Store</b> button sits at the top of every gym\'s space and opens the BGYM Store (the store belongs to BGYM, not the gym).'),
+cell(7,'Checkout',phone(`
  ${backbar('Checkout')}
  <div class="card"><div class="small muted">Membership</div><div class="between" style="margin-top:4px"><div class="b" style="font-size:16px">Iron Haven · Monthly</div><div class="b">GH₵ 350</div></div>
   <div class="between small" style="margin-top:10px"><span class="muted">Starts</span><span class="b">Today, 13 Nov</span></div><div class="between small" style="margin-top:4px"><span class="muted">Ends</span><span class="b">12 Dec 2026</span></div></div>
@@ -155,7 +187,7 @@ cell(5,'Checkout',phone(`
  <div style="margin-top:auto" class="between"><span class="muted">Total</span><span class="b" style="font-size:20px">GH₵ 350.00</span></div>
  <div class="btn">Pay GH₵ 350</div><div class="small muted" style="text-align:center">🔒 Secured by Paystack · approve the prompt on your phone</div>`),
  'Mobile Money first. MoMo shows a PIN prompt on the phone; card users can opt into auto-renew.'),
-cell(6,'Membership & QR',phone(`
+cell(8,'Membership & QR',phone(`
  <div style="text-align:center;margin-top:6px"><div style="width:54px;height:54px;border-radius:50%;background:#E7F7EC;margin:0 auto;display:flex;align-items:center;justify-content:center">${ic('check','#16A34A',2.6)}</div>
  <div class="b" style="font-size:22px;margin-top:10px">You're in!</div><div class="muted">Welcome to Iron Haven Fitness</div></div>
  <div class="card" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px">${qr()}
@@ -167,7 +199,7 @@ cell(6,'Membership & QR',phone(`
 
 // ================= BOARD 2: everyday app =================
 const b2=[
-cell(7,'Home feed',phone(`
+cell(9,'Home feed',phone(`
  <div class="between"><img src="${LOGO}bgym-lockup.svg" style="height:30px"><div class="icons">${ibtn('bell',3)}${ibtn('cart',2)}</div></div>
  <div style="display:flex;gap:12px">${['Iron Haven','Pulse Studio','Legon Strength'].map((n,i)=>`<div style="text-align:center;font-size:11px;font-weight:600;width:66px"><div class="av" style="width:58px;height:58px;margin:0 auto 4px;box-shadow:0 0 0 2.5px #fff,0 0 0 4.5px ${i<2?'var(--flare)':'#C9CDE0'}"></div>${n}</div>`).join('')}</div>
  <div class="card" style="padding:0;overflow:hidden">
@@ -177,7 +209,7 @@ cell(7,'Home feed',phone(`
   <div class="small muted" style="display:flex;gap:6px;align-items:center;margin-top:8px"><span style="width:16px;height:16px;display:inline-block">${ic('heart','#FF5A1F')}</span>128 likes</div></div></div>
  <div class="card" style="background:var(--mid);color:#fff;display:flex;justify-content:space-between;align-items:center;border:0"><div><div class="b">BGYM Store</div><div class="small" style="opacity:.75">15% off whey protein this week</div></div><div class="chip" style="background:var(--flare);border:0;color:#fff">Shop</div></div>`,{tab:'Home'}),
  'Posts only from gyms the member belongs to. Store shortcut sits in the header and in a feed banner.'),
-cell(8,'Workouts',phone(`
+cell(10,'Workouts',phone(`
  ${topbar('Workouts',ibtn('search'))}
  <div class="chips"><div class="chip on">All</div><div class="chip">Strength</div><div class="chip">Cardio</div><div class="chip">Mobility</div><div class="chip">Abs</div></div>
  <div class="card" style="padding:0;overflow:hidden;position:relative"><div class="ph" style="height:140px;border-radius:0">Exercise animation</div>
@@ -186,14 +218,14 @@ cell(8,'Workouts',phone(`
  <div class="card" style="display:flex;gap:12px;align-items:center;position:relative"><div class="ph" style="width:76px;height:64px;flex:none">GIF</div><div><div class="b">${n}</div><div class="small muted">${d}</div></div><div class="lock" style="top:8px;right:8px">${ic('lock')}</div></div>`).join('')}
  <div class="card" style="background:#FFF0EA;border-color:#FFD5C4;display:flex;gap:10px;align-items:center"><div class="ico" style="background:#fff">${ic('lock','#FF5A1F')}</div><div class="small"><span class="b">Unlock 200+ workouts</span><br><span class="muted">Join any gym on BGYM to get the full library.</span></div></div>`,{tab:'Workouts'}),
  'A few basic workouts free; any active gym membership unlocks the full licensed animation library.'),
-cell(9,'Trainers',phone(`
+cell(11,'Trainers',phone(`
  ${topbar('Trainers',ibtn('filter'))}
  <div class="search">${ic('search')}Search by name or goal</div>
  <div class="chips"><div class="chip on">My gyms</div><div class="chip">Nearby</div><div class="chip">Weight loss</div><div class="chip">Strength</div></div>
  ${[['Kwame Asante','Iron Haven · Strength, powerlifting','120','4.9'],['Efua Mensah','Pulse Studio · Weight loss, HIIT','100','4.8'],['Yaw Boateng','Legon Strength · Bodybuilding','150','4.7']].map(([n,g,p,r])=>`
  <div class="card" style="display:flex;gap:12px;align-items:center"><div class="av" style="width:58px;height:58px"></div><div style="flex:1"><div class="between"><div class="b">${n}</div><div class="small b" style="color:#F59E0B">★ ${r}</div></div><div class="small muted">${g}</div><div class="small" style="margin-top:4px">from <span class="b fl">GH₵ ${p}</span> / session</div></div></div>`).join('')}`,{tab:'Trainers'}),
  'Trainers at the member\'s gyms first, then nearby. Members can book any trainer, not just their gym\'s.'),
-cell(10,'Trainer profile · booking',phone(`
+cell(12,'Trainer profile · booking',phone(`
  ${backbar('Kwame Asante','<div class="ib">'+ic('heart')+'</div>')}
  <div style="display:flex;gap:12px;align-items:center"><div class="av" style="width:64px;height:64px"></div><div><div class="b" style="font-size:17px">Kwame Asante</div><div class="small muted">Iron Haven · 6 yrs · ★ 4.9 (87)</div><div class="chips" style="margin-top:6px"><div class="chip" style="padding:3px 9px">Strength</div><div class="chip" style="padding:3px 9px">Powerlifting</div></div></div></div>
  <div class="seg"><div class="on">Single session</div><div>Monthly package</div></div>
@@ -202,15 +234,15 @@ cell(10,'Trainer profile · booking',phone(`
  <div class="card small" style="background:#F7F8FB"><span class="b">Monthly package:</span> 8 sessions · GH₵ 850 <span class="muted">(save GH₵ 110)</span></div>
  <div class="btn" style="margin-top:auto">Book Thu 19, 6:00 PM · GH₵ 120</div>`),
  'Two models: a single time slot, or a monthly package with a session balance. Payment goes straight to the trainer.'),
-cell(11,'Me',phone(`
- <div style="display:flex;gap:12px;align-items:center"><div class="av" style="width:58px;height:58px"></div><div style="flex:1"><div class="b" style="font-size:18px">Ama Owusu</div><div class="small muted">024 123 4567 · Goal: build strength</div></div>${ibtn('gear')}</div>
+cell(13,'Me',phone(`
+ <div style="display:flex;gap:12px;align-items:center"><div class="av" style="width:58px;height:58px"></div><div style="flex:1"><div class="b" style="font-size:18px">Ama Owusu</div><div class="small muted">ama@example.com · Goal: build strength</div></div>${ibtn('gear')}</div>
  <div class="b">My memberships</div>
  <div class="card"><div class="between"><div><div class="b">Iron Haven Fitness</div><div class="small muted">Monthly · ends 12 Dec</div></div><span class="pill g">Active</span></div>
   <div style="display:flex;gap:8px;margin-top:10px"><div class="btn dark" style="flex:1;height:40px;font-size:14px;gap:6px"><span style="width:16px;height:16px;display:inline-block">${ic('qr','#fff')}</span>Show QR</div><div class="btn ghost" style="flex:1;height:40px;font-size:14px">Renew</div></div></div>
  <div class="card between"><div><div class="b">Pulse Studio</div><div class="small muted">Day pass · expired 2 Nov</div></div><span class="pill r">Expired</span></div>
  <div class="card list" style="padding:2px 12px">${[['cal','My bookings','1 upcoming'],['bag','My orders','1 on the way'],['card','Payments & receipts',''],['pin','Saved addresses','']].map(([i,n,d])=>`<div class="it"><div class="ico">${ic(i)}</div><div style="flex:1"><div class="b">${n}</div>${d?`<div class="small muted">${d}</div>`:''}</div><span style="width:18px;height:18px;color:#9AA0B4">${ic('chev')}</span></div>`).join('')}</div>`,{tab:'Me'}),
  'Memberships (with QR and renew), bookings, store orders, payments, addresses and settings.'),
-cell(12,'Store',phone(`
+cell(14,'Store',phone(`
  ${backbar('BGYM Store',ibtn('cart',2))}
  <div class="search">${ic('search')}Search protein, creatine, dumbbells…</div>
  <div class="chips"><div class="chip on">All</div><div class="chip">Supplements</div><div class="chip">Apparel</div><div class="chip">Equipment</div></div>
@@ -218,7 +250,7 @@ cell(12,'Store',phone(`
  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['Whey Protein 2kg','780'],['Creatine 300g','260'],['Dumbbell pair 10kg','450'],['BGYM training tee','150']].map(([n,p])=>`
  <div class="card prod" style="padding:8px"><div class="ph">Product</div><div class="b small" style="margin-top:7px;font-size:13px">${n}</div><div class="between" style="margin-top:4px"><span class="b fl">GH₵ ${p}</span><span style="width:26px;height:26px;border-radius:8px;background:var(--mid);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">+</span></div></div>`).join('')}</div>`),
  'Platform store: products listed by the partner and by admin. Reachable from Home, from any gym page, and from the cart icon.'),
-cell(13,'Store checkout · delivery',phone(`
+cell(15,'Store checkout · delivery',phone(`
  ${backbar('Delivery')}
  <div class="map" style="height:250px"><div class="pin" style="left:150px;top:96px;width:34px;height:34px"></div><div style="position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:#fff;border-radius:99px;padding:6px 12px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)">Drag the map to place the pin</div></div>
  <div class="card"><div class="b">Spintex Road, near Shell</div><div class="small muted">Landmark: blue gate opposite the pharmacy</div><div class="small muted">Contact: 024 123 4567</div></div>
@@ -262,11 +294,11 @@ const scanner=phone(`
  <div class="btn ghost" style="margin-top:auto">Look up by phone number</div>`);
 
 document.getElementById('app').innerHTML=`
-<section class="board" id="board1"><h1><b>BGYM</b> · Get started & join a gym</h1><p class="sub">Member app · wireframes v1 · sign-up → find gyms nearby → pick a plan → pay with MoMo → QR membership</p><div class="row">${b1.join('')}</div></section>
+<section class="board" id="board1"><h1><b>BGYM</b> · Get started & join a gym</h1><p class="sub">Member app · wireframes v2 · splash → sign in (Apple, Google, email code) → find gyms nearby → pick a plan → pay with MoMo → QR membership</p><div class="row">${b1.join('')}</div></section>
 <section class="board" id="board2"><h1><b>BGYM</b> · Everyday app & store</h1><p class="sub">Member app · the five tabs (Home, Workouts, Gyms, Trainers, Me), trainer booking and the store</p><div class="row">${b2.join('')}</div></section>
 <section class="board" id="board3"><h1><b>BGYM</b> · Gym dashboard</h1><p class="sub">Responsive web app for gym owners and staff · desktop overview and the front-desk scanner on a phone</p>
-<div class="row"><div><div class="cell" style="width:auto"><div class="lab"><span>14</span>Overview · desktop</div></div>${desktop}<div class="note" style="font-size:13.5px;color:var(--mute);margin-top:12px;max-width:1200px">Members, expiring list with one-tap reminders, check-in stats, and payments split automatically through Paystack (the gym receives its share after the platform fee; the fee % is still to be decided).</div></div>
-${cell(15,'Front-desk scanner · phone',scanner,'The same web dashboard on a phone uses the camera to scan member QR codes: instant green or red result, logged as a check-in.')}</div></section>`;
+<div class="row"><div><div class="cell" style="width:auto"><div class="lab"><span>16</span>Overview · desktop</div></div>${desktop}<div class="note" style="font-size:13.5px;color:var(--mute);margin-top:12px;max-width:1200px">Members, expiring list with one-tap reminders, check-in stats, and payments split automatically through Paystack (the gym receives its share after the platform fee; the fee % is still to be decided).</div></div>
+${cell(17,'Front-desk scanner · phone',scanner,'The same web dashboard on a phone uses the camera to scan member QR codes: instant green or red result, logged as a check-in.')}</div></section>`;
 </script>
 </body>
 </html>

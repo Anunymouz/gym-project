@@ -25,6 +25,9 @@
 | D19 | An active membership at **any** gym unlocks the full Workouts library. |
 | D20 | ~~Product name Orbyt~~, superseded by D21. |
 | D21 | Product name is **BGYM**, short for "Be my Gym buddy". Logo: muscled athlete raising dumbbells inside a tilted orbit ring (see `brand/`). |
+| D22 | Member sign-in: Apple, Google, or email + one-time code. No phone-number verification. |
+| D23 | App opens with an animated BGYM splash screen, then sign-in. |
+| D24 | Store entry points: floating Store bar on the Gyms tab, Store button at the top of every gym page, and the Home banner. |
 
 ## Assumptions (please confirm or correct)
 

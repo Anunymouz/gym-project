@@ -26,6 +26,11 @@ All web dashboards must be fully responsive (phone, tablet, laptop, desktop). Th
 - Empty state for members with no gyms: prompt to explore the Gyms tab.
 - Entry point to the Store (banner/shortcut).
 
+### 3.0 Splash & sign-in
+- **Splash:** animated BGYM logo (about 1.6 s) when the app opens, then the sign-in screen (or straight to Home if already signed in).
+- **Sign in / sign up (one screen):** Continue with Apple, Continue with Google, or email + 6-digit one-time code. No passwords, no phone verification.
+- New users then add name, optional photo and fitness goal, then location + radius.
+
 ### 3.2 Workouts
 - Library of animated, guided exercises and routines for training at home.
 - **Free tier:** a small set of basic workouts available to everyone.
@@ -57,7 +62,8 @@ All web dashboards must be fully responsive (phone, tablet, laptop, desktop). Th
 - **My orders:** store orders and delivery tracking.
 - Payment history & receipts, saved delivery addresses, notifications, settings, support, logout.
 
-### 3.6 Store (reachable from Home and from inside any gym page)
+### 3.6 Store (owned by BGYM, separate from gyms)
+- **Entry points:** a floating **BGYM Store** bar at the bottom of the Gyms tab (so people can shop without joining a gym), a **Store** button at the top of every gym page, and the Home feed banner.
 - Categories: supplements, apparel, equipment, accessories.
 - Product page, cart, checkout with **map-pinned delivery location** (live location or drag pin) + contact phone + notes.
 - Delivery fee quoted at checkout; pay via Paystack; order tracking.
@@ -95,8 +101,9 @@ All web dashboards must be fully responsive (phone, tablet, laptop, desktop). Th
 - Platform analytics: signups, active members, GMV, revenue by stream.
 
 ## 8. Cross-cutting requirements
-- **Auth:** phone number + SMS OTP for members; email/phone + password (+OTP) for dashboards.
-- **Notifications:** push (app), SMS for critical items (payment receipt, expiry reminders), in-app.
+- **Auth (members):** Sign in with Apple, Sign in with Google, or email + one-time code. Phone number is optional profile data (used for MoMo and delivery), not a login method.
+- **Auth (dashboards):** email + password with email one-time code (2FA) for gym, trainer, partner and admin accounts.
+- **Notifications:** push (app), email (receipts, codes, expiry reminders), in-app; SMS optional later for critical reminders.
 - **Receipts:** every payment produces a receipt (in-app, downloadable PDF later).
 - **Performance on low bandwidth:** compressed images, adaptive video streaming, caching.
 - **Data protection:** comply with Ghana's Data Protection Act, 2012 (Act 843); privacy policy & terms.

@@ -4,8 +4,8 @@ Phases are ordered so we can launch a paying product early, then layer on.
 
 ## Phase 0 — Foundations
 - BGYM brand kit done (v1); BGYM name availability check, domain + social handles, trademark filing (name and logo); design system, app & dashboard wireframes.
-- Monorepo, CI, environments, database, auth (phone OTP).
-- Business setup: Paystack account (+ confirm subaccount/MoMo details), Yango Delivery business contact, exercise-library licence, SMS provider.
+- Monorepo, CI, environments, database, auth (Apple, Google, email one-time code).
+- Business setup: Paystack account (+ confirm subaccount/MoMo details), Yango Delivery business contact, exercise-library licence, email provider, Apple & Google sign-in setup.
 
 ## Phase 1 — MVP: Gyms & memberships
 - Member: onboarding, location + radius search, gym page, buy membership (MoMo/card), receipt, QR, My memberships, renewal reminders.

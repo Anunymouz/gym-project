@@ -14,7 +14,9 @@
 | Payments | **Paystack** (subaccounts, splits, webhooks) | Ghana MoMo + cards |
 | Delivery | **Yango Delivery API** behind a `DeliveryProvider` interface | Auto quote + dispatch |
 | Maps | Google Maps Platform (Maps SDK, Places, Geocoding) | Best Accra coverage |
-| SMS / OTP | Ghanaian SMS provider (e.g. Arkesel, mNotify, Hubtel) — choose on price/deliverability | Local delivery rates |
+| Auth | Sign in with Apple, Google Sign-In, email one-time codes (own implementation or a managed auth service) | No passwords for members; Apple sign-in is required by the App Store when Google is offered |
+| Email | Transactional email provider (e.g. Resend, Postmark, Amazon SES) | Login codes, receipts, reminders |
+| SMS (optional, later) | Ghanaian SMS provider (e.g. Arkesel, mNotify, Hubtel) | Critical reminders only |
 | Push | Expo Notifications (FCM/APNs underneath) | |
 | Exercise content | Licensed exercise library with animations (evaluate commercial licence terms) | Fast and cheap vs producing our own |
 | Monitoring | Sentry (errors), structured logs, uptime checks | |

@@ -3,8 +3,8 @@
 ## Member
 
 ### M1. Sign up / onboarding
-1. Open app → splash → short intro carousel (find gyms, train, shop).
-2. Enter phone number → receive SMS OTP → verify.
+1. Tap the app icon → animated BGYM splash (about 1.6 s) → sign-in screen.
+2. Continue with Apple, Continue with Google, or enter email → receive a 6-digit code by email → verify.
 3. Enter name (+ optional photo, fitness goal).
 4. Request location permission → if denied, pick area on map / search.
 5. Choose search radius → land on Gyms tab with nearby results.
@@ -14,7 +14,7 @@
 2. Tap gym → gym page (photos, plans, trainers, feed preview, directions).
 3. Tap a plan → review (price, duration, start date = today or chosen date).
 4. Pay with Paystack (MoMo prompt on phone, or card).
-5. Webhook confirms payment → membership becomes **active** → receipt + QR shown; push + SMS sent.
+5. Webhook confirms payment → membership becomes **active** → receipt + QR shown; push + email sent.
 6. Gym dashboard shows new member immediately.
 
 ### M3. Gym check-in
@@ -24,7 +24,7 @@
 4. Check-in logged (member sees visit history).
 
 ### M4. Renew membership
-1. Reminders at 7 days, 3 days, 1 day before expiry and on expiry day (push + SMS).
+1. Reminders at 7 days, 3 days, 1 day before expiry and on expiry day (push + email).
 2. Tap Renew → pay → new period starts at old expiry (if not yet lapsed) or today (if lapsed).
 3. Card payers may opt into auto-renew.
 

@@ -36,7 +36,9 @@ erDiagram
 ## 2. Core tables
 
 ### Identity & roles
-- **user** — phone (unique), email, name, avatar_url, status, last_login_at.
+- **user** — email (unique), phone (optional, for MoMo/delivery), name, avatar_url, status, last_login_at.
+- **auth_identity** — user_id, provider (`apple|google|email`), provider_user_id, created_at.
+- **email_otp** — email, code_hash, expires_at, attempts, consumed_at.
 - **member_profile** — user_id, goal, gender, date_of_birth, home_location (geography point), search_radius_km.
 - **gym_staff** — gym_id, user_id, role (`owner|manager|front_desk`).
 - **partner_user** — partner_id, user_id, role.
