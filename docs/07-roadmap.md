@@ -3,7 +3,7 @@
 Phases are ordered so we can launch a paying product early, then layer on.
 
 ## Phase 0 — Foundations
-- Name and brand direction (see decisions doc), design system, app & dashboard wireframes.
+- Brand identity for Orbyt (logo, colours), domain + social handles, trademark filing; design system, app & dashboard wireframes.
 - Monorepo, CI, environments, database, auth (phone OTP).
 - Business setup: Paystack account (+ confirm subaccount/MoMo details), Yango Delivery business contact, exercise-library licence, SMS provider.
 

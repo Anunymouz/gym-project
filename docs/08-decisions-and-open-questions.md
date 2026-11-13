@@ -23,6 +23,7 @@
 | D17 | Members don't need to be a member of a trainer's gym to book that trainer. |
 | D18 | Store is **prepaid only** — payment is taken at checkout and the order is confirmed only after payment succeeds. No cash on delivery. |
 | D19 | An active membership at **any** gym unlocks the full Workouts library. |
+| D20 | Product name is **Orbyt**; app store listing name is **Orbyt Fit**. |
 
 ## Assumptions (please confirm or correct)
 
@@ -41,11 +42,9 @@
 
 ## Naming
 
-We don't have a name yet. Goals for the name: short, easy to say in Ghana and abroad, tells the story (find your gym / strength / community), available as a domain and on app stores, trademark-safe.
+**Decided: Orbyt.** Listed in the app stores as **Orbyt Fit**.
 
-Starting directions to explore:
-- **Rooted in Ghanaian languages:** e.g. *Ahoɔden* (Twi for "strength"), *Nkwa* (Twi for "life") — distinctive and local, with a story to tell.
-- **Descriptive / modern:** names combining *gym, fit, rep, pass, hub* — clear about what the app does.
-- **Access / pass framing:** the app as your key to every gym nearby.
-
-Next step: shortlist ~10 candidates, check domain/app-store/trademark availability, and test with a few target users.
+- **Story:** "Everything that moves you, in your orbit." The app draws a circle around you (location + radius) with the gyms, trainers and gear inside it, and the orbit moves with you wherever you go.
+- **Why not a local name:** we plan to expand beyond Ghana, so the name must work internationally.
+- **Known risk:** a US trademark for ORBYT in the mobile-app class (Axis 80) may require a different name or a coexistence agreement if we enter the US. See [09 — Name check](09-name-check-orbyt.md).
+- **To do:** register the domain (orbyt.fit / orbytfit.com / getorbyt.com), claim the @orbytfit handles, and have a lawyer file the trademark in Ghana.

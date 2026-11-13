@@ -1,4 +1,8 @@
-# Gym Platform (working name — final name TBD)
+# Orbyt
+
+*App store name: **Orbyt Fit***
+
+> Everything that moves you, in your orbit.
 
 A fitness marketplace for Ghana, starting in Accra. Members find partner gyms near them, pay memberships and book personal trainers in-app, follow their gyms' content, train at home with guided workouts, and buy fitness products from our store.
 
@@ -21,5 +25,5 @@ A fitness marketplace for Ghana, starting in Accra. Members find partner gyms ne
 5. [Data model](docs/05-data-model.md) — core entities and relationships
 6. [Architecture & tech stack](docs/06-architecture.md)
 7. [Roadmap](docs/07-roadmap.md) — phases and MVP scope
-8. [Decisions & open questions](docs/08-decisions-and-open-questions.md) — includes naming
+8. [Decisions & open questions](docs/08-decisions-and-open-questions.md)
 9. [Name check: Orbyt](docs/09-name-check-orbyt.md)

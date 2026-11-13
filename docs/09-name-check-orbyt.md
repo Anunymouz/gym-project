@@ -17,6 +17,9 @@
 | Domains | orbyt.com: no site surfaced, likely registered or parked. Other candidates: orbyt.fit, orbytfit.com, getorbyt.com, orbyt.app, orbyt.co. | Unknown: check on a registrar |
 | Ghana trademark | No online search done; Ghana's register isn't searchable this way. | Unknown: lawyer search needed |
 
+## Decision
+**Adopted (2026-11-13):** brand **Orbyt**, app store name **Orbyt Fit**.
+
 ## Verdict
 **Orbyt is usable in Ghana and Africa with a fitness qualifier, but the plain word is crowded, and a registered or pending US mark in the mobile-app class blocks clean US expansion.**
 
