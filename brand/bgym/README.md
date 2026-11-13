@@ -8,3 +8,12 @@
 2. **The Buddies** (`svg/bgym-buddies-*`): two figures whose bodies close one circle together.
 
 Wordmark: Outfit ExtraBold, all caps, with the **B** always in Flare orange.
+
+## Round 2: the muscled athlete
+
+![BGYM round 2](preview/bgym-logo-round2.png)
+
+A muscled athlete in a double-biceps pose raising orange dumbbells, with a thin orbit around him.
+
+- **A — Orbit Ring** (`svg/bgym-muscle-waist-*`): the orbit is tilted around his waist like a planet ring, with the orange dot travelling on it.
+- **B — Orbit Badge** (`svg/bgym-muscle-round-*`): a thin open orbit circle frames him, with the orange dot in the gap.
