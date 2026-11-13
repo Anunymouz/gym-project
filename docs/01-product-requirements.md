@@ -63,7 +63,7 @@ All web dashboards must be fully responsive (phone, tablet, laptop, desktop). Th
 - Payment history & receipts, saved delivery addresses, notifications, settings, support, logout.
 
 ### 3.6 Store (owned by BGYM, separate from gyms)
-- **Entry points:** a floating **BGYM Store** bar at the bottom of the Gyms tab (so people can shop without joining a gym), a **Store** button at the top of every gym page, and the Home feed banner.
+- **Entry points:** a **Go to the BGYM Store** option on the location & radius step right after sign-in (shopping never requires joining a gym), a floating **BGYM Store** bar at the bottom of the Gyms tab (so people can shop without joining a gym), a **Store** button at the top of every gym page, and the Home feed banner.
 - Categories: supplements, apparel, equipment, accessories.
 - Product page, cart, checkout with **map-pinned delivery location** (live location or drag pin) + contact phone + notes.
 - Delivery fee quoted at checkout; pay via Paystack; order tracking.

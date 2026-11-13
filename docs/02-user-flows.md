@@ -7,7 +7,7 @@
 2. Continue with Apple, Continue with Google, or enter email → receive a 6-digit code by email → verify.
 3. Enter name (+ optional photo, fitness goal).
 4. Request location permission → if denied, pick area on map / search.
-5. Choose search radius → land on Gyms tab with nearby results.
+5. Choose search radius → land on Gyms tab with nearby results. Or tap **Go to the BGYM Store** to shop without joining a gym (see M8).
 
 ### M2. Find and join a gym
 1. Gyms tab → list/map of gyms within radius → apply filters.

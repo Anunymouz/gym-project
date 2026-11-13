@@ -147,14 +147,18 @@ cell(3,'Email code',phone(`
  'The code expires after 10 minutes. New users then add their name, optional photo and fitness goal before location.'),
 cell(4,'Location & radius',phone(`
  ${backbar('Find gyms near you')}
- <div class="map" style="height:330px">
-  <div class="radius" style="left:40px;top:45px;width:240px;height:240px"></div><div class="me" style="left:152px;top:157px"></div>
-  ${[[70,90],[200,70],[230,190],[110,230],[160,110]].map(([x,y])=>`<div class="pin" style="left:${x}px;top:${y}px"></div>`).join('')}
-  <div class="pin m" style="left:20px;top:280px"></div><div class="pin m" style="left:285px;top:20px"></div></div>
+ <div class="map" style="height:262px">
+  <div class="radius" style="left:50px;top:21px;width:220px;height:220px"></div><div class="me" style="left:152px;top:123px"></div>
+  ${[[78,60],[196,40],[226,150],[110,190],[160,80]].map(([x,y])=>`<div class="pin" style="left:${x}px;top:${y}px"></div>`).join('')}
+  <div class="pin m" style="left:20px;top:220px"></div><div class="pin m" style="left:285px;top:20px"></div></div>
  <div class="card" style="display:flex;gap:10px;align-items:center"><div class="ico" style="background:#EEEBFF">${ic('target','#6C5CE7')}</div><div><div class="b">East Legon, Accra</div><div class="small muted">Using your current location · Change</div></div></div>
  <div><div class="b" style="margin-bottom:8px">Search radius</div><div class="chips">${['1 km','3 km','5 km','10 km','20 km'].map(k=>`<div class="chip ${k==='5 km'?'on':''}">${k}</div>`).join('')}</div></div>
- <div class="btn" style="margin-top:auto">Show 12 gyms within 5 km</div>`),
- 'Asks for location permission; if denied, the user searches an area or drops a pin. Orange pins are inside the radius.'),
+ <div class="btn" style="margin-top:auto">Show 12 gyms within 5 km</div>
+ <div style="display:flex;align-items:center;gap:10px;color:var(--mute);font-size:12.5px;margin:-2px 0"><span style="flex:1;height:1px;background:var(--line)"></span>or just shopping?<span style="flex:1;height:1px;background:var(--line)"></span></div>
+ <div style="background:var(--mid);color:#fff;border-radius:16px;padding:10px 12px;display:flex;align-items:center;gap:11px">
+  <div style="width:38px;height:38px;border-radius:12px;background:var(--flare);display:flex;align-items:center;justify-content:center;flex:none">${ic('bag','#fff')}</div>
+  <div style="flex:1"><div class="b">Go to the BGYM Store</div><div class="small" style="opacity:.7">No gym needed: supplements, apparel & gear</div></div><span style="width:20px;height:20px;display:inline-block">${ic('chev','#fff')}</span></div>`),
+ 'Right after email verification. Find gyms in a radius, <b>or go straight to the BGYM Store</b>: shopping never requires joining a gym. Location permission is also used later for store delivery.'),
 cell(5,'Gyms tab · with Store',phone(`
  ${topbar('Gyms',ibtn('bell',3))}
  <div class="search">${ic('search')}Search gyms, areas…</div>
