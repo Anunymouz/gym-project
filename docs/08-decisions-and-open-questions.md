@@ -22,12 +22,12 @@
 | D16 | A trainer belongs to exactly **one** gym at a time. |
 | D17 | Members don't need to be a member of a trainer's gym to book that trainer. |
 | D18 | Store is **prepaid only** — payment is taken at checkout and the order is confirmed only after payment succeeds. No cash on delivery. |
+| D19 | An active membership at **any** gym unlocks the full Workouts library. |
 
 ## Assumptions (please confirm or correct)
 
 | # | Assumption |
 |---|---|
-| A1 | Any active membership at **any** gym unlocks the full workout library (not a separate workout subscription). |
 | A3 | Gyms get **no** share of trainer booking payments by default (can be enabled per gym). |
 | A5 | Unused package sessions expire at the end of the package period. |
 | A7 | Gyms are verified/approved by admin before appearing in search. |

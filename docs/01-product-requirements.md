@@ -29,7 +29,7 @@ All web dashboards must be fully responsive (phone, tablet, laptop, desktop). Th
 ### 3.2 Workouts
 - Library of animated, guided exercises and routines for training at home.
 - **Free tier:** a small set of basic workouts available to everyone.
-- **Unlocked tier:** full library unlocked for any member with **at least one active gym membership** *(assumption — see decisions doc)*.
+- **Unlocked tier:** full library unlocked for any member with **at least one active gym membership** at any gym.
 - Licensed third-party exercise library (animations + instructions); we curate routines on top.
 - Features: browse by body part/goal/equipment, workout player (animation, reps/timer, rest), history.
 
