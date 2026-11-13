@@ -3,7 +3,7 @@
 Phases are ordered so we can launch a paying product early, then layer on.
 
 ## Phase 0 — Foundations
-- Brand identity for Orbyt (logo, colours), domain + social handles, trademark filing; design system, app & dashboard wireframes.
+- BGYM brand kit done (v1); BGYM name availability check, domain + social handles, trademark filing (name and logo); design system, app & dashboard wireframes.
 - Monorepo, CI, environments, database, auth (phone OTP).
 - Business setup: Paystack account (+ confirm subaccount/MoMo details), Yango Delivery business contact, exercise-library licence, SMS provider.
 

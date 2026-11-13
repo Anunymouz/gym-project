@@ -1,5 +1,7 @@
 # 09 — Name Check: "Orbyt"
 
+> **Superseded:** the product name is now **BGYM** (see decision D21). This check is kept for reference.
+
 *Checked 2026-11-13 using web searches. The session's network blocks domain lookups (RDAP/WHOIS/DNS), so domain availability is **not** confirmed. Not legal advice; a trademark lawyer should do the final clearance.*
 
 ## Story

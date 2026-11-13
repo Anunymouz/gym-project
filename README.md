@@ -1,8 +1,8 @@
-# Orbyt
+# BGYM
 
-*App store name: **Orbyt Fit***
+> **Be my Gym buddy.**
 
-> Everything that moves you, in your orbit.
+![BGYM](brand/png/bgym-lockup-844x240.png)
 
 A fitness marketplace for Ghana, starting in Accra. Members find partner gyms near them, pay memberships and book personal trainers in-app, follow their gyms' content, train at home with guided workouts, and buy fitness products from our store.
 
@@ -26,8 +26,8 @@ A fitness marketplace for Ghana, starting in Accra. Members find partner gyms ne
 6. [Architecture & tech stack](docs/06-architecture.md)
 7. [Roadmap](docs/07-roadmap.md) — phases and MVP scope
 8. [Decisions & open questions](docs/08-decisions-and-open-questions.md)
-9. [Name check: Orbyt](docs/09-name-check-orbyt.md)
+9. [Name check: Orbyt](docs/09-name-check-orbyt.md) (earlier name, superseded by BGYM)
 
 ## Brand
 
-Logo, app icon, colours and typography: [brand/](brand/README.md)
+Logo, app icon, colours and typography: [brand/](brand/README.md). The earlier Orbyt kit is archived in `brand/archive/orbyt/`.

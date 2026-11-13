@@ -1,48 +1,54 @@
-# Orbyt — Brand Kit v1
+# BGYM — Brand Kit v1
 
-![Orbyt brand sheet](preview/orbyt-brand-sheet.png)
+![BGYM brand sheet](preview/bgym-brand-sheet.png)
 
 ## The idea
-The mark is an **orbit ring with a dot**.
-- **The ring** is your orbit: the radius you set in the app, holding the gyms, trainers and gear around you.
-- **The dot** is you, the centre of energy, rising at the top-right like the sun.
-- **The gap** is the open path forward. The ring isn't closed, because progress never is.
+**BGYM = "Be my Gym buddy."** The app that finds your gym, your trainer and your training partner.
 
-Tagline: **Everything that moves you, in your orbit.**
+- **The athlete** raises orange dumbbells in a double-biceps pose: real effort, strength you can see.
+- **The orbit** is tilted around him like a planet ring: the gyms, trainers and gear around you, and the people who keep you going.
+- **The orange dot** on the orbit is you, and your buddy.
+- **The orange B** in the wordmark is the "Be": the invitation.
 
-## Files
+Tagline: **Be my gym buddy.**
+
+## Files (`svg/`, with PNG exports in `png/`)
 | File | Use |
 |---|---|
-| `svg/orbyt-lockup.svg` / `-on-dark` | **Primary logo** (mark + wordmark) |
-| `svg/orbyt-fit-lockup.svg` / `-on-dark` | App store and marketing ("Orbyt Fit") |
-| `svg/orbyt-stacked.svg` / `-on-dark` | Square spaces, social profile banners |
-| `svg/orbyt-wordmark.svg` / `-on-dark` | Wordmark only, where the mark already appears nearby |
-| `svg/orbyt-mark.svg` / `-on-dark` | Symbol only |
-| `svg/orbyt-mark-mono-dark.svg` / `-mono-white` | One-colour uses: stamps, embroidery, engraving, on Flare backgrounds |
-| `svg/orbyt-app-icon.svg` | iOS app icon source (full-bleed 1024; iOS applies the rounded corners) |
-| `svg/orbyt-android-foreground.svg` + `-background.svg` | Android adaptive icon layers (108dp) |
-| `svg/orbyt-favicon.svg` | Website favicon |
-| `png/` | Ready-made PNG exports (app icon 1024, Play Store 512, favicon 32, Apple touch icon 180, logos) |
+| `bgym-lockup` / `-on-dark` | **Primary logo** (mark + wordmark) |
+| `bgym-lockup-tagline` / `-on-dark` | Marketing, website header, store listing graphics |
+| `bgym-stacked` / `-on-dark` | Square spaces, social profiles, posters |
+| `bgym-wordmark` / `-on-dark` | Text only, where the mark already appears nearby |
+| `bgym-mark` / `-on-dark` | Symbol only |
+| `bgym-mark-simple` / `-on-dark` | Simplified symbol (no muscle lines) for sizes under ~48px |
+| `bgym-mark-mono-dark` / `-mono-white`, `bgym-lockup-mono-*` | One-colour uses: print, embroidery, engraving, on orange backgrounds |
+| `bgym-app-icon` | iOS app icon (full-bleed 1024; iOS applies the rounded corners) |
+| `bgym-android-foreground` + `-background` | Android adaptive icon layers (108dp, art inside the 66dp safe zone) |
+| `bgym-favicon` | Website favicon (uses the simplified mark) |
 
-All text in the SVGs is converted to outlines, so no font needs to be installed to use them.
+All text is converted to outlines, so no font needs to be installed to use the files.
 
 ## Colour
 | Name | Hex | Role |
 |---|---|---|
-| Midnight | `#0D1028` | Primary: text, dark backgrounds, logo ink |
-| Flare | `#FF5A1F` | Brand accent: the dot, CTAs, highlights |
+| Midnight | `#0D1028` | Primary: the athlete, text, dark backgrounds |
+| Flare | `#FF5A1F` | Accent: dumbbells, orbit dot, the "B", buttons |
 | Ember | `#FF8A3D` | Gradient partner to Flare |
-| Orbit Violet | `#6C5CE7` | Secondary UI accent (links, tags, charts) |
+| Violet | `#6C5CE7` | Secondary UI accent |
 | Cloud | `#F5F6FA` / `#FFFFFF` | Light backgrounds |
 
-Signature gradient (app icon and splash screen): `#231B5E → #0D1028 → #080A1A`, with a soft Flare glow at the top-right.
+Signature gradient (app icon, splash screen): `#231B5E → #0D1028 → #080A1A`, with a soft Flare glow at the top.
 
 ## Typography
-**Outfit** (Google Fonts, SIL Open Font License, free for commercial use). Bold 700 for headings and the wordmark, Regular 400 / SemiBold 600 for UI and body text.
+**Outfit** (SIL Open Font License, free for commercial use). ExtraBold 800 for the wordmark and headlines; Regular 400 / SemiBold 600 for UI and body text.
 
 ## Usage rules
-- Keep clear space around the logo equal to the height of the dot.
-- Minimum size: mark 16px (use the favicon version below 32px); lockup 96px wide.
-- The dot is always Flare, except in mono versions.
-- Don't rotate the mark, move the dot, close the gap, recolour the ring in Flare, or add effects like shadows or outlines.
-- On photos, use the on-dark version over a dark overlay.
+- Clear space around the logo: at least the height of one dumbbell.
+- Minimum sizes: full mark 48px tall; below that use `bgym-mark-simple`; lockup 120px wide.
+- The dumbbells, orbit dot and "B" are always Flare orange, except in mono versions.
+- On orange backgrounds, use the mono-white mark.
+- Don't rotate, stretch, recolour or add effects (shadows, outlines, gradients) to the logo.
+
+## Notes
+- Muscled-figure logos are common for gyms; have a trademark lawyer clear the logo together with the name.
+- Earlier explorations are in `explorations/`; the previous Orbyt kit is in `archive/orbyt/`.

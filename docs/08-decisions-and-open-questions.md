@@ -23,7 +23,8 @@
 | D17 | Members don't need to be a member of a trainer's gym to book that trainer. |
 | D18 | Store is **prepaid only** — payment is taken at checkout and the order is confirmed only after payment succeeds. No cash on delivery. |
 | D19 | An active membership at **any** gym unlocks the full Workouts library. |
-| D20 | Product name is **Orbyt**; app store listing name is **Orbyt Fit**. |
+| D20 | ~~Product name Orbyt~~, superseded by D21. |
+| D21 | Product name is **BGYM**, short for "Be my Gym buddy". Logo: muscled athlete raising dumbbells inside a tilted orbit ring (see `brand/`). |
 
 ## Assumptions (please confirm or correct)
 
@@ -42,9 +43,8 @@
 
 ## Naming
 
-**Decided: Orbyt.** Listed in the app stores as **Orbyt Fit**.
+**Decided: BGYM**, short for **"Be my Gym buddy."** It replaces Orbyt, which is kept for reference in [09 — Name check](09-name-check-orbyt.md) and `brand/archive/orbyt/`.
 
-- **Story:** "Everything that moves you, in your orbit." The app draws a circle around you (location + radius) with the gyms, trainers and gear inside it, and the orbit moves with you wherever you go.
-- **Why not a local name:** we plan to expand beyond Ghana, so the name must work internationally.
-- **Known risk:** a US trademark for ORBYT in the mobile-app class (Axis 80) may require a different name or a coexistence agreement if we enter the US. See [09 — Name check](09-name-check-orbyt.md).
-- **To do:** register the domain (orbyt.fit / orbytfit.com / getorbyt.com), claim the @orbytfit handles, and have a lawyer file the trademark in Ghana.
+- **Story:** the app that finds your gym, your trainer and your training partner. The orange **B** is the "Be", the invitation.
+- **Logo:** a muscled athlete in a double-biceps pose raising orange dumbbells, circled by a tilted orbit ring with an orange dot. It keeps the Orbyt colour palette (Midnight + Flare).
+- **To do:** full availability check for BGYM (domains, App Store / Play Store, social handles, Ghana / WIPO / USPTO trademarks); decide the app store listing name (e.g. "BGYM: Be my gym buddy"); have a lawyer clear the name and the logo (muscled-figure gym logos are common).
