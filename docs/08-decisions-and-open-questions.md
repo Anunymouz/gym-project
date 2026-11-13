@@ -19,17 +19,17 @@
 | D13 | Delivery address set via live location / map pin at checkout; platform handles delivery. |
 | D14 | Delivery: on-demand courier API (Yango Delivery) primary, manual dispatch fallback (recommended, pending Yango confirmation). |
 | D15 | Tech stack: React Native (Expo), Next.js, NestJS, PostgreSQL + PostGIS. |
+| D16 | A trainer belongs to exactly **one** gym at a time. |
+| D17 | Members don't need to be a member of a trainer's gym to book that trainer. |
+| D18 | Store is **prepaid only** — payment is taken at checkout and the order is confirmed only after payment succeeds. No cash on delivery. |
 
 ## Assumptions (please confirm or correct)
 
 | # | Assumption |
 |---|---|
 | A1 | Any active membership at **any** gym unlocks the full workout library (not a separate workout subscription). |
-| A2 | A trainer belongs to exactly **one** gym at a time. |
 | A3 | Gyms get **no** share of trainer booking payments by default (can be enabled per gym). |
-| A4 | Members don't need to be a member of a trainer's gym to book that trainer. |
 | A5 | Unused package sessions expire at the end of the package period. |
-| A6 | Store is prepaid only (no cash on delivery) in v1. |
 | A7 | Gyms are verified/approved by admin before appearing in search. |
 
 ## Open questions

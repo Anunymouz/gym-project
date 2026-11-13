@@ -21,6 +21,7 @@ PENDING_PAYMENT → PAID → PREPARING → READY_FOR_PICKUP → OUT_FOR_DELIVERY
                     ↘ CANCELLED / REFUNDED            ↘ DELIVERY_FAILED → (retry | refund)
 ```
 
+- **Prepaid only, no cash on delivery.** The member pays in-app at checkout (MoMo or card); the order is confirmed only after Paystack confirms the payment.
 - Stock is reserved at checkout and released if payment isn't completed within N minutes.
 - Seller (partner or admin) moves the order through PREPARING → READY_FOR_PICKUP.
 - Delivery is dispatched when the order is ready (see below).
@@ -55,4 +56,3 @@ Each seller has one or more pickup addresses with map coordinates. Phase 1 assum
 ## 6. To confirm
 - Yango Ghana business account, API access, pricing, coverage, and insurance on goods.
 - Does the partner want to also offer self-delivery (Option A) in addition?
-- Cash on delivery: not in v1 (prepaid only), revisit later.
