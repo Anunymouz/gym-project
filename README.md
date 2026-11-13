@@ -27,6 +27,7 @@ A fitness marketplace for Ghana, starting in Accra. Members find partner gyms ne
 7. [Roadmap](docs/07-roadmap.md) — phases and MVP scope
 8. [Decisions & open questions](docs/08-decisions-and-open-questions.md)
 9. [Name check: Orbyt](docs/09-name-check-orbyt.md) (earlier name, superseded by BGYM)
+10. [Name check: BGYM](docs/10-name-check-bgym.md)
 
 ## Brand
 

@@ -47,4 +47,5 @@
 
 - **Story:** the app that finds your gym, your trainer and your training partner. The orange **B** is the "Be", the invitation.
 - **Logo:** a muscled athlete in a double-biceps pose raising orange dumbbells, circled by a tilted orbit ring with an orange dot. It keeps the Orbyt colour palette (Midnight + Flare).
-- **To do:** full availability check for BGYM (domains, App Store / Play Store, social handles, Ghana / WIPO / USPTO trademarks); decide the app store listing name (e.g. "BGYM: Be my gym buddy"); have a lawyer clear the name and the logo (muscled-figure gym logos are common).
+- **Availability:** see [10 — Name check: BGYM](10-name-check-bgym.md). Clear in Ghana and Africa; a Taiwanese fitness-equipment brand uses BGYM and has a pending US trademark in Class 28.
+- **To do:** app store name "BGYM: Be my gym buddy"; secure a domain (bgym.app / getbgym.com) and @bgymapp handles; file the Ghana trademark; have a lawyer clear the name and the logo (muscled-figure gym logos are common).
