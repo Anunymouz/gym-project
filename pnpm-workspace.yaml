@@ -1,0 +1,24 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Security: pnpm only runs install scripts for packages listed here.
+onlyBuiltDependencies:
+  - '@prisma/engines'
+  - prisma
+  - esbuild
+  - '@nestjs/core'
+
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
+  - '@scarf/scarf'
+
+# Supply-chain safety: refuse package versions published less than 3 days ago.
+minimumReleaseAge: 4320
+# Expo SDK packages are pinned to exact versions by the official Expo template,
+# and released together; exempt only Expo's own packages from the age rule.
+minimumReleaseAgeExclude:
+  - expo
+  - 'expo-*'
+  - '@expo/*'

@@ -1,0 +1,906 @@
+// BGYM database schema. Source of truth for the data model (docs/05-data-model.md).
+// Conventions:
+//   - IDs are UUIDv7 (time-ordered, safe to expose).
+//   - Money is integer pesewas (GHS × 100), never floats.
+//   - Timestamps are timestamptz.
+//   - Geographic points use PostGIS geography(Point, 4326) and are read/written with raw SQL.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum Role {
+  member
+  gym_staff
+  trainer
+  partner
+  admin
+}
+
+enum UserStatus {
+  active
+  suspended
+  deleted
+}
+
+enum AuthProvider {
+  apple
+  google
+  email
+}
+
+enum GymStatus {
+  draft
+  pending_review
+  active
+  suspended
+}
+
+enum GymStaffRole {
+  owner
+  manager
+  front_desk
+}
+
+enum MembershipStatus {
+  pending
+  active
+  expired
+  cancelled
+}
+
+enum CheckInResult {
+  ok
+  expired
+  wrong_gym
+  invalid
+}
+
+enum ContentStatus {
+  draft
+  published
+  hidden
+  removed
+}
+
+enum MediaType {
+  image
+  video
+}
+
+enum TrainerStatus {
+  pending
+  active
+  suspended
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  completed
+  cancelled
+  no_show
+}
+
+enum AvailabilityExceptionType {
+  blocked
+  extra
+}
+
+enum SellerType {
+  platform
+  partner
+}
+
+enum ProductStatus {
+  draft
+  pending_review
+  active
+  archived
+}
+
+enum OrderStatus {
+  pending_payment
+  paid
+  preparing
+  ready_for_pickup
+  out_for_delivery
+  delivered
+  delivery_failed
+  cancelled
+  refunded
+}
+
+enum DeliveryProvider {
+  yango
+  manual
+}
+
+enum DeliveryStatus {
+  quoted
+  requested
+  courier_assigned
+  picked_up
+  delivered
+  failed
+  cancelled
+}
+
+enum PaymentType {
+  membership
+  trainer_session
+  trainer_package
+  store_order
+}
+
+enum PaymentStatus {
+  pending
+  success
+  failed
+  refunded
+}
+
+enum PaymentChannel {
+  mobile_money
+  card
+  bank
+  other
+}
+
+enum RefundStatus {
+  pending
+  processed
+  failed
+}
+
+enum ReportStatus {
+  open
+  actioned
+  dismissed
+}
+
+enum DevicePlatform {
+  ios
+  android
+  web
+}
+
+// ───────────────────────────── Identity ─────────────────────────────
+
+model User {
+  id          String     @id @default(uuid(7)) @db.Uuid
+  email       String     @unique
+  phone       String? // E.164, optional: MoMo and delivery only
+  name        String?
+  avatarUrl   String?
+  roles       Role[]     @default([member])
+  status      UserStatus @default(active)
+  lastLoginAt DateTime?  @db.Timestamptz(3)
+  createdAt   DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime   @updatedAt @db.Timestamptz(3)
+
+  identities      AuthIdentity[]
+  sessions        Session[]
+  memberProfile   MemberProfile?
+  gymStaff        GymStaff[]
+  trainer         Trainer?
+  memberships     Membership[]
+  checkIns        CheckIn[]         @relation("CheckInMember")
+  scannedCheckIns CheckIn[]         @relation("CheckInScanner")
+  posts           Post[]
+  likes           PostLike[]
+  bookings        Booking[]
+  packages        PackagePurchase[]
+  workoutSessions WorkoutSession[]
+  cartItems       CartItem[]
+  addresses       Address[]
+  orders          Order[]
+  payments        Payment[]
+  notifications   Notification[]
+  devices         DeviceToken[]
+  reports         Report[]
+  partnerUsers    PartnerUser[]
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+model AuthIdentity {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  userId         String       @db.Uuid
+  provider       AuthProvider
+  providerUserId String
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("auth_identities")
+}
+
+/// One-time email codes. Only a hash of the code is stored.
+model EmailOtp {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  email      String
+  codeHash   String
+  expiresAt  DateTime  @db.Timestamptz(3)
+  attempts   Int       @default(0)
+  consumedAt DateTime? @db.Timestamptz(3)
+  ipHash     String?
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([email, createdAt])
+  @@map("email_otps")
+}
+
+/// Refresh-token sessions (rotated on use; only hashes stored).
+model Session {
+  id               String    @id @default(uuid(7)) @db.Uuid
+  userId           String    @db.Uuid
+  refreshTokenHash String    @unique
+  userAgent        String?
+  ipHash           String?
+  expiresAt        DateTime  @db.Timestamptz(3)
+  revokedAt        DateTime? @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model MemberProfile {
+  userId         String                                 @id @db.Uuid
+  goal           String?
+  dateOfBirth    DateTime?                              @db.Date
+  homeLocation   Unsupported("geography(Point, 4326)")?
+  searchRadiusKm Int                                    @default(5)
+  updatedAt      DateTime                               @updatedAt @db.Timestamptz(3)
+  user           User                                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("member_profiles")
+}
+
+// ───────────────────────────── Gyms ─────────────────────────────
+
+model Gym {
+  id                     String                                @id @default(uuid(7)) @db.Uuid
+  name                   String
+  slug                   String                                @unique
+  description            String?
+  phone                  String?
+  email                  String?
+  addressText            String
+  location               Unsupported("geography(Point, 4326)")
+  openingHours           Json // { mon: [{ open: "05:00", close: "22:00" }], ... }
+  facilities             String[]
+  coverUrl               String?
+  status                 GymStatus                             @default(draft)
+  platformFeeBps         Int? // basis points override (e.g. 800 = 8%); null = platform default
+  paystackSubaccountCode String?
+  createdAt              DateTime                              @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime                              @updatedAt @db.Timestamptz(3)
+
+  staff       GymStaff[]
+  photos      GymPhoto[]
+  plans       MembershipPlan[]
+  memberships Membership[]
+  checkIns    CheckIn[]
+  posts       Post[]
+  trainers    Trainer[]
+
+  @@index([status])
+  @@map("gyms")
+}
+
+model GymStaff {
+  gymId     String       @db.Uuid
+  userId    String       @db.Uuid
+  role      GymStaffRole
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+  gym       Gym          @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([gymId, userId])
+  @@index([userId])
+  @@map("gym_staff")
+}
+
+model GymPhoto {
+  id        String @id @default(uuid(7)) @db.Uuid
+  gymId     String @db.Uuid
+  url       String
+  sortOrder Int    @default(0)
+  gym       Gym    @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
+  @@index([gymId, sortOrder])
+  @@map("gym_photos")
+}
+
+model MembershipPlan {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  gymId        String       @db.Uuid
+  name         String
+  description  String?
+  durationDays Int
+  pricePesewas Int
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
+  gym          Gym          @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  memberships  Membership[]
+
+  @@index([gymId, isActive])
+  @@map("membership_plans")
+}
+
+model Membership {
+  id        String           @id @default(uuid(7)) @db.Uuid
+  userId    String           @db.Uuid
+  gymId     String           @db.Uuid
+  planId    String           @db.Uuid
+  status    MembershipStatus @default(pending)
+  startsAt  DateTime         @db.Timestamptz(3)
+  endsAt    DateTime         @db.Timestamptz(3)
+  autoRenew Boolean          @default(false)
+  paymentId String?          @unique @db.Uuid
+  createdAt DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime         @updatedAt @db.Timestamptz(3)
+  user      User             @relation(fields: [userId], references: [id])
+  gym       Gym              @relation(fields: [gymId], references: [id])
+  plan      MembershipPlan   @relation(fields: [planId], references: [id])
+  payment   Payment?         @relation(fields: [paymentId], references: [id])
+  checkIns  CheckIn[]
+
+  @@index([userId, status])
+  @@index([gymId, status, endsAt])
+  @@map("memberships")
+}
+
+model CheckIn {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  membershipId String?       @db.Uuid
+  gymId        String        @db.Uuid
+  userId       String?       @db.Uuid
+  scannedById  String        @db.Uuid
+  result       CheckInResult
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  membership   Membership?   @relation(fields: [membershipId], references: [id])
+  gym          Gym           @relation(fields: [gymId], references: [id])
+  user         User?         @relation("CheckInMember", fields: [userId], references: [id])
+  scannedBy    User          @relation("CheckInScanner", fields: [scannedById], references: [id])
+
+  @@index([gymId, createdAt])
+  @@index([userId, createdAt])
+  @@map("check_ins")
+}
+
+// ───────────────────────────── Feed ─────────────────────────────
+
+model Post {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  gymId        String        @db.Uuid
+  authorUserId String        @db.Uuid
+  body         String?
+  status       ContentStatus @default(published)
+  likeCount    Int           @default(0)
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
+  gym          Gym           @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  author       User          @relation(fields: [authorUserId], references: [id])
+  media        PostMedia[]
+  likes        PostLike[]
+
+  @@index([gymId, status, createdAt(sort: Desc)])
+  @@map("posts")
+}
+
+model PostMedia {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  postId     String    @db.Uuid
+  type       MediaType
+  url        String
+  playbackId String?
+  sortOrder  Int       @default(0)
+  post       Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, sortOrder])
+  @@map("post_media")
+}
+
+model PostLike {
+  postId    String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@map("post_likes")
+}
+
+// ───────────────────────────── Trainers ─────────────────────────────
+
+model Trainer {
+  id                     String                  @id @default(uuid(7)) @db.Uuid
+  userId                 String                  @unique @db.Uuid
+  gymId                  String                  @db.Uuid
+  bio                    String?
+  specialties            String[]
+  certifications         Json                    @default("[]")
+  sessionPricePesewas    Int
+  sessionDurationMin     Int                     @default(60)
+  cancellationPolicy     String?
+  status                 TrainerStatus           @default(pending)
+  paystackSubaccountCode String?
+  createdAt              DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime                @updatedAt @db.Timestamptz(3)
+  user                   User                    @relation(fields: [userId], references: [id])
+  gym                    Gym                     @relation(fields: [gymId], references: [id])
+  availability           AvailabilityRule[]
+  exceptions             AvailabilityException[]
+  packages               TrainerPackage[]
+  bookings               Booking[]
+
+  @@index([gymId, status])
+  @@map("trainers")
+}
+
+model AvailabilityRule {
+  id        String  @id @default(uuid(7)) @db.Uuid
+  trainerId String  @db.Uuid
+  weekday   Int // 0 = Sunday … 6 = Saturday
+  startTime String // "HH:mm" in Africa/Accra (UTC+0)
+  endTime   String
+  trainer   Trainer @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@index([trainerId, weekday])
+  @@map("availability_rules")
+}
+
+model AvailabilityException {
+  id        String                    @id @default(uuid(7)) @db.Uuid
+  trainerId String                    @db.Uuid
+  date      DateTime                  @db.Date
+  startTime String?
+  endTime   String?
+  type      AvailabilityExceptionType
+  trainer   Trainer                   @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@index([trainerId, date])
+  @@map("availability_exceptions")
+}
+
+model TrainerPackage {
+  id            String            @id @default(uuid(7)) @db.Uuid
+  trainerId     String            @db.Uuid
+  name          String
+  sessionsCount Int
+  validityDays  Int
+  pricePesewas  Int
+  isActive      Boolean           @default(true)
+  trainer       Trainer           @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  purchases     PackagePurchase[]
+
+  @@index([trainerId, isActive])
+  @@map("trainer_packages")
+}
+
+model PackagePurchase {
+  id                String         @id @default(uuid(7)) @db.Uuid
+  trainerPackageId  String         @db.Uuid
+  userId            String         @db.Uuid
+  sessionsRemaining Int
+  startsAt          DateTime       @db.Timestamptz(3)
+  endsAt            DateTime       @db.Timestamptz(3)
+  paymentId         String?        @unique @db.Uuid
+  createdAt         DateTime       @default(now()) @db.Timestamptz(3)
+  trainerPackage    TrainerPackage @relation(fields: [trainerPackageId], references: [id])
+  user              User           @relation(fields: [userId], references: [id])
+  payment           Payment?       @relation(fields: [paymentId], references: [id])
+  bookings          Booking[]
+
+  @@index([userId])
+  @@map("package_purchases")
+}
+
+model Booking {
+  id                String           @id @default(uuid(7)) @db.Uuid
+  trainerId         String           @db.Uuid
+  userId            String           @db.Uuid
+  startsAt          DateTime         @db.Timestamptz(3)
+  endsAt            DateTime         @db.Timestamptz(3)
+  status            BookingStatus    @default(pending)
+  packagePurchaseId String?          @db.Uuid
+  paymentId         String?          @unique @db.Uuid
+  createdAt         DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime         @updatedAt @db.Timestamptz(3)
+  trainer           Trainer          @relation(fields: [trainerId], references: [id])
+  user              User             @relation(fields: [userId], references: [id])
+  packagePurchase   PackagePurchase? @relation(fields: [packagePurchaseId], references: [id])
+  payment           Payment?         @relation(fields: [paymentId], references: [id])
+
+  @@index([trainerId, startsAt])
+  @@index([userId, startsAt])
+  @@map("bookings")
+}
+
+// ───────────────────────────── Workouts ─────────────────────────────
+
+model Exercise {
+  id           String            @id @default(uuid(7)) @db.Uuid
+  externalId   String            @unique // id in the licensed exercise library
+  name         String
+  bodyPart     String
+  targetMuscle String?
+  equipment    String?
+  animationUrl String?
+  instructions String[]
+  workouts     WorkoutExercise[]
+
+  @@map("exercises")
+}
+
+model Workout {
+  id          String            @id @default(uuid(7)) @db.Uuid
+  title       String
+  description String?
+  level       String
+  durationMin Int
+  coverUrl    String?
+  isFree      Boolean           @default(false)
+  isPublished Boolean           @default(false)
+  createdAt   DateTime          @default(now()) @db.Timestamptz(3)
+  exercises   WorkoutExercise[]
+  sessions    WorkoutSession[]
+
+  @@map("workouts")
+}
+
+model WorkoutExercise {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  workoutId   String   @db.Uuid
+  exerciseId  String   @db.Uuid
+  sortOrder   Int
+  sets        Int?
+  reps        Int?
+  durationSec Int?
+  restSec     Int?
+  workout     Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise    Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@index([workoutId, sortOrder])
+  @@map("workout_exercises")
+}
+
+model WorkoutSession {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  userId      String   @db.Uuid
+  workoutId   String   @db.Uuid
+  completedAt DateTime @default(now()) @db.Timestamptz(3)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workout     Workout  @relation(fields: [workoutId], references: [id])
+
+  @@index([userId, completedAt])
+  @@map("workout_sessions")
+}
+
+// ───────────────────────────── Store ─────────────────────────────
+
+model Seller {
+  id                     String           @id @default(uuid(7)) @db.Uuid
+  type                   SellerType
+  name                   String
+  commissionBps          Int              @default(0)
+  paystackSubaccountCode String?
+  createdAt              DateTime         @default(now()) @db.Timestamptz(3)
+  users                  PartnerUser[]
+  pickupLocations        PickupLocation[]
+  products               Product[]
+  orderItems             OrderItem[]
+
+  @@map("sellers")
+}
+
+model PartnerUser {
+  sellerId String @db.Uuid
+  userId   String @db.Uuid
+  role     String @default("manager")
+  seller   Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sellerId, userId])
+  @@map("partner_users")
+}
+
+model PickupLocation {
+  id           String                                @id @default(uuid(7)) @db.Uuid
+  sellerId     String                                @db.Uuid
+  addressText  String
+  location     Unsupported("geography(Point, 4326)")
+  contactPhone String
+  seller       Seller                                @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([sellerId])
+  @@map("pickup_locations")
+}
+
+model Category {
+  id       String     @id @default(uuid(7)) @db.Uuid
+  name     String
+  slug     String     @unique
+  parentId String?    @db.Uuid
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  sellerId    String           @db.Uuid
+  categoryId  String           @db.Uuid
+  title       String
+  description String?
+  brand       String?
+  status      ProductStatus    @default(draft)
+  isFeatured  Boolean          @default(false)
+  createdAt   DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(3)
+  seller      Seller           @relation(fields: [sellerId], references: [id])
+  category    Category         @relation(fields: [categoryId], references: [id])
+  images      ProductImage[]
+  variants    ProductVariant[]
+
+  @@index([status, categoryId])
+  @@index([sellerId])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String  @id @default(uuid(7)) @db.Uuid
+  productId String  @db.Uuid
+  url       String
+  sortOrder Int     @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+  @@map("product_images")
+}
+
+model ProductVariant {
+  id                    String      @id @default(uuid(7)) @db.Uuid
+  productId             String      @db.Uuid
+  name                  String
+  sku                   String      @unique
+  pricePesewas          Int
+  compareAtPricePesewas Int?
+  stock                 Int         @default(0)
+  reserved              Int         @default(0)
+  weightGrams           Int?
+  product               Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems             CartItem[]
+  orderItems            OrderItem[]
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model CartItem {
+  userId    String         @db.Uuid
+  variantId String         @db.Uuid
+  quantity  Int
+  updatedAt DateTime       @updatedAt @db.Timestamptz(3)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@id([userId, variantId])
+  @@map("cart_items")
+}
+
+model Address {
+  id                String                                @id @default(uuid(7)) @db.Uuid
+  userId            String                                @db.Uuid
+  label             String?
+  location          Unsupported("geography(Point, 4326)")
+  addressText       String
+  landmark          String?
+  gpsDigitalAddress String?
+  contactPhone      String
+  createdAt         DateTime                              @default(now()) @db.Timestamptz(3)
+  user              User                                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+model Order {
+  id                 String      @id @default(uuid(7)) @db.Uuid
+  number             String      @unique // human-friendly, e.g. BG-1042
+  userId             String      @db.Uuid
+  status             OrderStatus @default(pending_payment)
+  subtotalPesewas    Int
+  deliveryFeePesewas Int
+  totalPesewas       Int
+  addressSnapshot    Json
+  paymentId          String?     @unique @db.Uuid
+  createdAt          DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime    @updatedAt @db.Timestamptz(3)
+  user               User        @relation(fields: [userId], references: [id])
+  payment            Payment?    @relation(fields: [paymentId], references: [id])
+  items              OrderItem[]
+  delivery           Delivery?
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id               String         @id @default(uuid(7)) @db.Uuid
+  orderId          String         @db.Uuid
+  variantId        String         @db.Uuid
+  sellerId         String         @db.Uuid
+  titleSnapshot    String
+  unitPricePesewas Int
+  quantity         Int
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant          ProductVariant @relation(fields: [variantId], references: [id])
+  seller           Seller         @relation(fields: [sellerId], references: [id])
+
+  @@index([orderId])
+  @@index([sellerId])
+  @@map("order_items")
+}
+
+model Delivery {
+  id                String           @id @default(uuid(7)) @db.Uuid
+  orderId           String           @unique @db.Uuid
+  provider          DeliveryProvider
+  externalId        String?
+  status            DeliveryStatus   @default(quoted)
+  courierName       String?
+  courierPhone      String?
+  trackingUrl       String?
+  quotedFeePesewas  Int
+  actualCostPesewas Int?
+  createdAt         DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime         @updatedAt @db.Timestamptz(3)
+  order             Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("deliveries")
+}
+
+// ───────────────────────────── Payments ─────────────────────────────
+
+model Payment {
+  id                 String           @id @default(uuid(7)) @db.Uuid
+  userId             String           @db.Uuid
+  type               PaymentType
+  amountPesewas      Int
+  currency           String           @default("GHS")
+  status             PaymentStatus    @default(pending)
+  paystackReference  String           @unique
+  channel            PaymentChannel?
+  platformFeePesewas Int              @default(0)
+  splitDetails       Json?
+  metadata           Json?
+  paidAt             DateTime?        @db.Timestamptz(3)
+  createdAt          DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime         @updatedAt @db.Timestamptz(3)
+  user               User             @relation(fields: [userId], references: [id])
+  events             PaymentEvent[]
+  refunds            Refund[]
+  membership         Membership?
+  packagePurchase    PackagePurchase?
+  booking            Booking?
+  order              Order?
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+/// Every Paystack webhook we receive, stored for idempotency and audit.
+model PaymentEvent {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  paymentId       String?  @db.Uuid
+  providerEventId String   @unique
+  eventType       String
+  payload         Json
+  receivedAt      DateTime @default(now()) @db.Timestamptz(3)
+  payment         Payment? @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+  @@map("payment_events")
+}
+
+model Refund {
+  id            String       @id @default(uuid(7)) @db.Uuid
+  paymentId     String       @db.Uuid
+  amountPesewas Int
+  reason        String
+  status        RefundStatus @default(pending)
+  initiatedById String       @db.Uuid
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+  payment       Payment      @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+  @@map("refunds")
+}
+
+// ───────────────────────────── Platform ─────────────────────────────
+
+model Notification {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @db.Uuid
+  type      String
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model DeviceToken {
+  id        String         @id @default(uuid(7)) @db.Uuid
+  userId    String         @db.Uuid
+  platform  DevicePlatform
+  token     String         @unique
+  createdAt DateTime       @default(now()) @db.Timestamptz(3)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("device_tokens")
+}
+
+model Report {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  reporterUserId String       @db.Uuid
+  targetType     String
+  targetId       String       @db.Uuid
+  reason         String
+  status         ReportStatus @default(open)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  reporter       User         @relation(fields: [reporterUserId], references: [id])
+
+  @@index([status, createdAt])
+  @@map("reports")
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("platform_settings")
+}
+
+/// Append-only record of sensitive actions (approvals, refunds, role changes, fee changes).
+model AuditLog {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  ipHash     String?
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  actor      User?    @relation(fields: [actorId], references: [id])
+
+  @@index([targetType, targetId])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
+}

@@ -1,0 +1,13 @@
+node_modules
+dist
+.next
+.expo
+coverage
+.turbo
+pnpm-lock.yaml
+brand
+design
+docs
+**/migrations/**
+apps/mobile/ios
+apps/mobile/android

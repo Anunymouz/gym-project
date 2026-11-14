@@ -1,0 +1,29 @@
+{
+  "name": "bgym",
+  "private": true,
+  "description": "BGYM — find a gym, book a trainer, shop fitness gear. Monorepo for the mobile app, web dashboards and API.",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=10.28.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev --filter=@bgym/api --filter=@bgym/web",
+    "dev:mobile": "pnpm --filter @bgym/mobile start",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @bgym/api db:migrate",
+    "db:seed": "pnpm --filter @bgym/api db:seed",
+    "db:studio": "pnpm --filter @bgym/api db:studio"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.0",
+    "turbo": "^2.10.0"
+  }
+}
