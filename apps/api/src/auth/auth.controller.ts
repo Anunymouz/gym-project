@@ -1,7 +1,8 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
   refreshRequestSchema,
+  updateProfileSchema,
   requestEmailCodeSchema,
   verifyEmailCodeSchema,
   type AuthSession,
@@ -10,6 +11,7 @@ import {
   type RefreshRequest,
   type RequestEmailCodeInput,
   type RequestEmailCodeResponse,
+  type UpdateProfileInput,
   type VerifyEmailCodeInput,
 } from '@bgym/shared';
 import { AuthService } from './auth.service.js';
@@ -60,5 +62,11 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: AccessClaims): Promise<AuthUser> {
     return this.auth.getUser(user.userId);
+  }
+
+  /** Profile step after sign-up, and later edits from the Me tab. */
+  @Patch('me')
+  updateMe(@CurrentUser() user: AccessClaims, @Body({ schema: updateProfileSchema }) body: UpdateProfileInput): Promise<AuthUser> {
+    return this.auth.updateProfile(user.userId, body);
   }
 }

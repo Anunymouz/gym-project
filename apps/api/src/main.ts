@@ -7,7 +7,7 @@ import type { Env } from './config/env.js';
 import { setupApp } from './setup-app.js';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true }); // raw body: webhook signatures
   app.useLogger(app.get(Logger));
   setupApp(app);
 

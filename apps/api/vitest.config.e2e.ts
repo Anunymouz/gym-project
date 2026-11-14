@@ -11,6 +11,8 @@ export default defineConfig({
       MAIL_DRIVER: 'memory',
       JWT_ACCESS_SECRET: 'test-jwt-secret-0123456789abcdefghijklmnopqrstuv',
       OTP_PEPPER: 'test-otp-pepper-0123456789abcdefghijklmnopqrstuv',
+      PAYMENTS_DRIVER: 'dev',
+      PAYSTACK_SECRET_KEY: 'sk_test_e2e_webhook_secret',
     },
   },
 });

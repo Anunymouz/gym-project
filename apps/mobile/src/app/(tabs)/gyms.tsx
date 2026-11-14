@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { router } from 'expo-router';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -112,7 +113,7 @@ export default function Gyms() {
 
 function GymCard({ gym }: { gym: NearbyGym }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${gym.name}, ${gym.distanceKm} kilometres away`} style={({ pressed }) => [styles.card, pressed && { opacity: 0.94 }]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${gym.name}, ${gym.distanceKm} kilometres away`} onPress={() => router.push({ pathname: '/gym/[slug]', params: { slug: gym.slug } })} style={({ pressed }) => [styles.card, pressed && { opacity: 0.94 }]}>
       <View>
         <GymCover uri={gym.coverUrl} height={140} name={gym.name} />
         <View style={styles.distance}>

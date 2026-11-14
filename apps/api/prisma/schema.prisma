@@ -147,6 +147,11 @@ enum PaymentStatus {
   refunded
 }
 
+enum PaymentProvider {
+  paystack
+  dev
+}
+
 enum PaymentChannel {
   mobile_money
   card
@@ -788,7 +793,9 @@ model Payment {
   amountPesewas      Int
   currency           String           @default("GHS")
   status             PaymentStatus    @default(pending)
-  paystackReference  String           @unique
+  provider           PaymentProvider
+  /// Our reference, sent to the provider (e.g. the Paystack transaction reference).
+  reference          String           @unique
   channel            PaymentChannel?
   platformFeePesewas Int              @default(0)
   splitDetails       Json?

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { openingStatus } from './gyms.js';
 import { cedisToPesewas, formatGhs, pesewas } from './money.js';
-import { emailSchema, ghanaPhoneSchema, nearbyGymsQuerySchema, otpCodeSchema } from './schemas.js';
+import { emailSchema, ghanaPhoneSchema, nearbyGymsQuerySchema, otpCodeSchema, updateProfileSchema } from './schemas.js';
 
 describe('money', () => {
   it('converts cedis to integer pesewas', () => {
@@ -32,5 +33,27 @@ describe('schemas', () => {
   it('validates nearby gym queries', () => {
     expect(nearbyGymsQuerySchema.safeParse({ lat: '5.63', lng: '-0.16', radiusKm: '5' }).success).toBe(true);
     expect(nearbyGymsQuerySchema.safeParse({ lat: 5.63, lng: -0.16, radiusKm: 7 }).success).toBe(false);
+  });
+  it('validates the profile step', () => {
+    expect(updateProfileSchema.parse({ name: '  Ama Owusu ', goal: 'build_strength', phone: '024 123 4567' })).toEqual({
+      name: 'Ama Owusu',
+      goal: 'build_strength',
+      phone: '+233241234567',
+    });
+    expect(updateProfileSchema.parse({ name: "Kwame O'Neil-Mensah", phone: '' }).phone).toBeNull();
+    expect(updateProfileSchema.safeParse({ name: 'A' }).success).toBe(false);
+    expect(updateProfileSchema.safeParse({ name: '<script>' }).success).toBe(false);
+    expect(updateProfileSchema.safeParse({ name: 'Ama', goal: 'fly' }).success).toBe(false);
+  });
+});
+
+describe('openingStatus', () => {
+  const hours = { mon: [{ open: '05:00', close: '22:00' }], sun: [] };
+  it('reports open and closing time', () => {
+    expect(openingStatus(hours, new Date('2026-11-16T10:30:00Z'))).toEqual({ isOpen: true, label: 'Open until 10pm' });
+  });
+  it('reports the next opening time and closed days', () => {
+    expect(openingStatus(hours, new Date('2026-11-16T04:00:00Z'))).toEqual({ isOpen: false, label: 'Opens at 5am' });
+    expect(openingStatus(hours, new Date('2026-11-15T10:00:00Z'))).toEqual({ isOpen: false, label: 'Closed now' });
   });
 });

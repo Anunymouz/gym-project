@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { AuthUser } from '@bgym/shared';
+import type { AuthUser, UpdateProfileInput } from '@bgym/shared';
 import { ApiError, authApi, hasStoredSession, refreshSession, saveTokens, setSessionEndedHandler } from './api';
 import { secureStorage } from './secure-storage';
 
@@ -7,7 +7,11 @@ import { secureStorage } from './secure-storage';
  * Who is signed in, and where they search for gyms.
  * Tokens are handled by lib/api (access token in memory, refresh token in secure storage).
  */
-export type SessionStatus = 'loading' | 'signedOut' | 'needsOnboarding' | 'ready';
+export type SessionStatus = 'loading' | 'signedOut' | 'needsProfile' | 'needsOnboarding' | 'ready';
+
+/** Where a signed-in person goes next: profile first, then search area, then the app. */
+const nextStatus = (user: AuthUser, area: SearchArea | null): SessionStatus =>
+  !user.name ? 'needsProfile' : area ? 'ready' : 'needsOnboarding';
 
 export interface SearchArea {
   lat: number;
@@ -29,6 +33,7 @@ interface SessionContextValue {
    * the screen calls it after its success animation so navigation never cuts it short.
    */
   verifyCode: (code: string) => Promise<() => void>;
+  saveProfile: (input: UpdateProfileInput) => Promise<void>;
   completeOnboarding: (area: SearchArea) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -71,12 +76,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const fresh = await authApi.me();
         await secureStorage.set(USER_KEY, JSON.stringify(fresh));
         setUser(fresh);
+        setArea(savedArea);
+        setStatus(nextStatus(fresh, savedArea));
       } catch (err) {
         if (!(err instanceof ApiError && err.isNetwork) || !cachedUser) return void reset();
         setUser(cachedUser);
+        setArea(savedArea);
+        setStatus(nextStatus(cachedUser, savedArea));
       }
-      setArea(savedArea);
-      setStatus(savedArea ? 'ready' : 'needsOnboarding');
     })().catch(() => void reset());
   }, [reset]);
 
@@ -102,10 +109,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setUser(session.user);
         setArea(savedArea);
         setPendingEmail(null);
-        setStatus(savedArea ? 'ready' : 'needsOnboarding');
+        setStatus(nextStatus(session.user, savedArea));
       };
     },
     [pendingEmail],
+  );
+
+  const saveProfile = useCallback(
+    async (input: UpdateProfileInput) => {
+      const updated = await authApi.updateProfile(input);
+      await secureStorage.set(USER_KEY, JSON.stringify(updated));
+      setUser(updated);
+      setStatus(nextStatus(updated, area));
+    },
+    [area],
   );
 
   const completeOnboarding = useCallback(async (next: SearchArea) => {
@@ -120,8 +137,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [reset]);
 
   const value = useMemo(
-    () => ({ status, user, pendingEmail, area, startEmailSignIn, resendCode, verifyCode, completeOnboarding, signOut }),
-    [status, user, pendingEmail, area, startEmailSignIn, resendCode, verifyCode, completeOnboarding, signOut],
+    () => ({ status, user, pendingEmail, area, startEmailSignIn, resendCode, verifyCode, saveProfile, completeOnboarding, signOut }),
+    [status, user, pendingEmail, area, startEmailSignIn, resendCode, verifyCode, saveProfile, completeOnboarding, signOut],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

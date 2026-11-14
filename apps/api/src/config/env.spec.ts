@@ -11,6 +11,8 @@ const prod = {
   CORS_ORIGINS: 'https://app.bgym.app',
   MAIL_DRIVER: 'resend',
   RESEND_API_KEY: 're_test',
+  PAYMENTS_DRIVER: 'paystack',
+  PAYSTACK_SECRET_KEY: 'sk_live_example',
   JWT_ACCESS_SECRET: 'x'.repeat(40),
   OTP_PEPPER: 'y'.repeat(40),
 };
@@ -43,6 +45,11 @@ describe('validateEnv', () => {
   it('refuses development secrets and the log mailer in production', () => {
     expect(() => validateEnv({ ...prod, JWT_ACCESS_SECRET: base.JWT_ACCESS_SECRET })).toThrow(/JWT_ACCESS_SECRET/);
     expect(() => validateEnv({ ...prod, MAIL_DRIVER: 'log' })).toThrow(/MAIL_DRIVER/);
+  });
+
+  it('refuses the payment simulator and Paystack test keys in production', () => {
+    expect(() => validateEnv({ ...prod, PAYMENTS_DRIVER: 'dev' })).toThrow(/PAYMENTS_DRIVER/);
+    expect(() => validateEnv({ ...prod, PAYSTACK_SECRET_KEY: 'sk_test_x' })).toThrow(/test key/);
   });
 
   it('rejects short secrets', () => {

@@ -3,8 +3,14 @@ import {
   type AuthSession,
   type AuthTokens,
   type AuthUser,
+  type CheckoutResponse,
+  type GymDetail,
+  type MembershipPass,
+  type MembershipSummary,
+  type PaymentStatusResponse,
   type NearbyGymsQuery,
   type RequestEmailCodeResponse,
+  type UpdateProfileInput,
 } from '@bgym/shared';
 import { secureStorage } from './secure-storage';
 
@@ -125,10 +131,13 @@ async function authed<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 // ───────────── Endpoints ─────────────
 
+export { authed };
+
 export const authApi = {
   requestEmailCode: (email: string) => post<RequestEmailCodeResponse>('/v1/auth/email/request', { email }),
   verifyEmailCode: (email: string, code: string) => post<AuthSession>('/v1/auth/email/verify', { email, code }),
   me: () => authed<AuthUser>('/v1/auth/me'),
+  updateProfile: (input: UpdateProfileInput) => authed<AuthUser>('/v1/auth/me', { method: 'PATCH', body: JSON.stringify(input) }),
   async signOut(): Promise<void> {
     const refreshToken = await clearTokens();
     if (refreshToken) await post<void>('/v1/auth/sign-out', { refreshToken }).catch(() => undefined);
@@ -151,3 +160,16 @@ export function fetchNearbyGyms(query: NearbyGymsQuery): Promise<NearbyGym[]> {
   const params = new URLSearchParams({ lat: String(q.lat), lng: String(q.lng), radiusKm: String(q.radiusKm) });
   return request<NearbyGym[]>(`/v1/gyms/nearby?${params.toString()}`);
 }
+
+export function fetchGym(slug: string): Promise<GymDetail> {
+  return request<GymDetail>(`/v1/gyms/${encodeURIComponent(slug)}`);
+}
+
+export const membershipsApi = {
+  checkout: (planId: string) => authed<CheckoutResponse>('/v1/memberships/checkout', { method: 'POST', body: JSON.stringify({ planId }) }),
+  paymentStatus: (reference: string) => authed<PaymentStatusResponse>(`/v1/payments/${reference}`),
+  /** Development builds only: the API refuses this unless PAYMENTS_DRIVER=dev. */
+  simulatePayment: (reference: string) => authed<PaymentStatusResponse>(`/v1/payments/${reference}/simulate`, { method: 'POST' }),
+  list: () => authed<MembershipSummary[]>('/v1/memberships'),
+  pass: (membershipId: string) => authed<MembershipPass>(`/v1/memberships/${membershipId}/pass`),
+};

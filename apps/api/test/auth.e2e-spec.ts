@@ -83,6 +83,17 @@ describe('Sign-in with email code (e2e)', () => {
     expect(res.body.email).toBe(emailA);
   });
 
+  it('saves the profile step', async () => {
+    const res = await http()
+      .patch('/v1/auth/me')
+      .set('Authorization', `Bearer ${accessA}`)
+      .send({ name: ' Ama Owusu ', goal: 'build_strength', phone: '024 123 4567' })
+      .expect(200);
+    expect(res.body).toMatchObject({ name: 'Ama Owusu', goal: 'build_strength', phone: '+233241234567' });
+    await http().patch('/v1/auth/me').set('Authorization', `Bearer ${accessA}`).send({ name: 'A' }).expect(400);
+    await http().patch('/v1/auth/me').send({ name: 'Ama Owusu' }).expect(401);
+  });
+
   it('rotates refresh tokens and revokes everything when an old one is reused', async () => {
     const first = await http().post('/v1/auth/refresh').send({ refreshToken: refreshA }).expect(200);
     expect(first.body.refreshToken).not.toBe(refreshA);

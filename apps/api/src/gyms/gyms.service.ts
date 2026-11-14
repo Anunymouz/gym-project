@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import type { NearbyGymsQuery } from '@bgym/shared';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import type { GymDetail, NearbyGymsQuery, OpeningHours } from '@bgym/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 export interface NearbyGym {
@@ -41,5 +41,27 @@ export class GymsService {
       distanceKm: Math.round((distance_m / 1000) * 10) / 10,
       fromPricePesewas: from_price,
     }));
+  }
+
+  /** Public gym page: live gyms only, with active plans cheapest first. */
+  async findBySlug(slug: string): Promise<GymDetail> {
+    const [gym] = await this.prisma.$queryRaw<
+      Array<Omit<GymDetail, 'location' | 'photos' | 'plans' | 'openingHours'> & { openingHours: OpeningHours; lat: number; lng: number }>
+    >`
+      SELECT id, name, slug, description, "addressText", phone, "coverUrl", facilities, "openingHours",
+             ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lng
+      FROM gyms WHERE slug = ${slug} AND status = 'active' LIMIT 1`;
+    if (!gym) throw new NotFoundException('We couldn’t find that gym.');
+
+    const [photos, plans] = await Promise.all([
+      this.prisma.gymPhoto.findMany({ where: { gymId: gym.id }, orderBy: { sortOrder: 'asc' }, select: { url: true } }),
+      this.prisma.membershipPlan.findMany({
+        where: { gymId: gym.id, isActive: true },
+        orderBy: { pricePesewas: 'asc' },
+        select: { id: true, name: true, description: true, durationDays: true, pricePesewas: true },
+      }),
+    ]);
+    const { lat, lng, ...rest } = gym;
+    return { ...rest, location: { lat, lng }, photos: photos.map((p) => p.url), plans };
   }
 }

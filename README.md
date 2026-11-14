@@ -41,6 +41,8 @@ Run the API (http://localhost:4000, API docs at `/docs`) and the dashboards (htt
 pnpm dev
 ```
 
+Payments run in development mode (`PAYMENTS_DRIVER=dev` in `apps/api/.env`): checkout shows a test approval sheet instead of Paystack, and no real money moves. To test real Paystack checkout, set `PAYMENTS_DRIVER=paystack` and `PAYSTACK_SECRET_KEY=sk_test_…`.
+
 Run the mobile app, then scan the QR code with Expo Go (phone and computer on the same Wi-Fi). On a physical phone, set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` to your computer's LAN address, e.g. `http://192.168.1.20:4000`.
 
 ```bash

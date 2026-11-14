@@ -10,7 +10,10 @@ Phases are ordered so we can launch a paying product early, then layer on.
 - Business setup: Paystack account (+ confirm subaccount/MoMo details), Yango Delivery business contact, exercise-library licence, email provider, Apple & Google sign-in setup.
 
 ## Phase 1 — MVP: Gyms & memberships
-- ✅ Sign-in with email codes (API + app): secure sessions, rate limits, audit log. Next: Apple & Google sign-in, dashboard sign-in, profile step.
+- ✅ Sign-in with email codes (API + app): secure sessions, rate limits, audit log.
+- ✅ Profile step; gym pages with plans and opening hours.
+- ✅ Membership checkout (Paystack-ready, development simulator), verified activation, early-renewal extension, My memberships, rotating QR pass, staff check-in API.
+- Next: gym dashboard on live data (members, plans, QR scanner), dashboard sign-in, renewal reminders, Apple & Google sign-in, live Paystack keys and gym subaccounts.
 - Member: onboarding, location + radius search, gym page, buy membership (MoMo/card), receipt, QR, My memberships, renewal reminders.
 - Gym dashboard: onboarding, plans, members list, QR scanning check-in, revenue view.
 - Admin: gym approval, fee settings, transactions.

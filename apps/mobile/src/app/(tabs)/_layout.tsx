@@ -5,6 +5,7 @@ import type { ColorValue } from 'react-native';
 import type { IconProps } from 'phosphor-react-native';
 import { FloatingTabBar } from '@/components/tab-bar';
 import { BarbellIcon, HouseIcon, MapPinIcon, UserCircleIcon, UsersThreeIcon } from '@/components/icons';
+import { homeFor } from '@/lib/routes';
 import { useSession } from '@/lib/session';
 
 const tab = (Icon: ComponentType<IconProps>) =>
@@ -14,8 +15,7 @@ const tab = (Icon: ComponentType<IconProps>) =>
 
 export default function TabsLayout() {
   const { status } = useSession();
-  if (status === 'signedOut') return <Redirect href="/sign-in" />;
-  if (status === 'needsOnboarding') return <Redirect href="/onboarding/location" />;
+  if (status !== 'ready') return <Redirect href={homeFor(status)} />;
 
   return (
     <Tabs tabBar={(props) => <FloatingTabBar {...props} />} screenOptions={{ headerShown: false }}>

@@ -10,6 +10,8 @@ import { validateEnv, type Env } from './config/env.js';
 import { GymsModule } from './gyms/gyms.module.js';
 import { HealthModule } from './health/health.module.js';
 import { MailModule } from './mail/mail.module.js';
+import { MembershipsModule } from './memberships/memberships.module.js';
+import { PaymentsModule } from './payments/payments.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -48,6 +50,8 @@ import { PrismaModule } from './prisma/prisma.module.js';
     AuthModule,
     HealthModule,
     GymsModule,
+    PaymentsModule,
+    MembershipsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

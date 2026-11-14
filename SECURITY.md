@@ -29,8 +29,16 @@ Please do **not** open a public issue. Email the BGYM team privately with the de
 - Raw IP addresses are never stored, only peppered hashes. Sign-ups, sign-ins, failed codes and token reuse are written to an append-only audit log.
 - The API refuses to start in production with development secrets, a missing CORS allowlist, or the development mail driver.
 
-**Payments (Phase 1)**
-- Paystack webhooks are verified by signature and processed idempotently (each event id stored once); nothing is activated from client-side callbacks alone.
+**Payments**
+- Prices always come from the database at checkout; the amount sent by the app is ignored.
+- Memberships activate only after a verified payment: Paystack webhooks must carry a valid HMAC-SHA512 signature, and with live payments the transaction is re-verified with Paystack's API. Nothing is activated from the app's own callback.
+- Each provider event is processed exactly once (unique event id, in the same database transaction as the activation); replays are ignored. A charge whose amount or currency differs from the order is refused and audited.
+- Card and MoMo details are entered only on Paystack's page; BGYM never sees them.
+- The development payment simulator is refused in production, as are Paystack test keys.
+
+**Gym check-in**
+- The member's QR code is a signed token valid for 60 seconds and refreshed every 30, so screenshots expire almost immediately. It uses its own audience, so it can never be used as a sign-in token.
+- Only staff of that gym (or BGYM admins) can check members in; every scan, including invalid ones, is recorded.
 
 **Web dashboards**
 - Strict security headers (CSP, HSTS, `X-Frame-Options: DENY`, Permissions-Policy with camera limited to our own pages for QR check-in).

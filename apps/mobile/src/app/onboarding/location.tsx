@@ -9,6 +9,7 @@ import { CaretRightIcon, CrosshairIcon, ShoppingBagIcon } from '@/components/ico
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { homeFor } from '@/lib/routes';
 import { useSession, type SearchArea } from '@/lib/session';
 import { colors, fonts, radii, space } from '@/theme';
 
@@ -21,6 +22,8 @@ export default function LocationStep() {
   const { status, completeOnboarding } = useSession();
   const [radiusKm, setRadiusKm] = useState<number>(5);
   const [loc, setLoc] = useState<LocState>({ kind: 'locating' });
+  // While finishing, this screen navigates itself (to Gyms or the Store), so the guard stands down.
+  const [finishing, setFinishing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,12 +43,13 @@ export default function LocationStep() {
     };
   }, []);
 
-  if (status === 'signedOut') return <Redirect href="/sign-in" />;
+  if (status !== 'needsOnboarding' && !finishing) return <Redirect href={homeFor(status)} />;
 
   const area: SearchArea =
     loc.kind === 'found' ? { lat: loc.lat, lng: loc.lng, label: loc.label, radiusKm } : { ...DEFAULT_AREA, radiusKm };
 
   async function finish(next: '/gyms' | '/store') {
+    setFinishing(true);
     await completeOnboarding(area);
     router.replace('/gyms');
     if (next === '/store') router.push('/store');

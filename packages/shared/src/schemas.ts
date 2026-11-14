@@ -46,3 +46,28 @@ export interface HealthResponse {
   uptimeSeconds: number;
   checks: Record<string, 'up' | 'down'>;
 }
+
+/** Fitness goals offered in the profile step. */
+export const FITNESS_GOALS = [
+  { id: 'build_strength', label: 'Build strength' },
+  { id: 'lose_weight', label: 'Lose weight' },
+  { id: 'get_fit', label: 'Get fitter' },
+  { id: 'build_muscle', label: 'Build muscle' },
+  { id: 'stay_active', label: 'Stay active' },
+] as const;
+export const fitnessGoalSchema = z.enum(FITNESS_GOALS.map((g) => g.id) as [string, ...string[]]);
+
+export const updateProfileSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, 'Enter your name')
+    .max(60, 'That name is too long')
+    .regex(/^[\p{L}\p{M}' .-]+$/u, 'Use letters only'),
+  goal: fitnessGoalSchema.nullable().optional(),
+  /** Optional: speeds up Mobile Money checkout and store delivery. */
+  phone: z
+    .union([ghanaPhoneSchema, z.literal('').transform(() => null), z.null()])
+    .optional(),
+});
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

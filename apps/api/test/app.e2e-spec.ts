@@ -59,4 +59,17 @@ describe('BGYM API (e2e)', () => {
     expect(distances).toEqual([...distances].sort((a, b) => a - b));
     expect(distances.every((d: number) => d <= 5)).toBe(true);
   });
+
+  it('returns a gym page with active plans, cheapest first', async () => {
+    const res = await request(app.getHttpServer()).get('/v1/gyms/iron-haven-east-legon').expect(200);
+    expect(res.body).toMatchObject({ slug: 'iron-haven-east-legon', name: 'Iron Haven Fitness' });
+    expect(res.body.location.lat).toBeCloseTo(5.6357, 3);
+    const prices = res.body.plans.map((p: { pricePesewas: number }) => p.pricePesewas);
+    expect(prices).toEqual([...prices].sort((a, b) => a - b));
+  });
+
+  it('404s unknown gyms and rejects malformed slugs', async () => {
+    await request(app.getHttpServer()).get('/v1/gyms/no-such-gym').expect(404);
+    await request(app.getHttpServer()).get('/v1/gyms/Bad%20Slug').expect(400);
+  });
 });

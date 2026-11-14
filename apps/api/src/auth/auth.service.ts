@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OTP_RESEND_COOLDOWN_SECONDS, type AuthSession, type AuthUser, type RequestEmailCodeResponse } from '@bgym/shared';
+import { OTP_RESEND_COOLDOWN_SECONDS, type AuthSession, type AuthUser, type RequestEmailCodeResponse, type Role, type UpdateProfileInput } from '@bgym/shared';
 import { AuditService } from '../audit/audit.service.js';
 import { hmac } from '../common/crypto.js';
 import type { Env } from '../config/env.js';
@@ -8,7 +8,10 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { OtpService } from './otp.service.js';
 import { TokenService } from './token.service.js';
 
-const userSelect = { id: true, email: true, name: true, phone: true, roles: true } as const;
+const userSelect = { id: true, email: true, name: true, phone: true, roles: true, memberProfile: { select: { goal: true } } } as const;
+
+type UserRow = { id: string; email: string; name: string | null; phone: string | null; roles: Role[]; memberProfile: { goal: string | null } | null };
+const toAuthUser = ({ memberProfile, ...u }: UserRow): AuthUser => ({ ...u, goal: memberProfile?.goal ?? null });
 
 @Injectable()
 export class AuthService {
@@ -42,12 +45,14 @@ export class AuthService {
     const existing = await this.prisma.user.findUnique({ where: { email }, select: { ...userSelect, status: true } });
     if (existing && existing.status !== 'active') throw new ForbiddenException('This account is not active. Contact BGYM support.');
 
-    const user: AuthUser = existing
-      ? await this.prisma.user.update({ where: { id: existing.id }, data: { lastLoginAt: new Date() }, select: userSelect })
-      : await this.prisma.user.create({
-          data: { email, lastLoginAt: new Date(), identities: { create: { provider: 'email', providerUserId: email } } },
-          select: userSelect,
-        });
+    const user = toAuthUser(
+      existing
+        ? await this.prisma.user.update({ where: { id: existing.id }, data: { lastLoginAt: new Date() }, select: userSelect })
+        : await this.prisma.user.create({
+            data: { email, lastLoginAt: new Date(), identities: { create: { provider: 'email', providerUserId: email } } },
+            select: userSelect,
+          }),
+    );
 
     const tokens = await this.tokens.startSession(user.id, user.roles, { userAgent: client.userAgent, ipHash });
     await this.audit.record({ action: existing ? 'auth.sign_in' : 'auth.sign_up', actorId: user.id, targetType: 'user', targetId: user.id, ipHash, metadata: { method: 'email' } });
@@ -55,6 +60,21 @@ export class AuthService {
   }
 
   async getUser(userId: string): Promise<AuthUser> {
-    return this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: userSelect });
+    return toAuthUser(await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: userSelect }));
+  }
+
+  async updateProfile(userId: string, input: UpdateProfileInput): Promise<AuthUser> {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: input.name,
+        ...(input.phone !== undefined && { phone: input.phone }),
+        ...(input.goal !== undefined && {
+          memberProfile: { upsert: { create: { goal: input.goal }, update: { goal: input.goal } } },
+        }),
+      },
+      select: userSelect,
+    });
+    return toAuthUser(user);
   }
 }

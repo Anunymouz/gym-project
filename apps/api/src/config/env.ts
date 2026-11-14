@@ -29,6 +29,12 @@ export const envSchema = z.object({
   MAIL_DRIVER: z.enum(['log', 'memory', 'resend']).default('log'),
   MAIL_FROM: z.string().default('BGYM <no-reply@bgym.app>'),
   RESEND_API_KEY: z.string().optional(),
+  /** paystack = real payments; dev = payment simulator for local development and tests (refused in production). */
+  PAYMENTS_DRIVER: z.enum(['paystack', 'dev']).default('dev'),
+  /** Paystack secret key (sk_test_… or sk_live_…). Also verifies webhook signatures. */
+  PAYSTACK_SECRET_KEY: z.string().optional(),
+  /** Where Paystack sends the browser after payment: the app's deep link. */
+  PAYSTACK_CALLBACK_URL: z.string().default('bgym://payments/complete'),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -44,10 +50,13 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   if (env.NODE_ENV === 'production') {
     if (env.CORS_ORIGINS.length === 0) problems.push('CORS_ORIGINS: required in production');
     if (env.MAIL_DRIVER !== 'resend') problems.push('MAIL_DRIVER: must be "resend" in production');
+    if (env.PAYMENTS_DRIVER !== 'paystack') problems.push('PAYMENTS_DRIVER: must be "paystack" in production');
+    if (env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_')) problems.push('PAYSTACK_SECRET_KEY: test key used in production');
     for (const key of ['JWT_ACCESS_SECRET', 'OTP_PEPPER'] as const) {
       if (env[key].startsWith('dev-')) problems.push(`${key}: development value used in production`);
     }
   }
+  if (env.PAYMENTS_DRIVER === 'paystack' && !env.PAYSTACK_SECRET_KEY) problems.push('PAYSTACK_SECRET_KEY: required when PAYMENTS_DRIVER is "paystack"');
   if (env.MAIL_DRIVER === 'resend' && !env.RESEND_API_KEY) problems.push('RESEND_API_KEY: required when MAIL_DRIVER is "resend"');
   if (env.JWT_ACCESS_SECRET === env.OTP_PEPPER) problems.push('OTP_PEPPER: must differ from JWT_ACCESS_SECRET');
   if (problems.length) {

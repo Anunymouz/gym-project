@@ -1,5 +1,5 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { nearbyGymsQuerySchema, type NearbyGymsQuery } from '@bgym/shared';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { gymSlugSchema, nearbyGymsQuerySchema, type GymDetail, type NearbyGymsQuery } from '@bgym/shared';
 import { GymsService, type NearbyGym } from './gyms.service.js';
 import { Public } from '../auth/decorators.js';
 
@@ -12,5 +12,11 @@ export class GymsController {
   @Get('nearby')
   nearby(@Query({ schema: nearbyGymsQuerySchema }) query: NearbyGymsQuery): Promise<NearbyGym[]> {
     return this.gyms.findNearby(query);
+  }
+
+  /** GET /v1/gyms/iron-haven-east-legon */
+  @Get(':slug')
+  bySlug(@Param('slug', { schema: gymSlugSchema }) slug: string): Promise<GymDetail> {
+    return this.gyms.findBySlug(slug);
   }
 }

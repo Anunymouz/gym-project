@@ -12,6 +12,7 @@ export interface AuthUser {
   name: string | null;
   phone: string | null;
   roles: Role[];
+  goal: string | null;
 }
 
 export interface AuthTokens {

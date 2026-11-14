@@ -55,9 +55,14 @@ function App() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
+        <Stack.Screen name="onboarding/profile" />
         <Stack.Screen name="onboarding/location" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="store" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="gym/[slug]" />
+        <Stack.Screen name="checkout/[planId]" />
+        <Stack.Screen name="membership/[id]" options={{ gestureEnabled: true }} />
+        <Stack.Screen name="memberships" />
       </Stack>
       {showSplash && <AnimatedSplash onFinish={() => setShowSplash(false)} />}
     </>

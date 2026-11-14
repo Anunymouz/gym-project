@@ -22,6 +22,7 @@ import { SuccessCheck } from '@/components/motion/success-check';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { homeFor } from '@/lib/routes';
 import { useSession } from '@/lib/session';
 import { colors, fonts, radii, space } from '@/theme';
 
@@ -46,8 +47,7 @@ export default function Verify() {
   }, [cooldown]);
 
   // Navigation follows session state once the success animation has finished.
-  if (status === 'needsOnboarding') return <Redirect href="/onboarding/location" />;
-  if (status === 'ready') return <Redirect href="/home" />;
+  if (status !== 'signedOut') return <Redirect href={homeFor(status)} />;
   if (!pendingEmail) return <Redirect href="/sign-in" />;
 
   async function submit(value: string) {
