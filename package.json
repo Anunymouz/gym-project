@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "turbo run dev --filter=@bgym/api --filter=@bgym/web",
-    "dev:mobile": "pnpm --filter @bgym/mobile start",
+    "dev:mobile": "pnpm --filter @bgym/shared build && pnpm --filter @bgym/mobile start",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
