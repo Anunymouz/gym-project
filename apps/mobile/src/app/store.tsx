@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Header, IconButton } from '@/components/header';
 import { MagnifyingGlassIcon, ShoppingBagIcon } from '@/components/icons';
-import { EmptyState } from '@/components/ui/empty-state';
+import { PhotoHero } from '@/components/photo-hero';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { colors, fonts, radii, space } from '@/theme';
@@ -23,10 +23,12 @@ export default function Store() {
           </Pressable>
         ))}
       </View>
-      <EmptyState
-        icon={<ShoppingBagIcon size={28} color={colors.flare} weight="duotone" />}
-        title="The store opens in Phase 3"
-        body="Shop supplements, apparel and equipment without joining a gym. Pay with MoMo or card; we deliver across Accra."
+      <PhotoHero
+        source={require('@/assets/images/photos/store.jpg')}
+        eyebrow="Opening in Phase 3"
+        title="Gear up with BGYM"
+        body="Supplements, apparel and equipment, no gym needed. Pay with MoMo or card; we deliver across Accra."
+        height={320}
       />
     </Screen>
   );

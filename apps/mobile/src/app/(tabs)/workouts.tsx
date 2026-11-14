@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { Header } from '@/components/header';
-import { LockSimpleIcon, PersonSimpleRunIcon } from '@/components/icons';
-import { EmptyState } from '@/components/ui/empty-state';
+import { LockSimpleIcon } from '@/components/icons';
+import { PhotoHero } from '@/components/photo-hero';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { colors, radii, space } from '@/theme';
@@ -10,10 +10,12 @@ export default function Workouts() {
   return (
     <Screen scroll tabs>
       <Header title="Workouts" />
-      <EmptyState
-        icon={<PersonSimpleRunIcon size={28} color={colors.flare} weight="duotone" />}
+      <PhotoHero
+        source={require('@/assets/images/photos/workouts.jpg')}
+        eyebrow="Train anywhere"
         title="Guided home workouts"
         body="Animated exercises you can follow anywhere. A few basics are free; joining any gym on BGYM unlocks the full library."
+        height={340}
       />
       <View style={styles.note}>
         <LockSimpleIcon size={20} color={colors.flare} weight="bold" />

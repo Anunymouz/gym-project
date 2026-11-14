@@ -11,7 +11,9 @@ const portals = [
 
 export default function Home() {
   return (
-    <main className="min-h-dvh bg-[radial-gradient(900px_500px_at_20%_-10%,#231B5E_0%,transparent_60%)] bg-midnight px-4 py-10 text-white sm:px-8">
+    <main className="relative isolate min-h-dvh overflow-hidden bg-midnight px-4 py-10 text-white sm:px-8">
+      <Image src="/photos/portal.jpg" alt="" fill priority sizes="100vw" className="-z-20 object-cover opacity-45" />
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(100deg,#0D1028_25%,rgba(13,16,40,0.82)_55%,rgba(13,16,40,0.55))]" aria-hidden />
       <div className="mx-auto flex max-w-5xl flex-col gap-12">
         <header className="flex items-center justify-between">
           <Image src="/brand/bgym-lockup-on-dark.svg" alt="BGYM" width={132} height={36} priority />
@@ -29,7 +31,7 @@ export default function Home() {
             <Link
               key={href}
               href={href}
-              className="group flex items-center gap-4 rounded-card border border-white/10 bg-white/[0.04] p-5 transition-colors hover:border-flare/60 hover:bg-white/[0.07]"
+              className="group flex items-center gap-4 rounded-card border border-white/10 bg-midnight/60 p-5 backdrop-blur-md transition-colors hover:border-flare/60 hover:bg-midnight/80"
             >
               <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-flare/15 text-flare">
                 <Icon size={26} weight="duotone" aria-hidden />

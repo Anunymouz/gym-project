@@ -3,9 +3,9 @@ import { router } from 'expo-router';
 import { Mark } from '@/components/brand/mark';
 import { Wordmark } from '@/components/brand/wordmark';
 import { IconButton } from '@/components/header';
-import { BellIcon, ShoppingBagIcon, UsersThreeIcon } from '@/components/icons';
+import { BellIcon, ShoppingBagIcon } from '@/components/icons';
+import { PhotoHero } from '@/components/photo-hero';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { colors, radii, space } from '@/theme';
@@ -22,12 +22,17 @@ export default function Home() {
         <IconButton label="BGYM Store" onPress={() => router.push('/store')}><ShoppingBagIcon size={21} color={colors.text} /></IconButton>
       </View>
 
-      <EmptyState
-        icon={<UsersThreeIcon size={28} color={colors.flare} weight="duotone" />}
-        title="Your feed starts here"
-        body="Join a gym to see its workouts, videos and news in your feed."
-        action={<View style={{ alignSelf: 'stretch', marginTop: space.sm }}><Button title="Find a gym near you" onPress={() => router.navigate('/gyms')} /></View>}
-      />
+      <PhotoHero
+        source={require('@/assets/images/photos/feed.jpg')}
+        eyebrow="Your feed"
+        title="Your gym's workouts, right here"
+        body="Join a gym to see its workout videos, tips and news in your feed."
+        height={380}
+      >
+        <View style={{ marginTop: space.sm }}>
+          <Button title="Find a gym near you" onPress={() => router.navigate('/gyms')} />
+        </View>
+      </PhotoHero>
 
       <Pressable accessibilityRole="button" onPress={() => router.push('/store')} style={styles.banner}>
         <View style={{ flex: 1 }}>
