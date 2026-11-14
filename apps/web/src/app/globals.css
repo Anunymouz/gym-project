@@ -1,26 +1,51 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* BGYM brand tokens (brand/README.md, packages/shared/src/brand.ts). Dashboards use one light theme. */
+@theme {
+  --color-midnight: #0d1028;
+  --color-night: #080a1a;
+  --color-indigo: #231b5e;
+  --color-flare: #ff5a1f;
+  --color-flare-50: #fff0ea;
+  --color-flare-100: #ffd5c4;
+  --color-ember: #ff8a3d;
+  --color-violet: #6c5ce7;
+  --color-violet-50: #eeebff;
+  --color-cloud: #f5f6fa;
+  --color-line: #e6e8f0;
+  --color-mute: #6b7280;
+  --color-sidebar-mute: #8a90b0;
+  --color-success: #16a34a;
+  --color-success-50: #e7f7ec;
+  --color-danger: #dc2626;
+  --color-danger-50: #fdecec;
+
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 18px;
+  --radius-control: 12px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-cloud);
+  color: var(--color-midnight);
+  font-feature-settings: 'ss01';
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-ember);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

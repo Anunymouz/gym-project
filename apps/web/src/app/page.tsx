@@ -1,69 +1,49 @@
-import Image from "next/image";
+import Image from 'next/image';
+import Link from 'next/link';
+import { ArrowRight, Barbell, ShieldCheck, Storefront, UsersThree } from '@phosphor-icons/react/ssr';
+
+const portals = [
+  { href: '/gym', title: 'Gyms', text: 'Members, check-ins, plans and payouts.', Icon: UsersThree },
+  { href: '/trainer', title: 'Trainers', text: 'Your schedule, bookings and earnings.', Icon: Barbell },
+  { href: '/partner', title: 'Store partners', text: 'Orders, products and stock.', Icon: Storefront },
+  { href: '/admin', title: 'BGYM team', text: 'Approvals, payments and reports.', Icon: ShieldCheck },
+] as const;
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="min-h-dvh bg-[radial-gradient(900px_500px_at_20%_-10%,#231B5E_0%,transparent_60%)] bg-midnight px-4 py-10 text-white sm:px-8">
+      <div className="mx-auto flex max-w-5xl flex-col gap-12">
+        <header className="flex items-center justify-between">
+          <Image src="/brand/bgym-lockup-on-dark.svg" alt="BGYM" width={132} height={36} priority />
+          <Link href="/sign-in" className="rounded-control bg-flare px-4 py-2.5 text-sm font-bold hover:bg-[#f04e14]">
+            Sign in
+          </Link>
+        </header>
+        <section className="max-w-2xl">
+          <p className="text-sm font-bold tracking-[0.2em] text-ember uppercase">BGYM for business</p>
+          <h1 className="mt-3 text-4xl leading-tight font-extrabold text-balance sm:text-5xl">Run your gym, coaching or store on BGYM.</h1>
+          <p className="mt-4 text-lg text-[#B8BCD6]">One place for the businesses that power BGYM members across Accra.</p>
+        </section>
+        <section aria-label="Dashboards" className="grid gap-4 sm:grid-cols-2">
+          {portals.map(({ href, title, text, Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className="group flex items-center gap-4 rounded-card border border-white/10 bg-white/[0.04] p-5 transition-colors hover:border-flare/60 hover:bg-white/[0.07]"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+              <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-flare/15 text-flare">
+                <Icon size={26} weight="duotone" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-lg font-bold">{title}</span>
+                <span className="block text-[#B8BCD6]">{text}</span>
+              </span>
+              <ArrowRight size={20} className="text-[#8A90B0] transition-transform group-hover:translate-x-1 group-hover:text-white" aria-hidden />
+            </Link>
+          ))}
+        </section>
+        <p className="text-sm text-[#8A90B0]">Preview build: dashboards open without sign-in until authentication is added.</p>
+      </div>
+    </main>
   );
 }
