@@ -6,6 +6,59 @@
 
 A fitness marketplace for Ghana, starting in Accra. Members find partner gyms near them, pay memberships and book personal trainers in-app, follow their gyms' content, train at home with guided workouts, and buy fitness products from our store.
 
+## Repository
+
+| Path | What it is | Tech |
+|---|---|---|
+| `apps/mobile` | Member app for iOS and Android | Expo SDK 58, React Native, Expo Router, Reanimated |
+| `apps/web` | Gym, trainer, store partner and admin dashboards | Next.js 16, Tailwind CSS 4 |
+| `apps/api` | Backend API | NestJS 12, Prisma 7, PostgreSQL 17 + PostGIS |
+| `packages/shared` | Brand tokens, validation schemas, money helpers | TypeScript, zod |
+| `brand/`, `design/` | Brand kit, wireframes, splash animation | |
+| `docs/` | Product and technical planning | |
+
+## Getting started
+
+**You need:** Node.js 22 (see `.nvmrc`), pnpm 10 (`corepack enable`), Docker Desktop, and the Expo Go app on your phone.
+
+```bash
+pnpm install
+```
+
+```bash
+cp apps/api/.env.example apps/api/.env && cp apps/web/.env.example apps/web/.env.local && cp apps/mobile/.env.example apps/mobile/.env
+```
+
+Start PostgreSQL + PostGIS and Redis, create the tables, and load sample gyms:
+
+```bash
+pnpm db:up && pnpm db:migrate && pnpm db:seed
+```
+
+Run the API (http://localhost:4000, API docs at `/docs`) and the dashboards (http://localhost:3000):
+
+```bash
+pnpm dev
+```
+
+Run the mobile app, then scan the QR code with Expo Go (phone and computer on the same Wi-Fi). On a physical phone, set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` to your computer's LAN address, e.g. `http://192.168.1.20:4000`.
+
+```bash
+pnpm dev:mobile
+```
+
+### Everyday commands
+
+| Command | What it does |
+|---|---|
+| `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` | Checks for every app and package (Turborepo) |
+| `pnpm --filter @bgym/api test:e2e` | API end-to-end tests against the local database |
+| `pnpm --filter @bgym/api db:migrate:new --name <change>` | Create a new database migration after editing `schema.prisma` |
+| `pnpm db:studio` | Browse the local database |
+| `pnpm --filter @bgym/mobile generate:brand` | Regenerate the app's logo components from `brand/svg` |
+
+Every push runs CI: lint, typecheck, unit tests, builds, API end-to-end tests on PostGIS, iOS/Android bundling, a dependency audit, and CodeQL. Security practices are in [SECURITY.md](SECURITY.md).
+
 ## Surfaces
 
 | Surface | Users | Tech |

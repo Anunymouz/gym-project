@@ -54,3 +54,17 @@ Tooling: pnpm workspaces + Turborepo, ESLint, Prettier, GitHub Actions CI.
 - API + workers in containers on a managed platform (e.g. AWS, Render, Railway, Fly) close to West Africa where possible; managed Postgres with PostGIS.
 - Web on Vercel or the same platform.
 - Mobile builds via Expo EAS → App Store / Play Store; OTA updates for JS changes.
+
+## 6. As built (Phase 0 foundation, November 2026)
+
+| Area | Choice in the code |
+|---|---|
+| Monorepo | pnpm 10 workspaces + Turborepo; packages `@bgym/api`, `@bgym/web`, `@bgym/mobile`, `@bgym/shared` |
+| Mobile | Expo SDK 58 (React Native 0.88), Expo Router with JS tabs, Reanimated 4 + react-native-svg, Outfit font, Phosphor icons |
+| Web | Next.js 16 (App Router, Cache Components), Tailwind CSS 4, self-hosted Outfit, Phosphor icons |
+| API | NestJS 12 (Express adapter), zod validation via Standard Schema, helmet, throttler, pino, terminus, Swagger outside production |
+| Database | PostgreSQL 17 + PostGIS 3.5, Prisma 7 with the `pg` driver adapter; raw SQL (bound parameters) for geo queries |
+| Local services | Docker Compose: PostGIS, Redis |
+| CI | GitHub Actions (lint, typecheck, tests, builds, API e2e on PostGIS, mobile bundling, audit), CodeQL, Dependabot |
+
+**Icons:** Phosphor (MIT) on web and mobile, using duotone/fill weights for active states, instead of a generic default set. Apple and Google sign-in buttons use their official marks; on iOS, Phase 1 switches to Apple's native sign-in button as Apple requires.
