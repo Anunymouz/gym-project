@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import * as Location from 'expo-location';
 import { Redirect, router } from 'expo-router';
-import Svg, { Circle, G, Path } from 'react-native-svg';
+import Animated, { Easing, cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Svg, { Circle, Defs, G, LinearGradient, Path, Stop } from 'react-native-svg';
 import { SEARCH_RADII_KM } from '@bgym/shared';
 import { CaretRightIcon, CrosshairIcon, ShoppingBagIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -115,6 +116,7 @@ function RadiusGraphic({ radiusKm }: { radiusKm: number }) {
   const pins: [number, number][] = [[-44, -30], [38, -46], [56, 24], [-18, 52], [-70, 12], [84, -70], [-96, -64]];
   return (
     <View style={styles.graphic} accessibilityLabel={`Search radius ${radiusKm} kilometres`}>
+      <RadarSweep />
       <Svg width="100%" height="100%" viewBox="-160 -105 320 210">
         {[30, 60, 90, 120, 150].map((ring) => (
           <Circle key={ring} r={ring} fill="none" stroke="#DCE3DA" strokeWidth={1} />
@@ -136,7 +138,32 @@ function RadiusGraphic({ radiusKm }: { radiusKm: number }) {
   );
 }
 
+/** A slow radar sweep around the person's position: "scanning for gyms". */
+function RadarSweep() {
+  const turn = useSharedValue(0);
+  useEffect(() => {
+    turn.value = withRepeat(withTiming(1, { duration: 3200, easing: Easing.linear }), -1, false);
+    return () => cancelAnimation(turn);
+  }, [turn]);
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 360}deg` }] }));
+  const a = (40 * Math.PI) / 180;
+  return (
+    <Animated.View pointerEvents="none" style={[styles.sweep, style]}>
+      <Svg width={300} height={300} viewBox="-150 -150 300 300">
+        <Defs>
+          <LinearGradient id="sweep" x1="0" y1="0" x2="1" y2="-0.6">
+            <Stop offset="0" stopColor={colors.violet} stopOpacity={0.28} />
+            <Stop offset="1" stopColor={colors.violet} stopOpacity={0} />
+          </LinearGradient>
+        </Defs>
+        <Path d={`M0 0 L150 0 A150 150 0 0 0 ${150 * Math.cos(a)} ${-150 * Math.sin(a)} Z`} fill="url(#sweep)" />
+      </Svg>
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
+  sweep: { position: 'absolute', width: 300, height: 300, left: '50%', top: '50%', marginLeft: -150, marginTop: -150 },
   graphic: { height: 210, borderRadius: radii.lg, backgroundColor: '#EEF2EC', overflow: 'hidden', marginVertical: space.sm },
   locCard: { flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, padding: space.md },
   locIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.violetSoft, alignItems: 'center', justifyContent: 'center' },

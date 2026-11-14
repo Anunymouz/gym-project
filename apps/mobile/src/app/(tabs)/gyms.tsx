@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { formatGhs, pesewas } from '@bgym/shared';
 import { Header, IconButton } from '@/components/header';
 import { BellIcon, MagnifyingGlassIcon, MapPinIcon, WifiSlashIcon } from '@/components/icons';
-import { StoreBar } from '@/components/store-bar';
+import { GymCover } from '@/components/gym-cover';
+import { Skeleton } from '@/components/motion/skeleton';
+import { STORE_BAR_HEIGHT, StoreBar } from '@/components/store-bar';
+import { useTabBarSpace } from '@/components/tab-bar';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Text } from '@/components/ui/text';
@@ -19,6 +22,7 @@ export default function Gyms() {
   const { area } = useSession();
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [refreshing, setRefreshing] = useState(false);
+  const tabSpace = useTabBarSpace();
 
   const [attempt, setAttempt] = useState(0);
 
@@ -60,7 +64,19 @@ export default function Gyms() {
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       {state.kind === 'loading' ? (
-        <View style={styles.pad}>{header}<ActivityIndicator color={colors.flare} style={{ marginTop: space.xl }} /></View>
+        <View style={styles.pad}>
+          {header}
+          {[0, 1].map((i) => (
+            <View key={i} style={[styles.card, { marginBottom: space.md }]}>
+              <Skeleton height={140} radius={0} />
+              <View style={{ padding: space.md, gap: 8 }}>
+                <Skeleton width="60%" height={18} />
+                <Skeleton width="85%" height={13} />
+                <Skeleton width="30%" height={15} />
+              </View>
+            </View>
+          ))}
+        </View>
       ) : state.kind === 'error' ? (
         <View style={styles.pad}>
           {header}
@@ -76,13 +92,17 @@ export default function Gyms() {
           data={state.gyms}
           keyExtractor={(g) => g.id}
           ListHeaderComponent={header}
-          contentContainerStyle={[styles.pad, { paddingBottom: 120 }]}
+          contentContainerStyle={[styles.pad, { paddingBottom: tabSpace + STORE_BAR_HEIGHT + space.lg }]}
           ItemSeparatorComponent={() => <View style={{ height: space.md }} />}
           refreshControl={<RefreshControl refreshing={refreshing} tintColor={colors.flare} onRefresh={() => { setRefreshing(true); setAttempt((n) => n + 1); }} />}
           ListEmptyComponent={
             <EmptyState icon={<MapPinIcon size={28} color={colors.flare} weight="duotone" />} title="No gyms in this radius yet" body="Try a bigger radius. New gyms join BGYM every week." />
           }
-          renderItem={({ item }) => <GymCard gym={item} />}
+          renderItem={({ item, index }) => (
+            <Animated.View entering={FadeInDown.delay(80 + index * 70).duration(420).springify().damping(18)}>
+              <GymCard gym={item} />
+            </Animated.View>
+          )}
         />
       )}
       <StoreBar />
@@ -93,12 +113,12 @@ export default function Gyms() {
 function GymCard({ gym }: { gym: NearbyGym }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${gym.name}, ${gym.distanceKm} kilometres away`} style={({ pressed }) => [styles.card, pressed && { opacity: 0.94 }]}>
-      <LinearGradient colors={[colors.indigo, colors.midnight]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cover}>
-        <Text style={styles.coverInitial}>{gym.name.charAt(0)}</Text>
+      <View>
+        <GymCover uri={gym.coverUrl} height={140} name={gym.name} />
         <View style={styles.distance}>
-          <Text variant="smallBold" style={{ color: colors.white }}>{gym.distanceKm} km</Text>
+          <Text variant="smallBold" style={{ color: colors.white }}>{gym.distanceKm < 0.1 ? 'Nearby' : `${gym.distanceKm} km`}</Text>
         </View>
-      </LinearGradient>
+      </View>
       <View style={{ padding: space.md, gap: 3 }}>
         <Text variant="heading">{gym.name}</Text>
         <Text variant="small" muted>{gym.addressText} · {gym.facilities.slice(0, 3).join(' · ')}</Text>
@@ -119,7 +139,5 @@ const styles = StyleSheet.create({
   areaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   pill: { borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.white, borderRadius: radii.pill, paddingHorizontal: 12, paddingVertical: 5 },
   card: { backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
-  cover: { height: 120, justifyContent: 'center', paddingHorizontal: space.lg },
-  coverInitial: { fontSize: 64, lineHeight: 70, fontFamily: 'Outfit_800ExtraBold', color: 'rgba(255,255,255,0.14)' },
   distance: { position: 'absolute', right: 12, top: 12, backgroundColor: 'rgba(13,16,40,0.6)', borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 4 },
 });

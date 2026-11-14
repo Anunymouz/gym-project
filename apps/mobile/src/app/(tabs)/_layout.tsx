@@ -3,13 +3,13 @@ import { Tabs } from 'expo-router/js-tabs';
 import type { ComponentType } from 'react';
 import type { ColorValue } from 'react-native';
 import type { IconProps } from 'phosphor-react-native';
+import { FloatingTabBar } from '@/components/tab-bar';
 import { BarbellIcon, HouseIcon, MapPinIcon, UserCircleIcon, UsersThreeIcon } from '@/components/icons';
 import { useSession } from '@/lib/session';
-import { colors, fonts } from '@/theme';
 
 const tab = (Icon: ComponentType<IconProps>) =>
   function TabIcon({ color, focused }: { color: ColorValue; focused: boolean }) {
-    return <Icon size={25} color={color as string} weight={focused ? 'fill' : 'regular'} />;
+    return <Icon size={24} color={color as string} weight={focused ? 'fill' : 'regular'} />;
   };
 
 export default function TabsLayout() {
@@ -18,15 +18,7 @@ export default function TabsLayout() {
   if (status === 'needsOnboarding') return <Redirect href="/onboarding/location" />;
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.flare,
-        tabBarInactiveTintColor: '#9AA0B4',
-        tabBarLabelStyle: { fontFamily: fonts.semibold, fontSize: 11 },
-        tabBarStyle: { backgroundColor: colors.white, borderTopColor: colors.border },
-      }}
-    >
+    <Tabs tabBar={(props) => <FloatingTabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: tab(HouseIcon) }} />
       <Tabs.Screen name="workouts" options={{ title: 'Workouts', tabBarIcon: tab(BarbellIcon) }} />
       <Tabs.Screen name="gyms" options={{ title: 'Gyms', tabBarIcon: tab(MapPinIcon) }} />

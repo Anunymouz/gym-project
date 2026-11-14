@@ -6,7 +6,7 @@ import { colors } from '@/theme';
 
 export default function Trainers() {
   return (
-    <Screen scroll>
+    <Screen scroll tabs>
       <Header title="Trainers" />
       <EmptyState
         icon={<BarbellIcon size={28} color={colors.flare} weight="duotone" />}

@@ -29,7 +29,11 @@ interface SessionContextValue {
   pendingEmail: string | null;
   area: SearchArea | null;
   startEmailSignIn: (email: string) => void;
-  verifyCode: (code: string) => Promise<void>;
+  /**
+   * Checks the code. Resolves with `activate`, which signs the person in; the screen calls it
+   * after its success animation so navigation never cuts the animation short.
+   */
+  verifyCode: (code: string) => Promise<() => void>;
   completeOnboarding: (area: SearchArea) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -68,10 +72,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const verifyCode = useCallback(
     async (code: string) => {
       if (!pendingEmail || !/^\d{6}$/.test(code)) throw new Error('Enter the 6-digit code');
+      // PREVIEW: simulates the network round-trip of POST /v1/auth/email/verify (Phase 1).
+      await new Promise((r) => setTimeout(r, 900));
       await storage.set(JSON.stringify({ email: pendingEmail } satisfies StoredSession));
-      setEmail(pendingEmail);
-      setPendingEmail(null);
-      setStatus('needsOnboarding');
+      const verifiedEmail = pendingEmail;
+      return () => {
+        setEmail(verifiedEmail);
+        setPendingEmail(null);
+        setStatus('needsOnboarding');
+      };
     },
     [pendingEmail],
   );

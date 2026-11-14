@@ -12,7 +12,7 @@ import { colors, radii, space } from '@/theme';
 
 export default function Home() {
   return (
-    <Screen scroll>
+    <Screen scroll tabs>
       <View style={styles.top}>
         <View style={styles.brand}>
           <Mark width={44} />

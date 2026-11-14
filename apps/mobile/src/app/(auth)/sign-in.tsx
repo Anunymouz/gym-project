@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { emailSchema } from '@bgym/shared';
 import { Mark } from '@/components/brand/mark';
 import { AppleMark, GoogleMark } from '@/components/brand/social-marks';
@@ -30,14 +31,16 @@ export default function SignIn() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Screen scroll edges={['top', 'bottom']} style={styles.content}>
-        <View style={styles.header}>
+        <Animated.View entering={FadeInDown.duration(500)} style={styles.header}>
           <Mark width={112} />
           <Text variant="title" style={styles.center}>Welcome to BGYM</Text>
           <Text muted style={styles.center}>Sign in or create your account</Text>
-        </View>
+        </Animated.View>
 
-        <Button title="Continue with Apple" variant="black" icon={<AppleMark size={18} />} onPress={() => comingSoon('Apple')} />
-        <Button title="Continue with Google" variant="secondary" icon={<GoogleMark size={19} />} onPress={() => comingSoon('Google')} />
+        <Animated.View entering={FadeInDown.delay(120).duration(450)} style={{ gap: space.md }}>
+          <Button title="Continue with Apple" variant="black" icon={<AppleMark size={18} />} onPress={() => comingSoon('Apple')} />
+          <Button title="Continue with Google" variant="secondary" icon={<GoogleMark size={19} />} onPress={() => comingSoon('Google')} />
+        </Animated.View>
 
         <View style={styles.divider} accessibilityElementsHidden>
           <View style={styles.rule} />

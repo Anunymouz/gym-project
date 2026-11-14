@@ -28,6 +28,12 @@ describe('BGYM API (e2e)', () => {
     expect(res.body.info.database.status).toBe('up');
   });
 
+  it('never leaks internal error details', async () => {
+    const res = await request(app.getHttpServer()).get('/v1/gyms/nearby').query({ lat: 'x', lng: 0, radiusKm: 5 });
+    expect(res.status).toBe(400);
+    expect(JSON.stringify(res.body)).not.toMatch(/prisma|postgres|5432|stack/i);
+  });
+
   it('sends security headers and hides the framework', async () => {
     const res = await request(app.getHttpServer()).get('/v1/health');
     expect(res.headers['x-content-type-options']).toBe('nosniff');

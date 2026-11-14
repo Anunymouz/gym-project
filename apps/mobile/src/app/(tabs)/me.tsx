@@ -20,7 +20,7 @@ const rows: { label: string; detail: string; Icon: ComponentType<IconProps> }[] 
 export default function Me() {
   const { email, area, signOut } = useSession();
   return (
-    <Screen scroll>
+    <Screen scroll tabs>
       <Header title="Me" />
       <View style={styles.profile}>
         <View style={styles.avatar}>

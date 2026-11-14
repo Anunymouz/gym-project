@@ -8,7 +8,7 @@ import { colors, radii, space } from '@/theme';
 
 export default function Workouts() {
   return (
-    <Screen scroll>
+    <Screen scroll tabs>
       <Header title="Workouts" />
       <EmptyState
         icon={<PersonSimpleRunIcon size={28} color={colors.flare} weight="duotone" />}

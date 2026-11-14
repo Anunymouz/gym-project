@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Logger } from '@nestjs/common';
 import { HealthCheck, HealthCheckService, HealthIndicatorService } from '@nestjs/terminus';
 import { SkipThrottle } from '@nestjs/throttler';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -6,6 +6,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
 @SkipThrottle()
 @Controller('health')
 export class HealthController {
+  private readonly logger = new Logger(HealthController.name);
+
   constructor(
     private readonly health: HealthCheckService,
     private readonly indicators: HealthIndicatorService,
@@ -24,12 +26,22 @@ export class HealthController {
   ready() {
     return this.health.check([
       () =>
-        this.indicators
-          .check('database')
-          .attempt(async () => {
-            await this.prisma.$queryRaw`SELECT 1`;
-          })
-          .withTimeout(2000),
+        this.checkDatabase(),
     ]);
+  }
+
+  /** Never expose driver errors (hosts, ports, queries) in the public response; log them instead. */
+  private async checkDatabase() {
+    const db = this.indicators.check('database');
+    try {
+      await Promise.race([
+        this.prisma.$queryRaw`SELECT 1`,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000)),
+      ]);
+      return db.up();
+    } catch (err) {
+      this.logger.error(`Database health check failed: ${err instanceof Error ? err.message : String(err)}`);
+      return db.down({ message: 'unavailable' });
+    }
   }
 }

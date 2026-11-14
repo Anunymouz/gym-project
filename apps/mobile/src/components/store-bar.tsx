@@ -2,12 +2,16 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { ShoppingBagIcon } from '@/components/icons';
 import { Text } from '@/components/ui/text';
+import { useTabBarSpace } from '@/components/tab-bar';
 import { colors, radii, space } from '@/theme';
 
 /** Floating "BGYM Store" bar shown above the tab bar: shopping never requires joining a gym. */
+export const STORE_BAR_HEIGHT = 72;
+
 export function StoreBar() {
+  const tabSpace = useTabBarSpace();
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="Open the BGYM Store" onPress={() => router.push('/store')} style={({ pressed }) => [styles.bar, pressed && { opacity: 0.92 }]}>
+    <Pressable accessibilityRole="button" accessibilityLabel="Open the BGYM Store" onPress={() => router.push('/store')} style={({ pressed }) => [styles.bar, { bottom: tabSpace - 4 }, pressed && { opacity: 0.92 }]}>
       <View style={styles.icon}>
         <ShoppingBagIcon size={22} color={colors.white} weight="fill" />
       </View>
@@ -24,7 +28,7 @@ export function StoreBar() {
 
 const styles = StyleSheet.create({
   bar: {
-    position: 'absolute', left: space.lg, right: space.lg, bottom: space.md, flexDirection: 'row', alignItems: 'center', gap: space.md,
+    position: 'absolute', left: space.lg, right: space.lg, flexDirection: 'row', alignItems: 'center', gap: space.md,
     backgroundColor: colors.midnight, borderRadius: radii.lg, padding: space.md,
     shadowColor: colors.midnight, shadowOpacity: 0.3, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8,
   },
