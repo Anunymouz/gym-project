@@ -35,7 +35,7 @@ Start PostgreSQL + PostGIS and Redis, create the tables, and load sample gyms:
 pnpm db:up && pnpm db:migrate && pnpm db:seed
 ```
 
-Run the API (http://localhost:4000, API docs at `/docs`) and the dashboards (http://localhost:3000):
+Run the API (http://localhost:4000, API docs at `/docs`) and the dashboards (http://localhost:3000). In development, sign-in codes are printed in this terminal instead of being emailed (`MAIL_DRIVER=log` in `apps/api/.env`):
 
 ```bash
 pnpm dev

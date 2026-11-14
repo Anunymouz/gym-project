@@ -1,10 +1,19 @@
-import { nearbyGymsQuerySchema, type NearbyGymsQuery } from '@bgym/shared';
+import {
+  nearbyGymsQuerySchema,
+  type AuthSession,
+  type AuthTokens,
+  type AuthUser,
+  type NearbyGymsQuery,
+  type RequestEmailCodeResponse,
+} from '@bgym/shared';
+import { secureStorage } from './secure-storage';
 
 /**
  * API base URL. On a physical phone, set EXPO_PUBLIC_API_URL to your computer's LAN address
  * (e.g. http://192.168.1.20:4000); "localhost" only works in simulators and on web.
  */
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000').replace(/\/$/, '');
+const REFRESH_KEY = 'bgym.refresh.v1';
 
 export class ApiError extends Error {
   constructor(
@@ -14,26 +23,117 @@ export class ApiError extends Error {
     super(message);
     this.name = 'ApiError';
   }
+  get isNetwork(): boolean {
+    return this.status === undefined;
+  }
 }
 
-async function request<T>(path: string, init: RequestInit = {}, timeoutMs = 10_000): Promise<T> {
+const OFFLINE = "Can't reach BGYM right now. Check your connection and try again.";
+
+async function request<T>(path: string, init: RequestInit = {}, timeoutMs = 12_000): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
   try {
-    const res = await fetch(`${API_URL}${path}`, {
+    res = await fetch(`${API_URL}${path}`, {
       ...init,
       signal: controller.signal,
-      headers: { Accept: 'application/json', ...init.headers },
+      headers: { Accept: 'application/json', ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers },
     });
-    if (!res.ok) throw new ApiError(`Request failed (${res.status})`, res.status);
-    return (await res.json()) as T;
-  } catch (err) {
-    if (err instanceof ApiError) throw err;
-    throw new ApiError("Can't reach BGYM right now. Check your connection and try again.");
+  } catch {
+    throw new ApiError(OFFLINE);
   } finally {
     clearTimeout(timer);
   }
+  if (res.status === 204) return undefined as T;
+  const body = (await res.json().catch(() => null)) as { message?: unknown } | null;
+  if (!res.ok) {
+    if (res.status === 429) throw new ApiError('Too many attempts. Please wait a few minutes and try again.', 429);
+    const message = typeof body?.message === 'string' ? body.message : Array.isArray(body?.message) ? String(body.message[0]) : `Something went wrong (${res.status})`;
+    throw new ApiError(res.status >= 500 ? 'Something went wrong on our side. Please try again.' : message, res.status);
+  }
+  return body as T;
 }
+
+const post = <T>(path: string, body: unknown, headers?: Record<string, string>) =>
+  request<T>(path, { method: 'POST', body: JSON.stringify(body), ...(headers && { headers }) });
+
+// ───────────── Tokens ─────────────
+// The access token lives in memory only; the refresh token in secure storage.
+
+let access: { token: string; expiresAt: number } | null = null;
+let refreshing: Promise<boolean> | null = null;
+let onSessionEnded: (() => void) | null = null;
+
+/** The session provider registers this to sign the person out when their session can't be renewed. */
+export function setSessionEndedHandler(handler: () => void): void {
+  onSessionEnded = handler;
+}
+
+export async function saveTokens(tokens: AuthTokens): Promise<void> {
+  access = { token: tokens.accessToken, expiresAt: Date.parse(tokens.accessTokenExpiresAt) };
+  await secureStorage.set(REFRESH_KEY, tokens.refreshToken);
+}
+
+export async function clearTokens(): Promise<string | null> {
+  const refreshToken = await secureStorage.get(REFRESH_KEY);
+  access = null;
+  await secureStorage.remove(REFRESH_KEY);
+  return refreshToken;
+}
+
+export async function hasStoredSession(): Promise<boolean> {
+  return (await secureStorage.get(REFRESH_KEY)) !== null;
+}
+
+/**
+ * Exchanges the stored refresh token for new tokens. Concurrent callers share one request
+ * (refresh tokens are single-use). Network errors are rethrown; a rejected token ends the session.
+ */
+export function refreshSession(): Promise<boolean> {
+  refreshing ??= (async () => {
+    try {
+      const refreshToken = await secureStorage.get(REFRESH_KEY);
+      if (!refreshToken) return false;
+      await saveTokens(await post<AuthTokens>('/v1/auth/refresh', { refreshToken }));
+      return true;
+    } catch (err) {
+      if (err instanceof ApiError && !err.isNetwork) {
+        await clearTokens();
+        onSessionEnded?.();
+        return false;
+      }
+      throw err;
+    } finally {
+      refreshing = null;
+    }
+  })();
+  return refreshing;
+}
+
+/** Request with the access token, renewing it first if it's about to expire, and once more on a 401. */
+async function authed<T>(path: string, init: RequestInit = {}): Promise<T> {
+  if (!access || access.expiresAt - Date.now() < 60_000) await refreshSession();
+  const send = () => request<T>(path, { ...init, headers: { ...init.headers, Authorization: `Bearer ${access?.token ?? ''}` } });
+  try {
+    return await send();
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401 && (await refreshSession())) return send();
+    throw err;
+  }
+}
+
+// ───────────── Endpoints ─────────────
+
+export const authApi = {
+  requestEmailCode: (email: string) => post<RequestEmailCodeResponse>('/v1/auth/email/request', { email }),
+  verifyEmailCode: (email: string, code: string) => post<AuthSession>('/v1/auth/email/verify', { email, code }),
+  me: () => authed<AuthUser>('/v1/auth/me'),
+  async signOut(): Promise<void> {
+    const refreshToken = await clearTokens();
+    if (refreshToken) await post<void>('/v1/auth/sign-out', { refreshToken }).catch(() => undefined);
+  },
+};
 
 export interface NearbyGym {
   id: string;

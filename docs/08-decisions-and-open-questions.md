@@ -28,6 +28,7 @@
 | D22 | Member sign-in: Apple, Google, or email + one-time code. No phone-number verification. |
 | D23 | App opens with an animated BGYM splash screen, then sign-in. |
 | D24 | Store entry points: "Go to the BGYM Store" on the location & radius step after sign-in (no gym needed), floating Store bar on the Gyms tab, Store button at the top of every gym page, and the Home banner. |
+| D25 | Sign-in sessions: 15-minute access tokens + 30-day rotating refresh tokens with reuse detection; email codes hashed with a server pepper; every API route private unless marked public. Transactional email via Resend (to confirm). |
 
 ## Assumptions (please confirm or correct)
 

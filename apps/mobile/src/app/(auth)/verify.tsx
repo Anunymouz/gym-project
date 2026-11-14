@@ -29,7 +29,8 @@ const LENGTH = 6;
 type Phase = 'entering' | 'verifying' | 'success' | 'error';
 
 export default function Verify() {
-  const { status, pendingEmail, verifyCode } = useSession();
+  const { status, pendingEmail, verifyCode, resendCode } = useSession();
+  const [cooldown, setCooldown] = useState(30);
   const [code, setCode] = useState('');
   const [phase, setPhase] = useState<Phase>('entering');
   const [error, setError] = useState<string | null>(null);
@@ -37,14 +38,23 @@ export default function Verify() {
   const shake = useSharedValue(0);
   const rowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }));
 
+  // Resend countdown.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
   // Navigation follows session state once the success animation has finished.
   if (status === 'needsOnboarding') return <Redirect href="/onboarding/location" />;
+  if (status === 'ready') return <Redirect href="/home" />;
   if (!pendingEmail) return <Redirect href="/sign-in" />;
 
   async function submit(value: string) {
     setPhase('verifying');
     try {
-      const activate = await verifyCode(value);
+      // Keep the verifying animation on screen long enough to read, even on a fast connection.
+      const [activate] = await Promise.all([verifyCode(value), new Promise((r) => setTimeout(r, 700))]);
       setPhase('success');
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setTimeout(activate, 1100);
@@ -55,6 +65,17 @@ export default function Verify() {
       shake.set(withSequence(...[10, -10, 8, -8, 4, 0].map((v) => withTiming(v, { duration: 55 }))));
       setCode('');
       input.current?.focus();
+    }
+  }
+
+  async function resend() {
+    try {
+      setCooldown(await resendCode());
+      setError(null);
+      setPhase('entering');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong');
+      setPhase('error');
     }
   }
 
@@ -121,7 +142,21 @@ export default function Verify() {
           </Animated.View>
         )}
         {phase === 'error' && <Text variant="smallBold" style={{ color: colors.danger }}>{error}</Text>}
-        {phase === 'entering' && <Text variant="small" muted>Preview build: any 6 digits will continue.</Text>}
+        {phase === 'entering' && (
+          <View style={styles.resendRow}>
+            {cooldown > 0 ? (
+              <Text variant="small" muted>Resend code in 0:{String(cooldown).padStart(2, '0')}</Text>
+            ) : (
+              <Pressable accessibilityRole="button" onPress={() => void resend()} hitSlop={8}>
+                <Text variant="smallBold" style={{ color: colors.flare }}>Resend code</Text>
+              </Pressable>
+            )}
+            <Text variant="small" muted> · Check your spam folder</Text>
+          </View>
+        )}
+        {__DEV__ && phase === 'entering' && (
+          <Text variant="small" muted style={{ marginTop: 4 }}>Development: the code is printed in the API terminal.</Text>
+        )}
       </View>
 
       <View style={{ marginTop: 'auto' }}>
@@ -188,4 +223,5 @@ const styles = StyleSheet.create({
   hidden: { position: 'absolute', opacity: 0, height: 1, width: 1 },
   status: { minHeight: 48, justifyContent: 'center' },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  resendRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
 });

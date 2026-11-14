@@ -19,11 +19,15 @@ Please do **not** open a public issue. Email the BGYM team privately with the de
 - Structured logs with per-request IDs; authorization headers, cookies, emails and one-time codes are redacted.
 - Integrity rules enforced in the database too (positive prices, valid totals, valid date ranges).
 
-**Authentication (Phase 1)**
-- Sign in with Apple, Google, or a one-time email code. No passwords for members.
-- Only hashes of one-time codes and refresh tokens are stored; codes expire and have attempt limits.
-- Short-lived access tokens with rotating refresh tokens, stored in the iOS Keychain / Android Keystore via SecureStore.
-- Sensitive actions (approvals, refunds, fee and role changes) are written to an append-only audit log.
+**Authentication** (email codes live; Apple and Google next)
+- No passwords for members: a 6-digit code by email (Apple and Google sign-in to follow).
+- Codes come from a cryptographically secure generator, expire after 10 minutes, allow 5 attempts, and only the newest code is valid. They are stored as an HMAC keyed with a server-side pepper, so a database leak can't be brute-forced; comparison is constant-time and consumption is atomic (a code works once, even under concurrent requests).
+- Requesting a code always returns the same response, so it can't be used to discover which emails have accounts. A 30-second resend cooldown, 5 codes per hour per address, and per-client rate limits on every auth endpoint stop email bombing and guessing.
+- Sessions: 15-minute access tokens (HS256 JWT with issuer and audience checks) and 30-day refresh tokens that rotate on every use and are stored only as hashes. Reusing an old refresh token is treated as theft and revokes every session on the account.
+- On the phone the refresh token lives in the iOS Keychain / Android Keystore (this device only, never restored from backups); the access token is kept in memory.
+- Every API route requires sign-in unless explicitly marked public.
+- Raw IP addresses are never stored, only peppered hashes. Sign-ups, sign-ins, failed codes and token reuse are written to an append-only audit log.
+- The API refuses to start in production with development secrets, a missing CORS allowlist, or the development mail driver.
 
 **Payments (Phase 1)**
 - Paystack webhooks are verified by signature and processed idempotently (each event id stored once); nothing is activated from client-side callbacks alone.

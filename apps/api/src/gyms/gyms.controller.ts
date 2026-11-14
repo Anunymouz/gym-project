@@ -1,7 +1,9 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { nearbyGymsQuerySchema, type NearbyGymsQuery } from '@bgym/shared';
 import { GymsService, type NearbyGym } from './gyms.service.js';
+import { Public } from '../auth/decorators.js';
 
+@Public()
 @Controller('gyms')
 export class GymsController {
   constructor(private readonly gyms: GymsService) {}

@@ -4,9 +4,12 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
+import { AuditModule } from './audit/audit.module.js';
+import { AuthModule } from './auth/auth.module.js';
 import { validateEnv, type Env } from './config/env.js';
 import { GymsModule } from './gyms/gyms.module.js';
 import { HealthModule } from './health/health.module.js';
+import { MailModule } from './mail/mail.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -40,6 +43,9 @@ import { PrismaModule } from './prisma/prisma.module.js';
     // Global rate limit: 120 requests per minute per client. Sensitive routes set stricter limits.
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
     PrismaModule,
+    AuditModule,
+    MailModule,
+    AuthModule,
     HealthModule,
     GymsModule,
   ],

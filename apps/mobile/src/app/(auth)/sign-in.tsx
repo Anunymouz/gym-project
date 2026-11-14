@@ -16,16 +16,24 @@ export default function SignIn() {
   const { startEmailSignIn } = useSession();
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
   const comingSoon = (provider: string) =>
     Alert.alert(`${provider} sign-in`, `${provider} sign-in is connected in Phase 1. Use email for this preview.`);
 
-  function continueWithEmail() {
+  async function continueWithEmail() {
     const parsed = emailSchema.safeParse(email);
     if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? 'Enter a valid email address');
     setError(null);
-    startEmailSignIn(parsed.data);
-    router.push('/verify');
+    setSending(true);
+    try {
+      await startEmailSignIn(parsed.data);
+      router.push('/verify');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -56,7 +64,7 @@ export default function SignIn() {
               accessibilityLabelledBy="email-label"
               value={email}
               onChangeText={setEmail}
-              onSubmitEditing={continueWithEmail}
+              onSubmitEditing={() => void continueWithEmail()}
               placeholder="you@example.com"
               placeholderTextColor="#9AA0B4"
               autoCapitalize="none"
@@ -70,7 +78,7 @@ export default function SignIn() {
           </View>
           {error && <Text variant="smallBold" style={{ color: colors.danger }} accessibilityLiveRegion="polite">{error}</Text>}
         </View>
-        <Button title="Continue with email" onPress={continueWithEmail} />
+        <Button title="Continue with email" loading={sending} onPress={() => void continueWithEmail()} />
 
         <Text variant="small" muted style={[styles.center, { marginTop: 'auto' }]}>
           By continuing you agree to the Terms and Privacy Policy.

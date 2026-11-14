@@ -1,13 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
+import type { AuthUser } from '@bgym/shared';
+import { ApiError, authApi, hasStoredSession, refreshSession, saveTokens, setSessionEndedHandler } from './api';
+import { secureStorage } from './secure-storage';
 
 /**
- * Session state for the app.
- *
- * PREVIEW: there is no server verification yet. Phase 1 replaces `verifyCode` with
- * POST /v1/auth/email/verify and stores short-lived access + rotating refresh tokens here
- * (SecureStore = iOS Keychain / Android Keystore). Nothing sensitive is stored today.
+ * Who is signed in, and where they search for gyms.
+ * Tokens are handled by lib/api (access token in memory, refresh token in secure storage).
  */
 export type SessionStatus = 'loading' | 'signedOut' | 'needsOnboarding' | 'ready';
 
@@ -18,93 +16,112 @@ export interface SearchArea {
   label: string;
 }
 
-interface StoredSession {
-  email: string;
-  area?: SearchArea;
-}
-
 interface SessionContextValue {
   status: SessionStatus;
-  email: string | null;
+  user: AuthUser | null;
   pendingEmail: string | null;
   area: SearchArea | null;
-  startEmailSignIn: (email: string) => void;
+  /** Sends a sign-in code. Resolves with the seconds to wait before a resend. */
+  startEmailSignIn: (email: string) => Promise<number>;
+  resendCode: () => Promise<number>;
   /**
-   * Checks the code. Resolves with `activate`, which signs the person in; the screen calls it
-   * after its success animation so navigation never cuts the animation short.
+   * Checks the code with the server. Resolves with `activate`, which signs the person in;
+   * the screen calls it after its success animation so navigation never cuts it short.
    */
   verifyCode: (code: string) => Promise<() => void>;
   completeOnboarding: (area: SearchArea) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
-const KEY = 'bgym.session.v1';
+const USER_KEY = 'bgym.user.v1';
+const AREA_KEY = 'bgym.area.v1';
 const SessionContext = createContext<SessionContextValue | null>(null);
 
-// SecureStore is native-only; on web (dev preview) fall back to memory.
-const storage = {
-  get: () => (Platform.OS === 'web' ? Promise.resolve(null) : SecureStore.getItemAsync(KEY)),
-  set: (v: string) => (Platform.OS === 'web' ? Promise.resolve() : SecureStore.setItemAsync(KEY, v)),
-  clear: () => (Platform.OS === 'web' ? Promise.resolve() : SecureStore.deleteItemAsync(KEY)),
+const readJson = async <T,>(key: string): Promise<T | null> => {
+  const raw = await secureStorage.get(key).catch(() => null);
+  try {
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
 };
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SessionStatus>('loading');
-  const [email, setEmail] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [area, setArea] = useState<SearchArea | null>(null);
 
-  useEffect(() => {
-    storage
-      .get()
-      .then((raw) => {
-        const saved = raw ? (JSON.parse(raw) as StoredSession) : null;
-        if (!saved?.email) return setStatus('signedOut');
-        setEmail(saved.email);
-        setArea(saved.area ?? null);
-        setStatus(saved.area ? 'ready' : 'needsOnboarding');
-      })
-      .catch(() => setStatus('signedOut'));
+  const reset = useCallback(async () => {
+    await Promise.all([secureStorage.remove(USER_KEY), secureStorage.remove(AREA_KEY)]).catch(() => undefined);
+    setUser(null);
+    setArea(null);
+    setStatus('signedOut');
   }, []);
 
-  const startEmailSignIn = useCallback((value: string) => setPendingEmail(value), []);
+  // Restore on launch. Offline launches keep the cached profile so people aren't signed out
+  // just because they have no signal; a rejected session signs them out.
+  useEffect(() => {
+    setSessionEndedHandler(() => void reset());
+    (async () => {
+      if (!(await hasStoredSession())) return setStatus('signedOut');
+      const [cachedUser, savedArea] = await Promise.all([readJson<AuthUser>(USER_KEY), readJson<SearchArea>(AREA_KEY)]);
+      try {
+        if (!(await refreshSession())) return;
+        const fresh = await authApi.me();
+        await secureStorage.set(USER_KEY, JSON.stringify(fresh));
+        setUser(fresh);
+      } catch (err) {
+        if (!(err instanceof ApiError && err.isNetwork) || !cachedUser) return void reset();
+        setUser(cachedUser);
+      }
+      setArea(savedArea);
+      setStatus(savedArea ? 'ready' : 'needsOnboarding');
+    })().catch(() => void reset());
+  }, [reset]);
+
+  const startEmailSignIn = useCallback(async (email: string) => {
+    const res = await authApi.requestEmailCode(email);
+    setPendingEmail(email);
+    return res.retryAfterSeconds;
+  }, []);
+
+  const resendCode = useCallback(async () => {
+    if (!pendingEmail) throw new Error('Start again with your email');
+    return (await authApi.requestEmailCode(pendingEmail)).retryAfterSeconds;
+  }, [pendingEmail]);
 
   const verifyCode = useCallback(
     async (code: string) => {
-      if (!pendingEmail || !/^\d{6}$/.test(code)) throw new Error('Enter the 6-digit code');
-      // PREVIEW: simulates the network round-trip of POST /v1/auth/email/verify (Phase 1).
-      await new Promise((r) => setTimeout(r, 900));
-      await storage.set(JSON.stringify({ email: pendingEmail } satisfies StoredSession));
-      const verifiedEmail = pendingEmail;
+      if (!pendingEmail) throw new Error('Start again with your email');
+      const session = await authApi.verifyEmailCode(pendingEmail, code);
+      await saveTokens(session);
+      await secureStorage.set(USER_KEY, JSON.stringify(session.user));
+      const savedArea = session.isNewUser ? null : await readJson<SearchArea>(AREA_KEY);
       return () => {
-        setEmail(verifiedEmail);
+        setUser(session.user);
+        setArea(savedArea);
         setPendingEmail(null);
-        setStatus('needsOnboarding');
+        setStatus(savedArea ? 'ready' : 'needsOnboarding');
       };
     },
     [pendingEmail],
   );
 
-  const completeOnboarding = useCallback(
-    async (next: SearchArea) => {
-      if (!email) return;
-      await storage.set(JSON.stringify({ email, area: next } satisfies StoredSession));
-      setArea(next);
-      setStatus('ready');
-    },
-    [email],
-  );
-
-  const signOut = useCallback(async () => {
-    await storage.clear();
-    setEmail(null);
-    setArea(null);
-    setStatus('signedOut');
+  const completeOnboarding = useCallback(async (next: SearchArea) => {
+    await secureStorage.set(AREA_KEY, JSON.stringify(next));
+    setArea(next);
+    setStatus('ready');
   }, []);
 
+  const signOut = useCallback(async () => {
+    await authApi.signOut();
+    await reset();
+  }, [reset]);
+
   const value = useMemo(
-    () => ({ status, email, pendingEmail, area, startEmailSignIn, verifyCode, completeOnboarding, signOut }),
-    [status, email, pendingEmail, area, startEmailSignIn, verifyCode, completeOnboarding, signOut],
+    () => ({ status, user, pendingEmail, area, startEmailSignIn, resendCode, verifyCode, completeOnboarding, signOut }),
+    [status, user, pendingEmail, area, startEmailSignIn, resendCode, verifyCode, completeOnboarding, signOut],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

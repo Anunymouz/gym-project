@@ -18,7 +18,8 @@ const rows: { label: string; detail: string; Icon: ComponentType<IconProps> }[] 
 ];
 
 export default function Me() {
-  const { email, area, signOut } = useSession();
+  const { user, area, signOut } = useSession();
+  const email = user?.email;
   return (
     <Screen scroll tabs>
       <Header title="Me" />
