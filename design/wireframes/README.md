@@ -4,7 +4,7 @@ Mid-fidelity wireframes in the BGYM look. Open `index.html` in a browser to view
 
 ## 1. Get started & join a gym
 ![Get started](png/1-get-started-and-join.png)
-1. Splash: animated logo (open `splash.html` to see it play; frames in `png/splash-frames.png`)
+1. Splash: animated logo. The full animation is in [`../splash/`](../splash/index.html); frames in `png/splash-frames.png`
 2. Sign in / sign up: Apple, Google, or email
 3. Email code: 6-digit one-time code
 4. Location & radius: use location or drop a pin, choose 1–20 km, **or go straight to the BGYM Store** (no gym needed)
