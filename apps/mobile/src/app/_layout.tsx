@@ -68,6 +68,10 @@ function App() {
         <Stack.Screen name="notifications" />
         <Stack.Screen name="receipts/index" />
         <Stack.Screen name="receipts/[id]" />
+        <Stack.Screen name="post/[id]" />
+        <Stack.Screen name="compose" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="stories/[key]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+        <Stack.Screen name="blocked" />
       </Stack>
       {status === 'ready' && !showSplash && <NotificationTaps />}
       {showSplash && <AnimatedSplash onFinish={() => setShowSplash(false)} />}

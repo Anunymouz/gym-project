@@ -5,11 +5,15 @@ import { REPORT_REASONS, type ReportReason } from '@bgym/shared';
 import { CheckCircleIcon, FlagIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
-import { ApiError, feedApi } from '@/lib/api';
+import { ApiError, feedApi, postsApi, storiesApi } from '@/lib/api';
 import { colors, radii, space } from '@/theme';
 
-/** Bottom sheet to report a post to the BGYM team. */
-export function ReportSheet({ postId, onClose }: { postId: string | null; onClose: () => void }) {
+export type ReportTarget = { type: 'post' | 'comment' | 'story'; id: string };
+
+const send = { post: feedApi.report, comment: postsApi.reportComment, story: storiesApi.report };
+
+/** Bottom sheet to report a post, comment or story to the BGYM team. */
+export function ReportSheet({ target, onClose }: { target: ReportTarget | null; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle');
@@ -21,11 +25,11 @@ export function ReportSheet({ postId, onClose }: { postId: string | null; onClos
     setError(null);
     onClose();
   };
-  const send = async () => {
-    if (!postId || !reason) return;
+  const submit = async () => {
+    if (!target || !reason) return;
     setState('sending');
     try {
-      await feedApi.report(postId, { reason });
+      await send[target.type](target.id, { reason });
       setState('done');
     } catch (e) {
       // Already reported counts as done for the person reporting.
@@ -36,23 +40,23 @@ export function ReportSheet({ postId, onClose }: { postId: string | null; onClos
   };
 
   return (
-    <Modal visible={postId !== null} transparent animationType="slide" onRequestClose={close}>
+    <Modal visible={target !== null} transparent animationType="slide" onRequestClose={close}>
       <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close" />
       <View style={[styles.sheet, { paddingBottom: insets.bottom + space.lg }]}>
         {state === 'done' ? (
           <View style={{ alignItems: 'center', gap: space.sm }}>
             <CheckCircleIcon size={40} color={colors.success} weight="fill" />
             <Text variant="heading">Thanks for telling us</Text>
-            <Text muted style={{ textAlign: 'center' }}>The BGYM team will review this post.</Text>
+            <Text muted style={{ textAlign: 'center' }}>The BGYM team will review it.</Text>
             <View style={{ alignSelf: 'stretch', marginTop: space.sm }}><Button title="Done" variant="dark" onPress={close} /></View>
           </View>
         ) : (
           <View style={{ gap: space.md }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
               <FlagIcon size={22} color={colors.danger} weight="fill" />
-              <Text variant="heading">Report post</Text>
+              <Text variant="heading">Report {target?.type ?? 'post'}</Text>
             </View>
-            <Text muted>Why are you reporting it? The gym won’t see who reported it.</Text>
+            <Text muted>Why are you reporting it? Nobody will see who reported it.</Text>
             <View accessibilityRole="radiogroup" style={{ gap: space.sm }}>
               {(Object.keys(REPORT_REASONS) as ReportReason[]).map((r) => (
                 <Pressable key={r} accessibilityRole="radio" accessibilityState={{ checked: reason === r }} onPress={() => setReason(r)} style={[styles.option, reason === r && styles.optionOn]}>
@@ -61,7 +65,7 @@ export function ReportSheet({ postId, onClose }: { postId: string | null; onClos
               ))}
             </View>
             {error && <Text variant="smallBold" style={{ color: colors.danger }}>{error}</Text>}
-            <Button title="Send report" disabled={!reason} loading={state === 'sending'} onPress={() => void send()} />
+            <Button title="Send report" disabled={!reason} loading={state === 'sending'} onPress={() => void submit()} />
           </View>
         )}
       </View>

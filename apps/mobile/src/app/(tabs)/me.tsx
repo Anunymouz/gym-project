@@ -3,7 +3,7 @@ import { router, type Href } from 'expo-router';
 import type { ComponentType } from 'react';
 import type { IconProps } from 'phosphor-react-native';
 import { Header } from '@/components/header';
-import { BellIcon, CaretRightIcon, MapPinIcon, QrCodeIcon, ReceiptIcon, ShoppingBagIcon, UserCircleIcon } from '@/components/icons';
+import { BellIcon, CaretRightIcon, MapPinIcon, ProhibitIcon, QrCodeIcon, ReceiptIcon, ShoppingBagIcon, UserCircleIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
@@ -17,6 +17,7 @@ const rows: { label: string; detail: string; Icon: ComponentType<IconProps>; hre
   { label: 'Payments & receipts', detail: 'Every payment, with a receipt', Icon: ReceiptIcon, href: '/receipts' },
   { label: 'Notifications', detail: 'Reminders, check-ins and email', Icon: BellIcon, href: '/notifications' },
   { label: 'Search area', detail: '', Icon: MapPinIcon, href: { pathname: '/onboarding/location', params: { edit: '1' } } },
+  { label: 'Blocked people', detail: 'People whose posts you don’t see', Icon: ProhibitIcon, href: '/blocked' },
 ];
 
 export default function Me() {

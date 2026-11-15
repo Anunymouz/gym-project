@@ -66,6 +66,21 @@
           "color": "#FF5A1F",
           "defaultChannel": "reminders"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BGYM uses your photos so you can share them in posts and stories with your gym.",
+          "cameraPermission": "BGYM uses the camera so you can take photos and videos for posts and stories.",
+          "microphonePermission": "BGYM uses the microphone to record sound with your videos."
+        }
+      ],
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": false,
+          "supportsPictureInPicture": false
+        }
       ]
     ],
     "experiments": {

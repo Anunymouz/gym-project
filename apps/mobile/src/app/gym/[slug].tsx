@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatGhs, openingStatus, pesewas, planPeriodLabel, type FeedPost, type GymDetail, type MembershipPlanSummary } from '@bgym/shared';
 import { GlassButton } from '@/components/glass-button';
 import { PostCard } from '@/components/feed/post-card';
-import { ReportSheet } from '@/components/feed/report-sheet';
+import { ReportSheet, type ReportTarget } from '@/components/feed/report-sheet';
 import { GymGallery } from '@/components/gym-gallery';
 import { ArrowLeftIcon, CheckCircleIcon, ClockIcon, MapTrifoldIcon, PhoneIcon, NewspaperIcon, ShoppingBagIcon, UsersThreeIcon, WifiSlashIcon } from '@/components/icons';
 import { Skeleton } from '@/components/motion/skeleton';
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
 function GymPosts({ slug }: { slug: string }) {
   const [posts, setPosts] = useState<FeedPost[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const [reporting, setReporting] = useState<string | null>(null);
+  const [reporting, setReporting] = useState<ReportTarget | null>(null);
   const [now] = useState(() => Date.now());
   useEffect(() => {
     let live = true;
@@ -249,7 +249,7 @@ function GymPosts({ slug }: { slug: string }) {
   return (
     <View style={{ gap: space.md }}>
       {posts.map((p) => <PostCard key={p.id} post={p} now={now} showGym={false} onReport={setReporting} />)}
-      <ReportSheet postId={reporting} onClose={() => setReporting(null)} />
+      <ReportSheet target={reporting} onClose={() => setReporting(null)} />
     </View>
   );
 }

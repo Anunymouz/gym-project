@@ -4,9 +4,15 @@ import {
   type AuthSession,
   type AuthTokens,
   type AuthUser,
+  type BlockedUser,
+  type CommentPage,
   type FeedPage,
   type FeedPost,
+  type PostComment,
   type ReportInput,
+  type StoryTray,
+  type VideoUploadStatus,
+  type VideoUploadTicket,
   type CheckoutResponse,
   type GymDetail,
   type MembershipPass,
@@ -21,6 +27,7 @@ import {
   type RequestEmailCodeResponse,
   type UpdateProfileInput,
 } from '@bgym/shared';
+import { Platform } from 'react-native';
 import { secureStorage } from './secure-storage';
 
 /**
@@ -45,6 +52,11 @@ export class ApiError extends Error {
 
 const OFFLINE = "Can't reach BGYM right now. Check your connection and try again.";
 
+/** Drops headers set to undefined (multipart requests let fetch set Content-Type). */
+function cleanHeaders(h: Record<string, string | undefined> | HeadersInit): Record<string, string> {
+  return Object.fromEntries(Object.entries(h as Record<string, string | undefined>).filter((e): e is [string, string] => e[1] !== undefined));
+}
+
 async function request<T>(path: string, init: RequestInit = {}, timeoutMs = 12_000): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -53,7 +65,7 @@ async function request<T>(path: string, init: RequestInit = {}, timeoutMs = 12_0
     res = await fetch(`${API_URL}${path}`, {
       ...init,
       signal: controller.signal,
-      headers: { Accept: 'application/json', ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers },
+      headers: cleanHeaders({ Accept: 'application/json', ...(init.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}), ...init.headers }),
     });
   } catch {
     throw new ApiError(OFFLINE);
@@ -127,15 +139,70 @@ export function refreshSession(): Promise<boolean> {
 }
 
 /** Request with the access token, renewing it first if it's about to expire, and once more on a 401. */
-async function authed<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function authed<T>(path: string, init: RequestInit = {}, timeoutMs?: number): Promise<T> {
   if (!access || access.expiresAt - Date.now() < 60_000) await refreshSession();
-  const send = () => request<T>(path, { ...init, headers: { ...init.headers, Authorization: `Bearer ${access?.token ?? ''}` } });
+  const send = () => request<T>(path, { ...init, headers: { ...init.headers, Authorization: `Bearer ${access?.token ?? ''}` } }, timeoutMs);
   try {
     return await send();
   } catch (err) {
     if (err instanceof ApiError && err.status === 401 && (await refreshSession())) return send();
     throw err;
   }
+}
+
+/** A fresh access token for requests made outside fetch (uploads with progress). */
+async function accessToken(): Promise<string> {
+  if (!access || access.expiresAt - Date.now() < 60_000) await refreshSession();
+  return access?.token ?? '';
+}
+
+/** A picked file (photo or video) to send as multipart form data. */
+export interface PickedFile {
+  uri: string;
+  name: string;
+  type: string;
+}
+
+/** Adds a file to a form: native takes {uri,name,type}; the web needs the actual Blob. */
+export async function appendFile(form: FormData, field: string, file: PickedFile): Promise<void> {
+  if (Platform.OS === 'web') {
+    form.append(field, await (await fetch(file.uri)).blob(), file.name);
+    return;
+  }
+  form.append(field, file as unknown as Blob);
+}
+
+/** Multipart request with the access token (fetch sets the boundary itself). */
+const authedForm = <T>(path: string, form: FormData, method = 'POST') => authed<T>(path, { method, body: form, headers: { 'Content-Type': undefined as unknown as string } }, 120_000);
+
+/**
+ * Upload with progress (fetch can't report it). Used for videos, which can be large.
+ * Resolves with the parsed JSON body (if any).
+ */
+function uploadWithProgress<T>(url: string, form: FormData, headers: Record<string, string>, onProgress?: (fraction: number) => void): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress?.(e.loaded / e.total);
+    };
+    xhr.onload = () => {
+      let body: { message?: unknown } | null = null;
+      try {
+        body = xhr.responseText ? (JSON.parse(xhr.responseText) as { message?: unknown }) : null;
+      } catch {
+        body = null;
+      }
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(body as T);
+      if (xhr.status === 413) return reject(new ApiError('That video is too big. Try a shorter clip.', 413));
+      reject(new ApiError(typeof body?.message === 'string' && xhr.status < 500 ? body.message : 'The upload didn’t go through. Try again.', xhr.status));
+    };
+    xhr.onerror = () => reject(new ApiError(OFFLINE));
+    xhr.ontimeout = () => reject(new ApiError(OFFLINE));
+    xhr.timeout = 15 * 60_000;
+    xhr.send(form);
+  });
 }
 
 // ───────────── Endpoints ─────────────
@@ -215,4 +282,73 @@ export const feedApi = {
   gymPosts: async (slug: string) => (await request<FeedPost[]>(`/v1/gyms/${encodeURIComponent(slug)}/posts`)).map(withMedia),
   like: (postId: string, on: boolean) => authed<{ likeCount: number; likedByMe: boolean }>(`/v1/posts/${postId}/like`, { method: on ? 'PUT' : 'DELETE' }),
   report: (postId: string, input: ReportInput) => authed<void>(`/v1/posts/${postId}/report`, { method: 'POST', body: JSON.stringify(input) }),
+};
+
+export const postsApi = {
+  get: async (id: string) => withMedia(await authed<FeedPost>(`/v1/posts/${id}`)),
+  /** Text plus photos, or a ready video (by its upload id). */
+  create: async (input: { gymId: string; body: string; photos: PickedFile[]; videoId?: string }) => {
+    const form = new FormData();
+    form.append('gymId', input.gymId);
+    form.append('body', input.body);
+    if (input.videoId) form.append('videoId', input.videoId);
+    for (const p of input.photos) await appendFile(form, 'photos', p);
+    return withMedia(await authedForm<FeedPost>('/v1/posts', form));
+  },
+  remove: (id: string) => authed<void>(`/v1/posts/${id}`, { method: 'DELETE' }),
+  comments: (id: string, cursor?: string | null) => authed<CommentPage>(`/v1/posts/${id}/comments${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`),
+  comment: (id: string, body: string) => authed<PostComment>(`/v1/posts/${id}/comments`, { method: 'POST', body: JSON.stringify({ body }) }),
+  removeComment: (commentId: string) => authed<{ commentCount: number }>(`/v1/comments/${commentId}`, { method: 'DELETE' }),
+  reportComment: (commentId: string, input: ReportInput) => authed<void>(`/v1/comments/${commentId}/report`, { method: 'POST', body: JSON.stringify(input) }),
+};
+
+const storyMedia = (t: StoryTray): StoryTray => ({
+  ...t,
+  groups: t.groups.map((g) => ({ ...g, gym: { ...g.gym, coverUrl: media(g.gym.coverUrl) }, stories: g.stories.map((s) => ({ ...s, url: media(s.url) ?? s.url, thumbUrl: media(s.thumbUrl) ?? s.thumbUrl })) })),
+});
+
+export const storiesApi = {
+  tray: async () => storyMedia(await authed<StoryTray>('/v1/stories')),
+  create: async (input: { gymId: string; caption: string; photo?: PickedFile; videoId?: string }) => {
+    const form = new FormData();
+    form.append('gymId', input.gymId);
+    if (input.caption) form.append('caption', input.caption);
+    if (input.videoId) form.append('videoId', input.videoId);
+    if (input.photo) await appendFile(form, 'photos', input.photo);
+    return storyMedia(await authedForm<StoryTray>('/v1/stories', form));
+  },
+  view: (id: string) => authed<void>(`/v1/stories/${id}/view`, { method: 'POST' }),
+  like: (id: string, on: boolean) => authed<{ likedByMe: boolean }>(`/v1/stories/${id}/like`, { method: on ? 'PUT' : 'DELETE' }),
+  remove: (id: string) => authed<void>(`/v1/stories/${id}`, { method: 'DELETE' }),
+  report: (id: string, input: ReportInput) => authed<void>(`/v1/stories/${id}/report`, { method: 'POST', body: JSON.stringify(input) }),
+};
+
+export const communityApi = {
+  acceptRules: () => authed<void>('/v1/me/community-rules', { method: 'POST' }),
+  blocks: () => authed<BlockedUser[]>('/v1/me/blocks'),
+  block: (userId: string) => authed<void>(`/v1/me/blocks/${userId}`, { method: 'PUT' }),
+  unblock: (userId: string) => authed<void>(`/v1/me/blocks/${userId}`, { method: 'DELETE' }),
+};
+
+export const videoApi = {
+  /**
+   * Uploads a video and waits until it's ready to post. Sends it to our API (development) or
+   * straight to Cloudflare Stream (production), reporting progress, then polls for "ready".
+   */
+  async upload(purpose: 'post' | 'story', file: PickedFile, onProgress?: (stage: 'uploading' | 'processing', fraction: number) => void): Promise<VideoUploadStatus> {
+    const ticket = await authed<VideoUploadTicket>('/v1/videos', { method: 'POST', body: JSON.stringify({ purpose }) });
+    const form = new FormData();
+    await appendFile(form, 'file', file);
+    const url = ticket.authenticated ? `${API_URL}${ticket.uploadUrl}` : ticket.uploadUrl;
+    const headers: Record<string, string> = ticket.authenticated ? { Authorization: `Bearer ${await accessToken()}` } : {};
+    const uploaded = await uploadWithProgress<VideoUploadStatus | null>(url, form, headers, (f) => onProgress?.('uploading', f));
+    let status = ticket.authenticated && uploaded ? uploaded : await authed<VideoUploadStatus>(`/v1/videos/${ticket.id}`);
+    for (let i = 0; status.status !== 'ready' && status.status !== 'failed' && i < 120; i++) {
+      onProgress?.('processing', 0);
+      await new Promise((r) => setTimeout(r, 2500));
+      status = await authed<VideoUploadStatus>(`/v1/videos/${ticket.id}`);
+    }
+    if (status.status !== 'ready') throw new ApiError(status.error ?? 'That video took too long to process. Try again.');
+    return status;
+  },
 };

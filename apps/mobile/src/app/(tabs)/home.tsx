@@ -2,20 +2,23 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { FeedPost } from '@bgym/shared';
+import type { FeedPost, StoryTray as Tray } from '@bgym/shared';
 import { Mark } from '@/components/brand/mark';
 import { Wordmark } from '@/components/brand/wordmark';
 import { PostCard } from '@/components/feed/post-card';
-import { ReportSheet } from '@/components/feed/report-sheet';
+import { ReportSheet, type ReportTarget } from '@/components/feed/report-sheet';
+import { StoryTray } from '@/components/feed/story-tray';
 import { IconButton } from '@/components/header';
-import { BellIcon, NewspaperIcon, ShoppingBagIcon, WifiSlashIcon } from '@/components/icons';
+import { BellIcon, NewspaperIcon, PlusIcon, ShoppingBagIcon, WifiSlashIcon } from '@/components/icons';
 import { Skeleton } from '@/components/motion/skeleton';
 import { PhotoHero } from '@/components/photo-hero';
 import { useTabBarSpace } from '@/components/tab-bar';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Text } from '@/components/ui/text';
-import { feedApi } from '@/lib/api';
+import { feedApi, storiesApi } from '@/lib/api';
+import { feedEvents } from '@/lib/feed-events';
+import { storyStore } from '@/lib/story-store';
 import { colors, radii, space } from '@/theme';
 
 type State = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; posts: FeedPost[]; cursor: string | null; gyms: number };
@@ -25,11 +28,13 @@ export default function Home() {
   const [state, setState] = useState<State>({ status: 'loading' });
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [reporting, setReporting] = useState<string | null>(null);
+  const [reporting, setReporting] = useState<ReportTarget | null>(null);
+  const [tray, setTray] = useState<Tray | null>(() => storyStore.get());
   const [now, setNow] = useState(() => Date.now());
   const busy = useRef(false);
 
   const load = useCallback(async () => {
+    void storiesApi.tray().then((t) => storyStore.set(t), () => undefined);
     try {
       const page = await feedApi.page();
       setNow(Date.now());
@@ -42,6 +47,23 @@ export default function Home() {
   useEffect(() => {
     void load();
   }, [load]);
+  // Stories watched in the viewer turn grey here; posts made in the composer appear at the top.
+  useEffect(() => storyStore.subscribe(setTray), []);
+  useEffect(
+    () =>
+      feedEvents.onPosted((post) => {
+        setNow(Date.now());
+        setState((s) => (s.status === 'ready' ? { ...s, posts: [post, ...s.posts.filter((p) => p.id !== post.id)] } : s));
+      }),
+    [],
+  );
+  const drop = (post: FeedPost, reason: 'deleted' | 'blocked') =>
+    setState((s) =>
+      s.status === 'ready'
+        ? { ...s, posts: s.posts.filter((p) => (reason === 'deleted' ? p.id !== post.id : !(p.author.kind === 'member' && post.author.kind === 'member' && p.author.id === post.author.id))) }
+        : s,
+    );
+  const compose = (mode: 'post' | 'story') => router.push({ pathname: '/compose', params: { mode } });
 
   const refresh = async () => {
     setRefreshing(true);
@@ -78,9 +100,12 @@ export default function Home() {
           <Mark width={44} />
           <Wordmark height={22} />
         </View>
+        {member && <IconButton label="Create a post or story" onPress={() => compose('post')}><PlusIcon size={21} color={colors.text} weight="bold" /></IconButton>}
         <IconButton label="Notifications" onPress={() => router.push('/notifications')}><BellIcon size={21} color={colors.text} /></IconButton>
         <IconButton label="BGYM Store" onPress={() => router.push('/store')}><ShoppingBagIcon size={21} color={colors.text} /></IconButton>
       </View>
+
+      {member && tray && <StoryTray tray={tray} onCreate={() => compose('story')} />}
 
       {state.status === 'loading' && [0, 1].map((i) => <Skeleton key={i} height={320} radius={radii.lg} />)}
 
@@ -114,7 +139,8 @@ export default function Home() {
         <EmptyState
           icon={<NewspaperIcon size={28} color={colors.flare} weight="duotone" />}
           title="No posts yet"
-          body="When your gym shares tips, news or photos, they’ll show up here."
+          body="Be the first: share a workout, a PR or a progress photo with your gym."
+          action={<Button title="Create a post" onPress={() => compose('post')} />}
         />
       )}
     </View>
@@ -125,7 +151,7 @@ export default function Home() {
       <FlatList
         data={member ? ready!.posts : []}
         keyExtractor={(p) => p.id}
-        renderItem={({ item }) => <PostCard post={item} now={now} onReport={setReporting} />}
+        renderItem={({ item }) => <PostCard post={item} now={now} onReport={setReporting} onGone={drop} />}
         ListHeaderComponent={header}
         ListFooterComponent={
           member ? (
@@ -142,7 +168,7 @@ export default function Home() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={colors.flare} colors={[colors.flare]} />}
         showsVerticalScrollIndicator={false}
       />
-      <ReportSheet postId={reporting} onClose={() => setReporting(null)} />
+      <ReportSheet target={reporting} onClose={() => setReporting(null)} />
     </SafeAreaView>
   );
 }
