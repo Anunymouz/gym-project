@@ -212,3 +212,11 @@ export function bookingReminderPush(trainer: string, startsAt: Date, kind: 'day'
 
 export const bookingReminderEmail = (to: string, trainer: string, gym: string, startsAt: Date) =>
   simpleEmail(to, `Reminder: training with ${trainer} tomorrow`, 'See you tomorrow', [`Your session with ${trainer} at ${gym} is on ${sessionTime(startsAt)} (Accra time).`, 'Need to cancel? Do it in the app under Me → My bookings.']);
+
+// ── Store ──
+
+export const partnerWelcomeEmail = (to: string, sellerName: string, signInUrl: string) =>
+  simpleEmail(to, `${sellerName} is set up on the BGYM Store`, 'Welcome to the BGYM Store', [
+    `The BGYM team has set up ${sellerName} as a store partner.`,
+    `Sign in with this email address (${to}) to add your products, set your pickup point and payout account, and handle orders. Your products go live once the BGYM team has checked them.`,
+  ], { label: 'Open your dashboard', url: signInUrl });

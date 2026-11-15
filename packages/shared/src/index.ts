@@ -16,3 +16,4 @@ export * from './media.js';
 export * from './team.js';
 export * from './posts.js';
 export * from './trainers.js';
+export * from './store.js';

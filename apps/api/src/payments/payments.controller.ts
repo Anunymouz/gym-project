@@ -9,6 +9,7 @@ import type { Env } from '../config/env.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PaymentsService } from './payments.service.js';
 import { PaystackClient } from './paystack.client.js';
+import { RefundsService } from './refunds.service.js';
 
 @Controller('payments')
 export class PaymentsController {
@@ -17,6 +18,7 @@ export class PaymentsController {
   constructor(
     private readonly payments: PaymentsService,
     private readonly paystack: PaystackClient,
+    private readonly refunds: RefundsService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -33,7 +35,12 @@ export class PaymentsController {
     if (!req.rawBody || !this.paystack.isValidSignature(req.rawBody, typeof signature === 'string' ? signature : undefined)) {
       throw new UnauthorizedException('Invalid signature');
     }
-    const event = req.body as { event?: string; data?: { id?: number; reference?: string; amount?: number; currency?: string; channel?: string; status?: string } };
+    const event = req.body as { event?: string; data?: { id?: number; reference?: string; transaction_reference?: string; amount?: number; currency?: string; channel?: string; status?: string } };
+    // Refunds: Paystack tells us when the money is back with the customer (or the refund failed).
+    if ((event.event === 'refund.processed' || event.event === 'refund.failed') && event.data?.transaction_reference) {
+      await this.refunds.onProviderUpdate(event.data.transaction_reference, event.event === 'refund.processed' ? 'processed' : 'failed');
+      return { received: true };
+    }
     if (event.event !== 'charge.success' || !event.data?.reference || event.data.id === undefined) return { received: true };
 
     let tx = { id: event.data.id, reference: event.data.reference, amount: event.data.amount ?? -1, currency: event.data.currency ?? '', channel: event.data.channel ?? 'other', status: event.data.status ?? '' };

@@ -887,13 +887,24 @@ model WorkoutSession {
 
 // ───────────────────────────── Store ─────────────────────────────
 
+/// Who sells a product: BGYM itself (one "platform" seller) or a store partner.
 model Seller {
   id                     String           @id @default(uuid(7)) @db.Uuid
   type                   SellerType
   name                   String
+  /// BGYM's commission on a partner's sales, in basis points.
   commissionBps          Int              @default(0)
+  isActive               Boolean          @default(true)
+  contactEmail           String?
+  contactPhone           String?
   paystackSubaccountCode String?
+  payoutMethod           String?
+  payoutBankName         String?
+  payoutAccountName      String?
+  payoutAccountLast4     String?
+  payoutUpdatedAt        DateTime?        @db.Timestamptz(3)
   createdAt              DateTime         @default(now()) @db.Timestamptz(3)
+  orders                 Order[]
   users                  PartnerUser[]
   pickupLocations        PickupLocation[]
   products               Product[]
@@ -920,6 +931,7 @@ model PickupLocation {
   location     Unsupported("geography(Point, 4326)")
   contactPhone String
   seller       Seller                                @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  orders       Order[]
 
   @@index([sellerId])
   @@map("pickup_locations")
@@ -946,6 +958,9 @@ model Product {
   brand       String?
   status      ProductStatus    @default(draft)
   isFeatured  Boolean          @default(false)
+  /// The BGYM team's note when sending a partner's product back.
+  reviewNote  String?
+  publishedAt DateTime?        @db.Timestamptz(3)
   createdAt   DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime         @updatedAt @db.Timestamptz(3)
   seller      Seller           @relation(fields: [sellerId], references: [id])
@@ -958,10 +973,14 @@ model Product {
   @@map("products")
 }
 
+/// Product photos live in storage (WebP, large + thumbnail); only keys are stored.
 model ProductImage {
   id        String  @id @default(uuid(7)) @db.Uuid
   productId String  @db.Uuid
-  url       String
+  key       String
+  thumbKey  String
+  width     Int
+  height    Int
   sortOrder Int     @default(0)
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
@@ -979,6 +998,8 @@ model ProductVariant {
   stock                 Int         @default(0)
   reserved              Int         @default(0)
   weightGrams           Int?
+  isActive              Boolean     @default(true)
+  sortOrder             Int         @default(0)
   product               Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   cartItems             CartItem[]
   orderItems            OrderItem[]
@@ -1008,6 +1029,7 @@ model Address {
   landmark          String?
   gpsDigitalAddress String?
   contactPhone      String
+  isDefault         Boolean                               @default(false)
   createdAt         DateTime                              @default(now()) @db.Timestamptz(3)
   user              User                                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1015,26 +1037,58 @@ model Address {
   @@map("addresses")
 }
 
+/// One seller's part of a checkout (each seller ships from their own pickup point, so each
+/// order has its own delivery). A checkout with several sellers is one payment, several orders.
 model Order {
-  id                 String      @id @default(uuid(7)) @db.Uuid
-  number             String      @unique // human-friendly, e.g. BG-1042
-  userId             String      @db.Uuid
-  status             OrderStatus @default(pending_payment)
+  id                 String          @id @default(uuid(7)) @db.Uuid
+  number             String          @unique // human-friendly, e.g. BG-10422
+  userId             String          @db.Uuid
+  sellerId           String          @db.Uuid
+  pickupLocationId   String?         @db.Uuid
+  status             OrderStatus     @default(pending_payment)
   subtotalPesewas    Int
   deliveryFeePesewas Int
   totalPesewas       Int
+  /// BGYM's commission on a partner's items (0 for BGYM's own products).
+  commissionPesewas  Int             @default(0)
   addressSnapshot    Json
-  paymentId          String?     @unique @db.Uuid
-  createdAt          DateTime    @default(now()) @db.Timestamptz(3)
-  updatedAt          DateTime    @updatedAt @db.Timestamptz(3)
-  user               User        @relation(fields: [userId], references: [id])
-  payment            Payment?    @relation(fields: [paymentId], references: [id])
+  contactPhone       String
+  note               String?
+  paymentId          String?         @db.Uuid
+  /// Stock is held for an unpaid order until then.
+  reservedUntil      DateTime?       @db.Timestamptz(3)
+  paidAt             DateTime?       @db.Timestamptz(3)
+  cancelReason       String?
+  refundDue          Boolean         @default(false)
+  createdAt          DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime        @updatedAt @db.Timestamptz(3)
+  user               User            @relation(fields: [userId], references: [id])
+  seller             Seller          @relation(fields: [sellerId], references: [id])
+  pickupLocation     PickupLocation? @relation(fields: [pickupLocationId], references: [id])
+  payment            Payment?        @relation(fields: [paymentId], references: [id])
   items              OrderItem[]
   delivery           Delivery?
+  events             OrderEvent[]
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
+  @@index([sellerId, status, createdAt])
+  @@index([paymentId])
   @@map("orders")
+}
+
+/// The order's timeline, for the member's tracking screen and the seller's history.
+model OrderEvent {
+  id        String      @id @default(uuid(7)) @db.Uuid
+  orderId   String      @db.Uuid
+  status    OrderStatus
+  note      String?
+  actorId   String?     @db.Uuid
+  createdAt DateTime    @default(now()) @db.Timestamptz(3)
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("order_events")
 }
 
 model OrderItem {
@@ -1065,6 +1119,7 @@ model Delivery {
   trackingUrl       String?
   quotedFeePesewas  Int
   actualCostPesewas Int?
+  distanceMeters    Int?
   createdAt         DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime         @updatedAt @db.Timestamptz(3)
   order             Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -1097,7 +1152,7 @@ model Payment {
   membership         Membership?
   packagePurchase    PackagePurchase?
   booking            Booking?
-  order              Order?
+  orders             Order[]
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
@@ -1125,6 +1180,9 @@ model Refund {
   reason        String
   status        RefundStatus @default(pending)
   initiatedById String       @db.Uuid
+  /// Paystack's refund id, and when Paystack confirmed the money was returned.
+  providerRefundId String?
+  processedAt   DateTime?    @db.Timestamptz(3)
   createdAt     DateTime     @default(now()) @db.Timestamptz(3)
   payment       Payment      @relation(fields: [paymentId], references: [id])
 

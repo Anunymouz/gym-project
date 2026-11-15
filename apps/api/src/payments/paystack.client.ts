@@ -72,8 +72,9 @@ export class PaystackClient {
   }
 
   /** Full refund of a transaction: https://paystack.com/docs/api/refund#create */
-  async refund(reference: string): Promise<void> {
-    await this.call('POST', '/refund', { transaction: reference });
+  async refund(reference: string): Promise<{ id: string | null }> {
+    const data = await this.call<{ id?: number | string }>('POST', '/refund', { transaction: reference });
+    return { id: data?.id !== undefined ? String(data.id) : null };
   }
 
   /** Paystack signs webhooks with HMAC-SHA512 of the raw body using the secret key. */

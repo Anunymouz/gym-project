@@ -125,6 +125,33 @@ export class PayoutsService {
     return this.trainerPayout(trainerId);
   }
 
+  /** A store partner's payout account (their share of each sale is paid there). */
+  async sellerPayout(sellerId: string): Promise<GymPayout> {
+    const t = await this.prisma.seller.findUniqueOrThrow({ where: { id: sellerId }, select: { paystackSubaccountCode: true, payoutMethod: true, payoutBankName: true, payoutAccountName: true, payoutAccountLast4: true, payoutUpdatedAt: true } });
+    return {
+      connected: !!t.paystackSubaccountCode,
+      method: (t.payoutMethod as PayoutMethod | null) ?? null,
+      bankName: t.payoutBankName,
+      accountName: t.payoutAccountName,
+      accountLast4: t.payoutAccountLast4,
+      updatedAt: t.payoutUpdatedAt?.toISOString() ?? null,
+    };
+  }
+
+  async updateSeller(sellerId: string, userId: string, input: z.output<typeof updatePayoutSchema>): Promise<GymPayout> {
+    const seller = await this.prisma.seller.findUniqueOrThrow({ where: { id: sellerId }, select: { name: true, contactEmail: true, paystackSubaccountCode: true, type: true } });
+    if (seller.type !== 'partner') throw new BadRequestException('BGYM’s own sales go to BGYM’s Paystack account.');
+    const { subaccountCode, bank, last4 } = await this.connect(userId, seller.paystackSubaccountCode, `${seller.name} (BGYM Store partner)`, seller.contactEmail, input);
+    await this.prisma.seller.update({
+      where: { id: sellerId },
+      data: { paystackSubaccountCode: subaccountCode, payoutMethod: bank.method, payoutBankName: bank.name, payoutAccountName: input.accountName, payoutAccountLast4: last4, payoutUpdatedAt: new Date() },
+    });
+    await this.audit.record({ action: seller.paystackSubaccountCode ? 'seller.payout_changed' : 'seller.payout_added', actorId: userId, targetType: 'seller', targetId: sellerId, metadata: { bank: bank.name, last4 } });
+    const users = await this.prisma.partnerUser.findMany({ where: { sellerId }, select: { user: { select: { email: true } } } });
+    await Promise.allSettled(users.map((u) => this.mail.send(payoutChangedEmail(u.user.email, seller.name, `${bank.name} ending ${last4} (${input.accountName})`))));
+    return this.sellerPayout(sellerId);
+  }
+
   /**
    * Checks the details, confirms the person's emailed step-up code, then creates or updates
    * the Paystack subaccount. The full account number goes to Paystack only.
