@@ -48,11 +48,12 @@ const percentInput = z
   .transform((v) => percentToBps(Number(v)))
   .pipe(feeBpsSchema);
 
-export async function saveDefaultFee(percent: string): Promise<AdminActionResult> {
+export async function saveDefaultFee(percent: string, kind: 'membership' | 'trainer' = 'membership'): Promise<AdminActionResult> {
   const bps = percentInput.safeParse(percent);
   if (!bps.success) return { error: bps.error.issues[0]?.message ?? 'Check the percentage.' };
+  const key = kind === 'trainer' ? 'trainerBps' : 'membershipBps';
   try {
-    await api<FeeSettings>('/v1/admin/fees', { method: 'PUT', body: JSON.stringify({ membershipBps: bps.data }) });
+    await api<FeeSettings>('/v1/admin/fees', { method: 'PUT', body: JSON.stringify({ [key]: bps.data }) });
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : 'Something went wrong.' };
   }

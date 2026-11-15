@@ -24,9 +24,11 @@ async function Fees() {
   const settings = await api<FeeSettings>('/v1/admin/fees');
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title="Fees" subtitle={`BGYM currently takes ${formatPercent(settings.membershipBps)} of each membership payment.`} />
+      <PageHeader title="Fees" subtitle={`BGYM takes ${formatPercent(settings.membershipBps)} of each membership payment and ${formatPercent(settings.trainerBps)} of each trainer payment.`} />
       <FeeForm currentBps={settings.membershipBps} />
       <p className="text-sm text-mute">Need a different rate for one gym (for example a launch deal)? Set it on the gym’s card under Gyms.</p>
+      <FeeForm kind="trainer" currentBps={settings.trainerBps} />
+      <p className="text-sm text-mute">Special rates for individual trainers are set under Trainers.</p>
 
       <section aria-labelledby="history-title" className="rounded-card border border-line bg-white">
         <h2 id="history-title" className="px-5 pt-5 font-bold">Changes</h2>
@@ -37,7 +39,7 @@ async function Fees() {
             {settings.history.map((h, i) => (
               <li key={i} className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-3 text-sm">
                 <span>
-                  {h.gym ? <><span className="font-bold">{h.gym}</span>: special rate {pct(h.fromBps)} → {pct(h.toBps)}</> : <>Default fee {pct(h.fromBps)} → <span className="font-bold">{pct(h.toBps)}</span></>}
+                  {h.gym ? <><span className="font-bold">{h.gym}</span>: special rate {pct(h.fromBps)} → {pct(h.toBps)}</> : <>{h.kind === 'trainer' ? 'Trainer fee' : 'Membership fee'} {pct(h.fromBps)} → <span className="font-bold">{pct(h.toBps)}</span></>}
                 </span>
                 <span className="text-mute">{h.by ?? 'Unknown'} · {formatDateTime(h.at)}</span>
               </li>

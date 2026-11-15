@@ -2,14 +2,31 @@
 
 import { useState, useTransition } from 'react';
 import { Bank, CheckCircle, CircleNotch, DeviceMobile, EnvelopeSimple, ShieldCheck } from '@phosphor-icons/react';
-import type { GymPayout, PayoutBank } from '@bgym/shared';
+import type { GymPayout, PayoutBank, UpdatePayoutInput } from '@bgym/shared';
 import { requestPayoutCode, savePayout, type PayoutState } from '@/app/(dashboards)/gym-actions';
 import { formatDate } from '@/lib/format';
 
 const field = 'h-11 w-full rounded-control border border-line bg-white px-3 outline-none focus:border-flare aria-[invalid=true]:border-danger';
 
-/** The owner's payout account: shown masked; changing it needs a code from their email. */
-export function PayoutSection({ payout: initial, banks, ownerEmail }: { payout: GymPayout; banks: PayoutBank[]; ownerEmail: string }) {
+/**
+ * A payout account (a gym's, or a trainer's): shown masked; changing it needs a code from
+ * their email. Gyms use the default actions; trainers pass their own.
+ */
+export function PayoutSection({
+  payout: initial,
+  banks,
+  ownerEmail,
+  description = 'Where membership payments are sent by Paystack, minus BGYM’s fee. Only owners can see or change this.',
+  requestCode = requestPayoutCode,
+  save = savePayout,
+}: {
+  payout: GymPayout;
+  banks: PayoutBank[];
+  ownerEmail: string;
+  description?: string;
+  requestCode?: () => Promise<{ error?: string }>;
+  save?: (input: UpdatePayoutInput) => Promise<PayoutState>;
+}) {
   const [payout, setPayout] = useState(initial);
   const [editing, setEditing] = useState(!initial.connected);
   const [form, setForm] = useState({ bankCode: '', accountNumber: '', accountName: '', code: '' });
@@ -27,7 +44,7 @@ export function PayoutSection({ payout: initial, banks, ownerEmail }: { payout: 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="text-lg font-extrabold">Payout account</h2>
-          <p className="text-sm text-mute">Where membership payments are sent by Paystack, minus BGYM’s fee. Only owners can see or change this.</p>
+          <p className="text-sm text-mute">{description}</p>
         </div>
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-mute"><ShieldCheck size={16} aria-hidden /> Confirmed by email code</span>
       </div>
@@ -54,7 +71,7 @@ export function PayoutSection({ payout: initial, banks, ownerEmail }: { payout: 
           onSubmit={(e) => {
             e.preventDefault();
             startSaving(async () => {
-              const res = await savePayout(form);
+              const res = await save(form);
               setState(res);
               if (res.saved) {
                 setPayout(res.saved);
@@ -93,7 +110,7 @@ export function PayoutSection({ payout: initial, banks, ownerEmail }: { payout: 
               <button
                 type="button"
                 disabled={sending}
-                onClick={() => startSending(async () => { const r = await requestPayoutCode(); setState(r.error ? { error: r.error } : {}); if (!r.error) setCodeSent(true); })}
+                onClick={() => startSending(async () => { const r = await requestCode(); setState(r.error ? { error: r.error } : {}); if (!r.error) setCodeSent(true); })}
                 className="inline-flex h-11 items-center gap-2 rounded-control bg-midnight px-4 text-sm font-bold text-white hover:bg-indigo disabled:opacity-60"
               >
                 {sending ? <CircleNotch size={18} className="animate-spin" aria-hidden /> : <EnvelopeSimple size={18} aria-hidden />}

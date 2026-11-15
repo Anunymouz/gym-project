@@ -2,9 +2,10 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { redirect, unstable_rethrow } from 'next/navigation';
 import { Storefront } from '@phosphor-icons/react/ssr';
-import type { AuthUser, MyInvitation } from '@bgym/shared';
+import type { AuthUser, MyInvitation, MyTrainerInvitation } from '@bgym/shared';
 import { api } from '@/lib/api.server';
 import { PendingInvitations } from './pending-invitations';
+import { PendingTrainerInvitations } from './pending-trainer-invitations';
 import type { DashboardId } from '@/lib/dashboards';
 import { getMe, getStaffGyms } from '@/lib/session.server';
 
@@ -32,11 +33,12 @@ async function gate(dashboard: DashboardId, children: ReactNode) {
   const isAdmin = me.roles.includes('admin');
 
   if (dashboard === 'gym') {
-    const [gyms, invitations] = await Promise.all([getStaffGyms(), api<MyInvitation[]>('/v1/me/invitations')]);
+    const [gyms, invitations, trainerInvitations] = await Promise.all([getStaffGyms(), api<MyInvitation[]>('/v1/me/invitations'), api<MyTrainerInvitation[]>('/v1/me/trainer-invitations')]);
     return (
       <>
+        {trainerInvitations.length > 0 && <PendingTrainerInvitations invitations={trainerInvitations} />}
         {invitations.length > 0 && <PendingInvitations invitations={invitations} askName={!me.name} />}
-        {gyms.length === 0 && invitations.length === 0 && (
+        {gyms.length === 0 && invitations.length === 0 && trainerInvitations.length === 0 && (
           <Notice icon={<Storefront size={30} weight="duotone" aria-hidden />} title="No gym is linked to your account yet">
             If you work at a gym on BGYM, ask the owner to add <span className="font-bold text-midnight">{me.email}</span> as staff. Own a gym? List it in a few minutes.
             <Link href="/apply" className="mt-4 inline-flex h-11 items-center rounded-control bg-flare px-5 text-sm font-bold text-white hover:bg-[#f04e14]">
