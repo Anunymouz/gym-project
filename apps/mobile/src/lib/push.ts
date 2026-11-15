@@ -56,6 +56,12 @@ async function ensureAndroidChannels(): Promise<void> {
       importance: AndroidImportance.HIGH,
       lightColor: colors.flare,
     }),
+    Notifications.setNotificationChannelAsync(ANDROID_CHANNELS.orders, {
+      name: 'Store orders',
+      description: 'When your order is confirmed, on its way and delivered',
+      importance: AndroidImportance.HIGH,
+      lightColor: colors.flare,
+    }),
     Notifications.setNotificationChannelAsync(ANDROID_CHANNELS.checkIns, {
       name: 'Check-ins',
       description: 'When you’re checked in at a gym',
