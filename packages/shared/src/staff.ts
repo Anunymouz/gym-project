@@ -9,6 +9,7 @@ export interface StaffGym {
   addressText: string;
   coverUrl: string | null;
   role: GymStaffRole;
+  status: 'draft' | 'pending_review' | 'active' | 'suspended';
 }
 
 export interface GymOverview {

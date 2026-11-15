@@ -87,3 +87,48 @@ export function renewalReminderEmail(r: RenewalReminder): MailMessage {
 </table></td></tr></table></body></html>`,
   };
 }
+
+/** A plain transactional email in the BGYM style: a heading, paragraphs and an optional button. */
+function simpleEmail(to: string, subject: string, heading: string, paragraphs: string[], button?: { label: string; url: string }): MailMessage {
+  return {
+    to,
+    subject,
+    text: `${heading}\n\n${paragraphs.join('\n\n')}${button ? `\n\n${button.label}: ${button.url}` : ''}\n\nBGYM: Be my gym buddy.`,
+    html: `<!doctype html><html><body style="margin:0;background:#F5F6FA;font-family:Helvetica,Arial,sans-serif;color:#0D1028">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:18px;border:1px solid #E6E8F0">
+<tr><td style="padding:32px 32px 8px"><p style="margin:0;font-size:22px;font-weight:800"><span style="color:#FF5A1F">B</span>GYM</p></td></tr>
+<tr><td style="padding:8px 32px 8px"><p style="margin:0 0 16px;font-size:22px;font-weight:800">${escape(heading)}</p>
+${paragraphs.map((p) => `<p style="margin:0 0 12px;font-size:16px;line-height:1.5">${escape(p)}</p>`).join('\n')}
+${button ? `<p style="margin:20px 0 24px"><a href="${escape(button.url)}" style="display:inline-block;background:#FF5A1F;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:12px">${escape(button.label)}</a></p>` : ''}</td></tr>
+<tr><td style="padding:16px 32px 28px;border-top:1px solid #E6E8F0;font-size:12px;color:#6B7280">BGYM: Be my gym buddy.</td></tr>
+</table></td></tr></table></body></html>`,
+  };
+}
+
+export const gymSubmittedEmail = (to: string, gymName: string, reviewUrl: string) =>
+  simpleEmail(to, `New gym to review: ${gymName}`, `${gymName} is waiting for review`, [`${gymName} has been sent for review. Check its details, plans and payout account, then approve it or send it back with a note.`], { label: 'Review gyms', url: reviewUrl });
+
+export const gymApprovedEmail = (to: string, gymName: string, dashboardUrl: string) =>
+  simpleEmail(to, `${gymName} is live on BGYM`, `${gymName} is live!`, [`Good news: your gym has been approved and members can now find it and buy memberships in the BGYM app.`, `Payments go straight to your payout account, minus BGYM’s fee. Scan members in from the Check-in page of your dashboard.`], { label: 'Open your dashboard', url: dashboardUrl });
+
+export const gymReturnedEmail = (to: string, gymName: string, note: string, dashboardUrl: string) =>
+  simpleEmail(to, `${gymName}: a few changes before it goes live`, 'A few changes needed', [`Thanks for listing ${gymName}. Before it goes live, the BGYM team asks you to:`, note, 'Make the changes in your dashboard, then send it for review again.'], { label: 'Open your dashboard', url: dashboardUrl });
+
+export const gymSuspendedEmail = (to: string, gymName: string, reason: string) =>
+  simpleEmail(to, `${gymName} has been paused on BGYM`, `${gymName} has been paused`, [`Your gym is hidden from the BGYM app and new memberships can’t be bought for now. Existing members can still check in.`, `Reason: ${reason}`, 'Reply to this email if you have questions.']);
+
+/** Step-up confirmation for changing where a gym's money is paid. Never says "sign-in". */
+export function payoutCodeEmail(to: string, code: string): MailMessage {
+  const minutes = OTP_TTL_SECONDS / 60;
+  return simpleEmail(to, `${code} confirms your payout account change`, 'Confirm your payout account change', [
+    `Your confirmation code is ${code}. It expires in ${minutes} minutes.`,
+    'Someone is changing the bank or mobile money account where your gym’s BGYM payments are sent. If this wasn’t you, don’t share this code: reply to this email straight away and sign out of BGYM on all devices.',
+  ]);
+}
+
+export const payoutChangedEmail = (to: string, gymName: string, account: string) =>
+  simpleEmail(to, `${gymName}: payout account changed`, 'Your payout account was changed', [
+    `Payments for ${gymName} will now be sent to ${account}.`,
+    'If you didn’t make this change, reply to this email immediately so we can freeze payouts.',
+  ]);

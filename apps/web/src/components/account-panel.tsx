@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { SignOut } from '@phosphor-icons/react/ssr';
 import { signOut, switchGym } from '@/app/(dashboards)/actions';
 import { getCurrentGym, getMe, getStaffGyms } from '@/lib/session.server';
@@ -48,6 +49,9 @@ export async function AccountPanel({ dashboard }: { dashboard: DashboardId }) {
               <p className="font-bold text-white">{gym.name}</p>
             )}
             <p>{roleLabel[gym.role]}</p>
+            <Link href="/apply" className="mt-1.5 inline-block text-xs font-semibold text-white/70 hover:text-white">
+              + List another gym
+            </Link>
           </div>
         )}
         <p className="truncate font-bold text-white">{me.name ?? 'Your account'}</p>

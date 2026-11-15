@@ -8,6 +8,7 @@ import { NotificationsModule } from './notifications/notifications.module.js';
 import { RemindersModule } from './reminders/reminders.module.js';
 import { ClientIpThrottlerGuard } from './common/client-ip-throttler.guard.js';
 import { LoggerModule } from 'nestjs-pino';
+import { AdminModule } from './admin/admin.module.js';
 import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { validateEnv, type Env } from './config/env.js';
@@ -60,6 +61,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     NotificationsModule,
     RemindersModule,
     StaffModule,
+    AdminModule,
     MembershipsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ClientIpThrottlerGuard }],

@@ -20,7 +20,7 @@ export class StaffService {
     const rows = await this.prisma.gymStaff.findMany({
       where: { userId },
       orderBy: { createdAt: 'asc' },
-      select: { role: true, gym: { select: { id: true, name: true, slug: true, addressText: true, coverUrl: true } } },
+      select: { role: true, gym: { select: { id: true, name: true, slug: true, addressText: true, coverUrl: true, status: true } } },
     });
     return rows.map((r) => ({ ...r.gym, role: r.role }));
   }

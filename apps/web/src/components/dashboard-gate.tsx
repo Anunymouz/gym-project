@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Storefront } from '@phosphor-icons/react/ssr';
 import type { AuthUser } from '@bgym/shared';
@@ -23,7 +24,10 @@ export async function DashboardGate({ dashboard, children }: { dashboard: Dashbo
       <>
         {gyms.length === 0 && (
           <Notice icon={<Storefront size={30} weight="duotone" aria-hidden />} title="No gym is linked to your account yet">
-            Ask the gym owner to add <span className="font-bold text-midnight">{me.email}</span> as staff, or contact the BGYM team to list your gym.
+            If you work at a gym on BGYM, ask the owner to add <span className="font-bold text-midnight">{me.email}</span> as staff. Own a gym? List it in a few minutes.
+            <Link href="/apply" className="mt-4 inline-flex h-11 items-center rounded-control bg-flare px-5 text-sm font-bold text-white hover:bg-[#f04e14]">
+              List your gym
+            </Link>
           </Notice>
         )}
         {children}
@@ -41,7 +45,7 @@ function Notice({ icon, title, children }: { icon: ReactNode; title: string; chi
     <div className="grid place-items-center rounded-card border border-line bg-white px-6 py-16 text-center">
       <span className="grid size-14 place-items-center rounded-2xl bg-flare-50 text-flare">{icon}</span>
       <h1 className="mt-4 text-xl font-extrabold">{title}</h1>
-      <p className="mt-1 max-w-md text-mute">{children}</p>
+      <div className="mt-1 flex max-w-md flex-col items-center text-mute">{children}</div>
     </div>
   );
 }

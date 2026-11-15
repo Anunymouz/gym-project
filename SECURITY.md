@@ -40,6 +40,13 @@ Please do **not** open a public issue. Email the BGYM team privately with the de
 - The member's QR code is a signed token valid for 60 seconds and refreshed every 30, so screenshots expire almost immediately. It uses its own audience, so it can never be used as a sign-in token.
 - Only staff of that gym (or BGYM admins) can check members in; every scan, including invalid ones, is recorded.
 
+**Gyms and payouts**
+- Admin routes (`@Roles('admin')`) check the person's roles in the database on every request, so removing someone's admin role takes effect immediately.
+- Review decisions and status changes are conditional updates (a gym is decided on exactly once, even if two admins click at once), and every one is audited.
+- Payout changes need a step-up code from the owner's email. Codes are tied to a purpose: a sign-in code can't confirm a payout change and a payout code can't sign anyone in. Every owner is emailed when payout details change.
+- Full account numbers go to Paystack only; BGYM keeps the bank, account name and last four digits.
+- Revenue CSV exports neutralise spreadsheet formulas (CSV injection).
+
 **Notifications**
 - Push tokens are tied to the account that signed in last on that phone and removed on sign-out; tokens Expo reports as dead are deleted.
 - Unsubscribe links are signed with their own key and audience, last a year, and can only turn emails off. The page needs a button press (link scanners don't unsubscribe anyone); one-click unsubscribe follows RFC 8058 and only accepts POST.

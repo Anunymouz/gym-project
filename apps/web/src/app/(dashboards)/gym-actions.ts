@@ -6,12 +6,16 @@ import {
   checkInByEmailSchema,
   createPlanSchema,
   updateGymProfileSchema,
+  updatePayoutSchema,
   updatePlanSchema,
   type CheckInResponse,
+  type GymPayout,
   type GymProfile,
+  type GymReadiness,
   type RemindResponse,
   type StaffPlan,
   type UpdateGymProfileInput,
+  type UpdatePayoutInput,
 } from '@bgym/shared';
 import { api, ApiError } from '@/lib/api.server';
 import { getCurrentGym } from '@/lib/session.server';
@@ -143,4 +147,46 @@ export async function saveGymProfile(input: UpdateGymProfileInput): Promise<GymP
   }
   revalidatePath('/gym', 'layout');
   return { ok: true, saved };
+}
+
+/** Sends the gym to the BGYM team for review (owners only; the API checks). */
+export async function submitGymForReview(): Promise<{ error?: string }> {
+  const gym = await requireGym();
+  try {
+    await api<GymReadiness>(`/v1/staff/gyms/${gym.id}/submit`, { method: 'POST' });
+  } catch (err) {
+    return { error: err instanceof ApiError ? (err.status === 403 ? 'Only the gym owner can send it for review.' : err.message) : 'Something went wrong.' };
+  }
+  revalidatePath('/gym', 'layout');
+  return {};
+}
+
+/** Emails the owner a code to confirm a payout change. */
+export async function requestPayoutCode(): Promise<{ error?: string }> {
+  const gym = await requireGym();
+  try {
+    await api<void>(`/v1/staff/gyms/${gym.id}/payout/code`, { method: 'POST' });
+    return {};
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : 'Something went wrong.' };
+  }
+}
+
+export type PayoutState = { saved?: GymPayout; error?: string; fieldErrors?: Record<string, string> };
+
+export async function savePayout(input: UpdatePayoutInput): Promise<PayoutState> {
+  const gym = await requireGym();
+  const parsed = updatePayoutSchema.safeParse(input);
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) fieldErrors[String(issue.path[0])] ??= issue.message;
+    return { fieldErrors };
+  }
+  try {
+    const saved = await api<GymPayout>(`/v1/staff/gyms/${gym.id}/payout`, { method: 'PUT', body: JSON.stringify(parsed.data) });
+    revalidatePath('/gym', 'layout');
+    return { saved };
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : 'Something went wrong.' };
+  }
 }

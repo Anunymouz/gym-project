@@ -66,14 +66,25 @@ async function seedDemo(): Promise<void> {
     const paymentIds = ms.map((m) => m.paymentId).filter((x): x is string => !!x);
     await prisma.paymentEvent.deleteMany({ where: { paymentId: { in: paymentIds } } });
     await prisma.payment.deleteMany({ where: { userId: { in: ids } } });
+    // Gyms that demo accounts listed while trying the dashboard (never the sample gyms).
+    const triedGyms = await prisma.gym.findMany({
+      where: { slug: { notIn: gyms.map((g) => g.slug) }, staff: { some: { userId: { in: ids }, role: 'owner' } } },
+      select: { id: true },
+    });
+    await prisma.gym.deleteMany({ where: { id: { in: triedGyms.map((g) => g.id) }, memberships: { none: {} } } });
     await prisma.gymStaff.deleteMany({ where: { userId: { in: ids } } });
     await prisma.auditLog.deleteMany({ where: { actorId: { in: ids } } });
     await prisma.user.deleteMany({ where: { id: { in: ids } } });
   }
 
+  // Development tidy-up: non-sample gyms left with no staff and no members (e.g. from earlier demo runs).
+  await prisma.gym.deleteMany({ where: { slug: { notIn: gyms.map((g) => g.slug) }, staff: { none: {} }, memberships: { none: {} } } });
+
   const gym = await prisma.gym.findUniqueOrThrow({ where: { slug: 'iron-haven-east-legon' }, include: { plans: true } });
   const owner = await prisma.user.create({ data: { email: `owner${DEMO_DOMAIN}`, name: 'Kofi Mensah', roles: ['member', 'gym_staff'] } });
   const frontDesk = await prisma.user.create({ data: { email: `frontdesk${DEMO_DOMAIN}`, name: 'Esi Quaye', roles: ['member', 'gym_staff'] } });
+  // BGYM team member: reviews gym applications in the admin dashboard.
+  await prisma.user.create({ data: { email: `admin${DEMO_DOMAIN}`, name: 'Ama Darko', roles: ['member', 'admin'] } });
   await prisma.gymStaff.createMany({ data: [{ gymId: gym.id, userId: owner.id, role: 'owner' }, { gymId: gym.id, userId: frontDesk.id, role: 'front_desk' }] });
 
   const now = Date.now();
@@ -102,7 +113,7 @@ async function seedDemo(): Promise<void> {
       }
     }
   }
-  console.log(`Demo: owner${DEMO_DOMAIN} (owner) and frontdesk${DEMO_DOMAIN} (front desk) at ${gym.name}, ${demoMembers.length} members.`);
+  console.log(`Demo: owner${DEMO_DOMAIN} (owner) and frontdesk${DEMO_DOMAIN} (front desk) at ${gym.name}, ${demoMembers.length} members; admin${DEMO_DOMAIN} (BGYM team).`);
 }
 
 async function main(): Promise<void> {

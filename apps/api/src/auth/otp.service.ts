@@ -4,12 +4,15 @@ import { OTP_MAX_ATTEMPTS, OTP_RESEND_COOLDOWN_SECONDS, OTP_TTL_SECONDS } from '
 import { generateOtpCode, hmac, safeEqualHex } from '../common/crypto.js';
 import type { Env } from '../config/env.js';
 import { MailService } from '../mail/mail.service.js';
-import { signInCodeEmail } from '../mail/templates.js';
+import { payoutCodeEmail, signInCodeEmail } from '../mail/templates.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 /** Maximum codes sent to one address per hour (stops email bombing). */
 const MAX_CODES_PER_HOUR = 5;
 export const INVALID_CODE_MESSAGE = 'That code is incorrect or has expired.';
+
+/** What a code is for. A code only works for its own purpose. */
+export type OtpPurpose = 'sign_in' | 'payout';
 
 @Injectable()
 export class OtpService {
@@ -29,14 +32,15 @@ export class OtpService {
    * Sends a fresh code unless the address is in its cooldown or over its hourly limit.
    * The caller always gets the same response, so this can't be used to test which emails exist.
    */
-  async request(email: string, ipHash: string): Promise<void> {
+  async request(email: string, ipHash: string, purpose: OtpPurpose = 'sign_in'): Promise<void> {
     const now = Date.now();
+    // The hourly limit covers every purpose (no email flooding); the cooldown is per purpose.
     const recent = await this.prisma.emailOtp.findMany({
       where: { email, createdAt: { gte: new Date(now - 60 * 60 * 1000) } },
       orderBy: { createdAt: 'desc' },
-      select: { createdAt: true },
+      select: { createdAt: true, purpose: true },
     });
-    const last = recent[0];
+    const last = recent.find((r) => r.purpose === purpose);
     if (last && now - last.createdAt.getTime() < OTP_RESEND_COOLDOWN_SECONDS * 1000) {
       this.logger.debug('Code request ignored: cooldown');
       return;
@@ -50,20 +54,20 @@ export class OtpService {
     await this.prisma.$transaction([
       // Only the newest code is ever valid.
       this.prisma.emailOtp.updateMany({
-        where: { email, consumedAt: null, expiresAt: { gt: new Date(now) } },
+        where: { email, purpose, consumedAt: null, expiresAt: { gt: new Date(now) } },
         data: { expiresAt: new Date(now) },
       }),
       this.prisma.emailOtp.create({
-        data: { email, codeHash: this.hash(email, code), expiresAt: new Date(now + OTP_TTL_SECONDS * 1000), ipHash },
+        data: { email, purpose, codeHash: this.hash(email, code), expiresAt: new Date(now + OTP_TTL_SECONDS * 1000), ipHash },
       }),
     ]);
-    await this.mail.send(signInCodeEmail(email, code));
+    await this.mail.send(purpose === 'payout' ? payoutCodeEmail(email, code) : signInCodeEmail(email, code));
   }
 
   /** Consumes the code if correct. Throws the same generic error for every failure case. */
-  async verify(email: string, code: string): Promise<void> {
+  async verify(email: string, code: string, purpose: OtpPurpose = 'sign_in'): Promise<void> {
     const otp = await this.prisma.emailOtp.findFirst({
-      where: { email, consumedAt: null, expiresAt: { gt: new Date() } },
+      where: { email, purpose, consumedAt: null, expiresAt: { gt: new Date() } },
       orderBy: { createdAt: 'desc' },
     });
     if (!otp || otp.attempts >= OTP_MAX_ATTEMPTS) throw new UnauthorizedException(INVALID_CODE_MESSAGE);

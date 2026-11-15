@@ -25,8 +25,8 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  // Camera is allowed for our own pages only (front-desk QR check-in); everything else is off.
-  { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=(), payment=(), usb=()' },
+  // Camera (front-desk QR check-in) and location (pinning a new gym) for our own pages only; everything else is off.
+  { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=(self), payment=(), usb=()' },
 ];
 
 const nextConfig: NextConfig = {

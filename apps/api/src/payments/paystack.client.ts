@@ -1,4 +1,4 @@
-import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, HttpException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Env } from '../config/env.js';
@@ -49,6 +49,28 @@ export class PaystackClient {
     return this.call<PaystackTransaction>('GET', `/transaction/verify/${encodeURIComponent(reference)}`);
   }
 
+  /** Ghana banks and mobile money providers: https://paystack.com/docs/api/miscellaneous#bank */
+  async banks(): Promise<Array<{ name: string; code: string; type: string; active: boolean }>> {
+    return this.call('GET', '/bank?currency=GHS&perPage=100');
+  }
+
+  /** https://paystack.com/docs/api/subaccount#create (the account number is sent to Paystack and not stored by us). */
+  async createSubaccount(input: { businessName: string; bankCode: string; accountNumber: string; email?: string | null }): Promise<{ subaccountCode: string }> {
+    const data = await this.call<{ subaccount_code: string }>('POST', '/subaccount', {
+      business_name: input.businessName,
+      settlement_bank: input.bankCode,
+      account_number: input.accountNumber,
+      // BGYM's fee is set on each transaction (transaction_charge), so the default split is 0.
+      percentage_charge: 0,
+      ...(input.email && { primary_contact_email: input.email }),
+    });
+    return { subaccountCode: data.subaccount_code };
+  }
+
+  async updateSubaccount(code: string, input: { businessName: string; bankCode: string; accountNumber: string }): Promise<void> {
+    await this.call('PUT', `/subaccount/${encodeURIComponent(code)}`, { business_name: input.businessName, settlement_bank: input.bankCode, account_number: input.accountNumber });
+  }
+
   /** Paystack signs webhooks with HMAC-SHA512 of the raw body using the secret key. */
   isValidSignature(rawBody: Buffer, signature: string | undefined): boolean {
     if (!this.secret || !signature) return false;
@@ -57,7 +79,7 @@ export class PaystackClient {
     return given.length === expected.length && timingSafeEqual(given, expected);
   }
 
-  private async call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+  private async call<T>(method: 'GET' | 'POST' | 'PUT', path: string, body?: unknown): Promise<T> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15_000);
     try {
@@ -68,9 +90,12 @@ export class PaystackClient {
         ...(body !== undefined && { body: JSON.stringify(body) }),
       });
       const json = (await res.json()) as { status: boolean; message: string; data: T };
+      // Paystack's own validation messages (e.g. an invalid account number) are safe and useful to show.
+      if (res.status === 400 || res.status === 422) throw new BadRequestException(json.message || 'The payment provider rejected these details.');
       if (!res.ok || !json.status) throw new Error(`${res.status} ${json.message}`);
       return json.data;
     } catch (err) {
+      if (err instanceof HttpException) throw err;
       this.logger.error(`Paystack ${method} ${path.split('/').slice(0, 3).join('/')} failed: ${err instanceof Error ? err.message : String(err)}`);
       throw new BadGatewayException('We couldn’t reach the payment provider. Please try again.');
     } finally {

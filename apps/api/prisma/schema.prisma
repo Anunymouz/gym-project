@@ -245,6 +245,8 @@ model AuthIdentity {
 model EmailOtp {
   id         String    @id @default(uuid(7)) @db.Uuid
   email      String
+  /// What the code is for ("sign_in", "payout"): a code only works for its own purpose.
+  purpose    String    @default("sign_in")
   codeHash   String
   expiresAt  DateTime  @db.Timestamptz(3)
   attempts   Int       @default(0)
@@ -252,7 +254,7 @@ model EmailOtp {
   ipHash     String?
   createdAt  DateTime  @default(now()) @db.Timestamptz(3)
 
-  @@index([email, createdAt])
+  @@index([email, purpose, createdAt])
   @@map("email_otps")
 }
 
@@ -301,6 +303,18 @@ model Gym {
   status                 GymStatus                             @default(draft)
   platformFeeBps         Int? // basis points override (e.g. 800 = 8%); null = platform default
   paystackSubaccountCode String?
+  /// Payout account, masked: the full account number lives only at Paystack.
+  payoutMethod           String? // "bank" | "mobile_money"
+  payoutBankName         String?
+  payoutAccountName      String?
+  payoutAccountLast4     String?
+  payoutUpdatedAt        DateTime?                             @db.Timestamptz(3)
+  /// When the owner last sent the gym for review.
+  submittedAt            DateTime?                             @db.Timestamptz(3)
+  /// The BGYM team's last decision, and its note to the owner (why it was sent back or suspended).
+  reviewedAt             DateTime?                             @db.Timestamptz(3)
+  reviewedById           String?                               @db.Uuid
+  reviewNote             String?
   createdAt              DateTime                              @default(now()) @db.Timestamptz(3)
   updatedAt              DateTime                              @updatedAt @db.Timestamptz(3)
 

@@ -81,7 +81,7 @@ function toSignIn(request: NextRequest, clear = false) {
 export const config = {
   matcher: [
     {
-      source: '/(gym|trainer|partner|admin)/:path*',
+      source: '/(gym|trainer|partner|admin|apply)/:path*',
       // Skip link prefetches: only real navigations may rotate the refresh token.
       missing: [{ type: 'header', key: 'next-router-prefetch' }],
     },

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { parseCoordinates } from './gym-applications.js';
 import { openingStatus } from './gyms.js';
 import { cedisToPesewas, formatGhs, pesewas } from './money.js';
 import { emailSchema, ghanaPhoneSchema, nearbyGymsQuerySchema, otpCodeSchema, updateProfileSchema } from './schemas.js';
@@ -55,5 +56,15 @@ describe('openingStatus', () => {
   it('reports the next opening time and closed days', () => {
     expect(openingStatus(hours, new Date('2026-11-16T04:00:00Z'))).toEqual({ isOpen: false, label: 'Opens at 5am' });
     expect(openingStatus(hours, new Date('2026-11-15T10:00:00Z'))).toEqual({ isOpen: false, label: 'Closed now' });
+  });
+});
+
+
+describe('parseCoordinates', () => {
+  it('reads plain coordinates and Google Maps links', () => {
+    expect(parseCoordinates('5.6357, -0.1573')).toEqual({ lat: 5.6357, lng: -0.1573 });
+    expect(parseCoordinates('https://www.google.com/maps/place/X/@5.6357114,-0.1573021,17z/data=x')).toEqual({ lat: 5.6357114, lng: -0.1573021 });
+    expect(parseCoordinates('https://maps.google.com/?q=5.60521,-0.17181')).toEqual({ lat: 5.60521, lng: -0.17181 });
+    expect(parseCoordinates('East Legon')).toBeNull();
   });
 });

@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import type { GymProfile } from '@bgym/shared';
+import type { GymPayout, GymProfile, PayoutBank } from '@bgym/shared';
 import { PageSkeleton } from '@/components/dashboard-gate';
 import { GymSettingsForm } from '@/components/gym/gym-settings-form';
+import { PayoutSection } from '@/components/gym/payout-section';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { api } from '@/lib/api.server';
 import { sectionTitle } from '@/lib/dashboards';
-import { canManagePlans, getCurrentGym } from '@/lib/session.server';
+import { canManagePlans, getCurrentGym, getMe } from '@/lib/session.server';
 
 export const metadata: Metadata = { title: sectionTitle('gym', 'settings') };
 
@@ -40,6 +41,12 @@ async function Settings() {
         actions={<Badge tone={badge.tone}>{badge.label}</Badge>}
       />
       <GymSettingsForm profile={profile} canEdit={canEdit} />
+      {gym.role === 'owner' && <Payout gymId={gym.id} />}
     </div>
   );
+}
+
+async function Payout({ gymId }: { gymId: string }) {
+  const [payout, banks, me] = await Promise.all([api<GymPayout>(`/v1/staff/gyms/${gymId}/payout`), api<PayoutBank[]>('/v1/payouts/banks'), getMe()]);
+  return <PayoutSection payout={payout} banks={banks} ownerEmail={me.email} />;
 }
