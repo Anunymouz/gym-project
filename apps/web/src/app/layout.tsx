@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
+import { sidebarBootScript } from '@/lib/sidebar';
 import './globals.css';
 
 // Self-hosted Outfit (SIL OFL): no third-party font requests, works with a strict CSP.
@@ -27,7 +28,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en-GH" className={`${outfit.variable} h-full antialiased`}>
+    // The boot script may set data-sidebar before React loads, hence suppressHydrationWarning.
+    <html lang="en-GH" className={`${outfit.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: sidebarBootScript }} />
+      </head>
       <body className="min-h-full font-sans">{children}</body>
     </html>
   );

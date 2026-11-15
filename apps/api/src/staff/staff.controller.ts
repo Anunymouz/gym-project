@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { z } from 'zod';
 import {
   createPlanSchema,
@@ -8,12 +9,14 @@ import {
   type GymMember,
   type GymOverview,
   type MembersQuery,
+  type RemindResponse,
   type StaffGym,
   type StaffPlan,
   type UpdatePlanInput,
 } from '@bgym/shared';
 import { CurrentUser } from '../auth/decorators.js';
 import type { AccessClaims } from '../auth/token.service.js';
+import { RemindersService } from '../reminders/reminders.service.js';
 import { StaffAccessService } from './staff-access.service.js';
 import { StaffService } from './staff.service.js';
 
@@ -25,6 +28,7 @@ export class StaffController {
   constructor(
     private readonly staff: StaffService,
     private readonly access: StaffAccessService,
+    private readonly reminders: RemindersService,
   ) {}
 
   @Get('gyms')
@@ -42,6 +46,19 @@ export class StaffController {
   async members(@CurrentUser() user: AccessClaims, @Param('gymId', { schema: id }) gymId: string, @Query({ schema: membersQuerySchema }) query: MembersQuery): Promise<GymMember[]> {
     await this.access.require(user, gymId);
     return this.staff.members(gymId, query);
+  }
+
+  /** Emails the member a renewal reminder now. Any staff role; once per membership per 24 hours. */
+  @Post('gyms/:gymId/memberships/:membershipId/remind')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  async remind(
+    @CurrentUser() user: AccessClaims,
+    @Param('gymId', { schema: id }) gymId: string,
+    @Param('membershipId', { schema: id }) membershipId: string,
+  ): Promise<RemindResponse> {
+    await this.access.require(user, gymId);
+    return this.reminders.remindNow(gymId, membershipId, user.userId);
   }
 
   @Get('gyms/:gymId/plans')

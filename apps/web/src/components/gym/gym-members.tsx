@@ -5,7 +5,8 @@ import { membersQuerySchema, type GymMember, type MembersQuery, type StaffGym } 
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { api } from '@/lib/api.server';
-import { formatDate, formatDateTime, initials } from '@/lib/format';
+import { formatDate, formatDateTime, initials, remindedLabel, requestTime } from '@/lib/format';
+import { RemindButton } from './remind-button';
 
 const filters: Array<{ id: MembersQuery['filter']; label: string }> = [
   { id: 'all', label: 'All' },
@@ -24,6 +25,7 @@ export async function GymMembers({ gym, searchParams }: { gym: StaffGym; searchP
   const query: MembersQuery = parsed.success ? parsed.data : { filter: 'all' };
   const params = new URLSearchParams({ filter: query.filter, ...(query.q && { q: query.q }) });
   const members = await api<GymMember[]>(`/v1/staff/gyms/${gym.id}/members?${params}`);
+  const now = requestTime();
 
   const hrefFor = (filter: string) => `/gym/members?${new URLSearchParams({ filter, ...(query.q && { q: query.q }) })}`;
 
@@ -61,10 +63,10 @@ export async function GymMembers({ gym, searchParams }: { gym: StaffGym; searchP
         </div>
       ) : (
         <div className="overflow-x-auto rounded-card border border-line bg-white">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[820px] text-left text-sm">
             <thead className="text-mute">
               <tr className="border-b border-line">
-                {['Member', 'Plan', 'Status', 'Ends', 'Last visit'].map((h) => <th key={h} scope="col" className="px-5 py-3 font-semibold">{h}</th>)}
+                {['Member', 'Plan', 'Status', 'Ends', 'Last visit', 'Renewal'].map((h) => <th key={h} scope="col" className="px-5 py-3 font-semibold">{h}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -83,6 +85,13 @@ export async function GymMembers({ gym, searchParams }: { gym: StaffGym; searchP
                   <td className="px-5 py-3"><Badge tone={status[m.status].tone}>{status[m.status].label}</Badge></td>
                   <td className="px-5 py-3 tabular-nums">{formatDate(m.endsAt)}</td>
                   <td className="px-5 py-3 text-mute">{m.lastCheckInAt ? formatDateTime(m.lastCheckInAt) : 'Not yet'}</td>
+                  <td className="px-5 py-3">
+                    {m.status === 'active' ? (
+                      <span className="text-xs text-mute">—</span>
+                    ) : (
+                      <RemindButton membershipId={m.membershipId} memberName={m.name ?? m.email} remindedLabel={remindedLabel(m.lastRemindedAt, now)} />
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

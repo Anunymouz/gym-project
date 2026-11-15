@@ -18,7 +18,7 @@ export interface GymOverview {
   /** The gym's share after BGYM's fee, this calendar month (Accra time = UTC). */
   revenueThisMonthPesewas: number;
   checkInsByDay: Array<{ date: string; count: number }>;
-  expiringSoon: Array<{ membershipId: string; memberName: string | null; plan: string; endsAt: string }>;
+  expiringSoon: Array<{ membershipId: string; memberName: string | null; plan: string; endsAt: string; lastRemindedAt: string | null }>;
   recentPayments: Array<{ id: string; memberName: string | null; plan: string; channel: string | null; amountPesewas: number; paidAt: string }>;
 }
 
@@ -31,12 +31,15 @@ export type MembersQuery = z.infer<typeof membersQuerySchema>;
 
 export interface GymMember {
   userId: string;
+  /** Their latest membership at this gym (the one shown). */
+  membershipId: string;
   name: string | null;
   email: string;
   plan: string;
   status: 'active' | 'expiring' | 'expired';
   endsAt: string;
   lastCheckInAt: string | null;
+  lastRemindedAt: string | null;
 }
 
 export interface StaffPlan {

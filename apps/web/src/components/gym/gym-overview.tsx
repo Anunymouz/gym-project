@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { formatGhs, pesewas, type GymOverview as Overview, type StaffGym } from '@bgym/shared';
 import { Scan } from '@phosphor-icons/react/ssr';
-import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { api } from '@/lib/api.server';
-import { channelLabel, daysUntil, formatDateTime, greeting, initials, requestTime, weekday } from '@/lib/format';
+import { channelLabel, daysUntil, formatDateTime, greeting, initials, remindedLabel, requestTime, weekday } from '@/lib/format';
+import { RemindButton } from './remind-button';
 import { getMe } from '@/lib/session.server';
 
 export async function GymOverview({ gym }: { gym: StaffGym }) {
@@ -71,12 +71,13 @@ export async function GymOverview({ gym }: { gym: StaffGym }) {
                       <span className="block truncate font-bold">{m.memberName ?? 'Member'}</span>
                       <span className="block text-sm text-mute">{m.plan} · {days === 0 ? 'ends today' : `${days} day${days === 1 ? '' : 's'} left`}</span>
                     </span>
-                    <Badge tone={days <= 2 ? 'danger' : 'warning'}>{days <= 2 ? 'Soon' : 'This week'}</Badge>
+                    <RemindButton membershipId={m.membershipId} memberName={m.memberName ?? 'this member'} remindedLabel={remindedLabel(m.lastRemindedAt, now)} />
                   </li>
                 );
               })}
             </ul>
           )}
+          <p className="mt-3 border-t border-line pt-3 text-xs text-mute">Members also get automatic emails 7, 3 and 1 days before their membership ends, and on the day it ends.</p>
         </section>
       </div>
 

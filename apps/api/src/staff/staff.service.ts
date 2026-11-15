@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type { CreatePlanInput, GymMember, GymOverview, MembersQuery, StaffGym, StaffPlan, UpdatePlanInput } from '@bgym/shared';
 import { AuditService } from '../audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { RemindersService } from '../reminders/reminders.service.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const startOfMonthUtc = (d = new Date()) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
@@ -11,6 +12,7 @@ export class StaffService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly reminders: RemindersService,
   ) {}
 
   async gymsFor(userId: string): Promise<StaffGym[]> {
@@ -57,6 +59,7 @@ export class StaffService {
       }),
     ]);
 
+    const reminded = await this.reminders.lastReminded(expiring.slice(0, 5).map((m) => m.id));
     const byDay = new Map(checkIns.map((r) => [r.day.toISOString().slice(0, 10), Number(r.count)]));
     const checkInsByDay = Array.from({ length: 7 }, (_, i) => {
       const date = new Date(weekAgo.getTime() + i * DAY).toISOString().slice(0, 10);
@@ -69,7 +72,7 @@ export class StaffService {
       expiringIn7Days: expiring.length,
       revenueThisMonthPesewas: Number(revenue[0]?.total ?? 0),
       checkInsByDay,
-      expiringSoon: expiring.slice(0, 5).map((m) => ({ membershipId: m.id, memberName: m.user.name, plan: m.plan.name, endsAt: m.endsAt.toISOString() })),
+      expiringSoon: expiring.slice(0, 5).map((m) => ({ membershipId: m.id, memberName: m.user.name, plan: m.plan.name, endsAt: m.endsAt.toISOString(), lastRemindedAt: reminded.get(m.id)?.toISOString() ?? null })),
       recentPayments: payments.map((p) => ({
         id: p.id,
         memberName: p.user.name,
@@ -108,7 +111,7 @@ export class StaffService {
       orderBy: [{ userId: 'asc' }, { endsAt: 'desc' }],
       distinct: ['userId'],
       take: 500,
-      select: { userId: true, endsAt: true, status: true, user: { select: { name: true, email: true } }, plan: { select: { name: true } } },
+      select: { id: true, userId: true, endsAt: true, status: true, user: { select: { name: true, email: true } }, plan: { select: { name: true } } },
     });
     const lastCheckIns = await this.prisma.checkIn.groupBy({
       by: ['userId'],
@@ -116,12 +119,13 @@ export class StaffService {
       _max: { createdAt: true },
     });
     const lastByUser = new Map(lastCheckIns.map((c) => [c.userId, c._max.createdAt]));
+    const reminded = await this.reminders.lastReminded(rows.map((r) => r.id));
 
     return rows
       .map((r): GymMember => {
         const ends = r.endsAt.getTime();
         const status = r.status === 'expired' || ends <= now ? 'expired' : ends - now <= 7 * DAY ? 'expiring' : 'active';
-        return { userId: r.userId, name: r.user.name, email: r.user.email, plan: r.plan.name, status, endsAt: r.endsAt.toISOString(), lastCheckInAt: lastByUser.get(r.userId)?.toISOString() ?? null };
+        return { userId: r.userId, membershipId: r.id, lastRemindedAt: reminded.get(r.id)?.toISOString() ?? null, name: r.user.name, email: r.user.email, plan: r.plan.name, status, endsAt: r.endsAt.toISOString(), lastCheckInAt: lastByUser.get(r.userId)?.toISOString() ?? null };
       })
       .filter((m) => query.filter === 'all' || m.status === query.filter || (query.filter === 'active' && m.status === 'expiring'))
       .sort((a, b) => (a.name ?? a.email).localeCompare(b.name ?? b.email));

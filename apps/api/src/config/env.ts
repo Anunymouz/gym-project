@@ -38,6 +38,8 @@ export const envSchema = z.object({
   PAYMENTS_DRIVER: z.enum(['paystack', 'dev']).default('dev'),
   /** Paystack secret key (sk_test_… or sk_live_…). Also verifies webhook signatures. */
   PAYSTACK_SECRET_KEY: z.string().optional(),
+  /** Email renewal reminders on a schedule. Turn off for tests or a second region sharing a database. */
+  REMINDERS_ENABLED: z.stringbool().default(true),
   /** Where Paystack sends the browser after payment: the app's deep link. */
   PAYSTACK_CALLBACK_URL: z.string().default('bgym://payments/complete'),
 });

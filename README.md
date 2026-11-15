@@ -48,6 +48,8 @@ Open http://localhost:3000/gym and sign in with a demo account (loaded by `pnpm 
 | `owner@bgym-demo.test` | Owner: everything, including changing plans |
 | `frontdesk@bgym-demo.test` | Front desk: check-ins, members, plans (read-only) |
 
+Renewal reminder emails run automatically every 15 minutes in the API (`REMINDERS_ENABLED`); in development they're printed in the API terminal like sign-in codes. Staff can also press **Remind** next to members whose membership is ending.
+
 The QR scanner needs the camera, which browsers only allow on `localhost` or HTTPS. On another device over your LAN, use the email lookup on the Check-in page, or open the dashboard through an HTTPS tunnel.
 
 Payments run in development mode (`PAYMENTS_DRIVER=dev` in `apps/api/.env`): checkout shows a test approval sheet instead of Paystack, and no real money moves. To test real Paystack checkout, set `PAYMENTS_DRIVER=paystack` and `PAYSTACK_SECRET_KEY=sk_test_…`.

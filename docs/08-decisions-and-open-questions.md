@@ -31,6 +31,7 @@
 | D25 | Sign-in sessions: 15-minute access tokens + 30-day rotating refresh tokens with reuse detection; email codes hashed with a server pepper; every API route private unless marked public. Transactional email via Resend (to confirm). |
 | D26 | Payments: Paystack checkout page (MoMo + cards); activation only from verified webhooks; renewal before expiry extends from the current end date; platform fee read from settings (per-gym override), 0 until decided. |
 | D27 | Profile step after sign-up: name (required), fitness goal and MoMo number (optional). |
+| D29 | Renewal reminders are emailed 7, 3 and 1 days before a membership ends and once on the day it ends, between 07:00 and 21:00 Accra time. Plans shorter than a week get none, the 7-day reminder needs a plan of 28+ days and the 3-day one 14+ days, and members who already renewed get none. Gym staff (any role) can also send one from the dashboard, at most once a day per member. Push reminders follow with app notifications. |
 | D28 | Dashboards sign in with the same email code; sessions are held by the dashboard's server in httpOnly cookies (the browser never holds a token). Front-desk staff can check members in and view members and plans; only owners and managers change plans. |
 
 ## Assumptions (please confirm or correct)

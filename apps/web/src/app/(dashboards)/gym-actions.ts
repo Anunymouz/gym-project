@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { checkInByEmailSchema, createPlanSchema, updatePlanSchema, type CheckInResponse, type StaffPlan } from '@bgym/shared';
+import { checkInByEmailSchema, createPlanSchema, updatePlanSchema, type CheckInResponse, type RemindResponse, type StaffPlan } from '@bgym/shared';
 import { api, ApiError } from '@/lib/api.server';
 import { getCurrentGym } from '@/lib/session.server';
 
@@ -96,4 +96,20 @@ async function post(path: string, body: unknown): Promise<CheckInResult> {
   } catch (err) {
     return { result: 'error', message: err instanceof ApiError ? err.message : 'Something went wrong. Try again.' };
   }
+}
+
+export type RemindResult = { ok: true } | { ok: false; error: string };
+
+/** Emails a member a renewal reminder now (the API allows one per membership per day). */
+export async function remindMember(membershipId: string): Promise<RemindResult> {
+  const gym = await requireGym();
+  const id = z.uuid().safeParse(membershipId);
+  if (!id.success) return { ok: false, error: 'Membership not found.' };
+  try {
+    await api<RemindResponse>(`/v1/staff/gyms/${gym.id}/memberships/${id.data}/remind`, { method: 'POST' });
+  } catch (err) {
+    return { ok: false, error: err instanceof ApiError && err.status !== 429 ? err.message : err instanceof ApiError ? 'Already reminded today.' : 'Could not send. Try again.' };
+  }
+  revalidatePath('/gym', 'layout');
+  return { ok: true };
 }

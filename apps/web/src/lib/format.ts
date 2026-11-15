@@ -24,3 +24,14 @@ export function greeting(now: Date): string {
 
 /** The time this server render started (server components render once per request). */
 export const requestTime = () => Date.now();
+
+const REMIND_COOLDOWN_MS = 24 * 3_600_000;
+
+/** "Reminded 3h ago" if the member was reminded within the last day, else null (can remind). */
+export function remindedLabel(lastRemindedAt: string | null, now: number): string | null {
+  if (!lastRemindedAt) return null;
+  const ago = now - Date.parse(lastRemindedAt);
+  if (ago >= REMIND_COOLDOWN_MS) return null;
+  const minutes = Math.max(1, Math.round(ago / 60_000));
+  return minutes < 60 ? `Reminded ${minutes}m ago` : `Reminded ${Math.round(minutes / 60)}h ago`;
+}
