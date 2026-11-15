@@ -71,6 +71,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "owner": "cyberscec",
+    "extra": {
+      "eas": {
+        "projectId": "27e10e54-caf0-4f0f-a4aa-a1368a36ce8e"
+      }
     }
   }
 }

@@ -48,7 +48,7 @@ Open http://localhost:3000/gym and sign in with a demo account (loaded by `pnpm 
 | `owner@bgym-demo.test` | Owner: everything, including changing plans |
 | `frontdesk@bgym-demo.test` | Front desk: check-ins, members, plans (read-only) |
 
-**Notifications:** in development, push notifications are printed in the API terminal (`PUSH_DRIVER=log`). To get real ones on a phone, create a free Expo account, run `npx eas-cli@latest init` in `apps/mobile`, and use a development build on Android (Expo Go on Android can't receive push notifications; iOS Expo Go can). Members manage everything in the app under Me → Notifications.
+**Notifications:** in development, push notifications are printed in the API terminal (`PUSH_DRIVER=log`). The app is linked to the Expo project `@cyberscec/bgym`. Real push works in Expo Go on iPhone; on Android it needs a development build (Expo Go on Android can't receive push notifications): run `npx eas-cli@latest build --profile development --platform android` in `apps/mobile`, install the APK it links to, then start Metro with `pnpm dev:mobile` and open the project from the BGYM dev app. Members manage everything in the app under Me → Notifications.
 
 Renewal reminder emails run automatically every 15 minutes in the API (`REMINDERS_ENABLED`); in development they're printed in the API terminal like sign-in codes. Staff can also press **Remind** next to members whose membership is ending.
 
