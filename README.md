@@ -49,7 +49,10 @@ Open http://localhost:3000/gym and sign in with a demo account (loaded by `pnpm 
 | `frontdesk@bgym-demo.test` | Front desk: check-ins, members, plans (read-only) |
 | `admin@bgym-demo.test` | BGYM team: open http://localhost:3000/admin/approvals to review gyms |
 | `trainer@bgym-demo.test`, `trainer2@bgym-demo.test` | Trainers (Kwame Asante, Akua Boateng): open http://localhost:3000/trainer |
-| `ama.owusu@bgym-demo.test`, `nana.yeboah@bgym-demo.test`, … | Members, for the app (feed, stories, booking trainers) |
+| `partner@bgym-demo.test` | Store partner (Accra Nutrition Hub): open http://localhost:3000/partner |
+| `ama.owusu@bgym-demo.test`, `nana.yeboah@bgym-demo.test`, … | Members, for the app (feed, stories, booking trainers, the store) |
+
+Maps in the app: Expo Go works as is. For your own Android build, add a Google Maps API key (`android.config.googleMaps.apiKey` in `apps/mobile/app.json`); iOS uses Apple Maps.
 
 To try listing a new gym, sign in with any new email: you'll see **List your gym**. In development, payout accounts are simulated (`PAYMENTS_DRIVER=dev`) and the confirmation code appears in the API terminal.
 

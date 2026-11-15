@@ -37,10 +37,9 @@ Phases are ordered so we can launch a paying product early, then layer on.
 - **Later:** reschedule in one step (today: cancel and rebook), ratings and reviews, trainers applying to a gym themselves, an optional gym share of trainer payments, Paystack refund webhooks (refunds are marked "pending" until then).
 
 ## Phase 3 — Store
-- Partner dashboard: products, variants, stock, orders.
-- Admin store management.
-- Member: store browsing, cart, map-based address, checkout, order tracking.
-- Yango Delivery integration (quote + dispatch) with manual fallback.
+- **Done:** partner dashboard (orders, products with photos and options, inventory, payouts, pickup point); admin Store & partners (review queue, partners and commission, BGYM's own products, every order, delivery pricing); member store (browse, search, categories, product pages, cart, map-pinned delivery address, checkout with delivery fees, one payment split between sellers, order tracking, cancel before preparation). Paystack refund events mark refunds complete.
+- **Delivery today:** manual. Fees are a base plus a per-km rate up to a maximum distance (set by the BGYM team); the seller or BGYM enters the rider's name and phone, and the member sees them.
+- **Later:** Yango Delivery API (automatic quotes and dispatch) once BGYM has a business account and API access; returns after delivery; product reviews; promo codes.
 
 ## Phase 4 — Workouts
 - Licensed exercise library import, workout builder in admin, free vs unlocked.

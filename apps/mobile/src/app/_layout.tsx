@@ -60,7 +60,13 @@ function App() {
         <Stack.Screen name="onboarding/profile" />
         <Stack.Screen name="onboarding/location" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="store" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="store/index" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="store/product/[id]" />
+        <Stack.Screen name="store/cart" />
+        <Stack.Screen name="store/checkout" />
+        <Stack.Screen name="store/address" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="orders/index" />
+        <Stack.Screen name="orders/[id]" />
         <Stack.Screen name="gym/[slug]" />
         <Stack.Screen name="checkout/[planId]" />
         <Stack.Screen name="membership/[id]" options={{ gestureEnabled: true }} />

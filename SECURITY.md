@@ -57,6 +57,13 @@ Please do **not** open a public issue. Email the BGYM team privately with the de
 - Invitations are tied to an email address and can only be accepted by a person signed in with it (their sign-in code proves ownership), exactly once; there is no secret link to forward or leak.
 - Role rules are enforced by the API (owners: anyone; managers: front desk only). Team changes lock the gym's staff rows, so concurrent changes can't remove the last owner. Every change is audited.
 
+**Store**
+- Prices, delivery fees, commissions and totals are worked out by the server from the database at checkout; the app only sends what's in the cart and which saved address to use.
+- Stock can't be oversold: it's held with a conditional update (only if enough is free) inside the checkout transaction, taken when Paystack confirms, released when payment doesn't arrive in time, and the database refuses negative quantities. A payment that arrives after its stock was released is refunded automatically if the stock is gone.
+- Each order moves forward once (conditional on its current status); cancelling refunds exactly that order's amount (refunds are added up under a row lock so a payment is never over-refunded) and puts the stock back.
+- Partners only see and act on their own products and orders; their dashboard needs the partner role, checked in the database on every request. Partner payout changes need a fresh emailed code. Paused partners' products disappear from the store at once.
+- Product photos go through the same processing as other photos (re-encoded, metadata removed). Delivery addresses are only visible to the member, the seller of that order and the BGYM team.
+
 **Trainers and bookings**
 - Only a gym's owners and managers invite or remove its trainers; an invitation can only be accepted by someone signed in with the invited email, once. Trainer pages need the trainer role (checked in the database on every request), and a trainer only ever sees their own bookings, clients and earnings.
 - Slots can't be sold twice: bookings for a trainer are made one at a time under a row lock, the requested time must be one the server itself offers, and the database refuses overlapping live bookings (an exclusion constraint). A member can't be in two sessions at once.

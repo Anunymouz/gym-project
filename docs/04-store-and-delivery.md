@@ -56,3 +56,8 @@ Each seller has one or more pickup addresses with map coordinates. Phase 1 assum
 ## 6. To confirm
 - Yango Ghana business account, API access, pricing, coverage, and insurance on goods.
 - Does the partner want to also offer self-delivery (Option A) in addition?
+
+## 7. What was built (Phase 3)
+- Mixed carts are allowed: one order per seller, one payment split by Paystack (D42).
+- Delivery is manual with distance-based pricing set in admin (D43); the `DeliveryService` quote step is where a courier API plugs in.
+- Partners are set up by the BGYM team with a commission; their products are reviewed before going live (D41).

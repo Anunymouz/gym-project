@@ -4,7 +4,16 @@ import {
   type AuthSession,
   type AuthTokens,
   type AuthUser,
+  type AddressInput,
   type BlockedUser,
+  type Cart,
+  type CheckoutQuote,
+  type OrderSummary,
+  type ProductDetail,
+  type SavedAddress,
+  type StoreCategory,
+  type StoreCheckout,
+  type StorePage,
   type BookingCheckout,
   type BookSessionInput,
   type DaySlots,
@@ -375,3 +384,35 @@ export const trainersApi = {
   },
   myPackages: () => authed<MyPackage[]>('/v1/me/packages'),
 };
+
+const productMedia = <T extends { imageUrl: string | null; thumbUrl: string | null }>(p: T): T => ({ ...p, imageUrl: media(p.imageUrl), thumbUrl: media(p.thumbUrl) });
+
+export const storeApi = {
+  categories: () => authed<StoreCategory[]>('/v1/store/categories'),
+  products: async (q: { category?: string; q?: string; cursor?: string | null }) => {
+    const params = new URLSearchParams();
+    if (q.category) params.set('category', q.category);
+    if (q.q) params.set('q', q.q);
+    if (q.cursor) params.set('cursor', q.cursor);
+    const page = await authed<StorePage>(`/v1/store/products${params.size ? `?${params}` : ''}`);
+    return { ...page, products: page.products.map(productMedia) };
+  },
+  product: async (id: string) => {
+    const p = await authed<ProductDetail>(`/v1/store/products/${id}`);
+    return { ...productMedia(p), images: p.images.map((i) => ({ ...i, url: media(i.url) ?? i.url, thumbUrl: media(i.thumbUrl) ?? i.thumbUrl })) };
+  },
+  cart: async () => cartMedia(await authed<Cart>('/v1/me/cart')),
+  setLine: async (variantId: string, quantity: number) => cartMedia(await authed<Cart>('/v1/me/cart', { method: 'PUT', body: JSON.stringify({ variantId, quantity }) })),
+  addresses: () => authed<SavedAddress[]>('/v1/me/addresses'),
+  addAddress: (input: AddressInput) => authed<SavedAddress[]>('/v1/me/addresses', { method: 'POST', body: JSON.stringify(input) }),
+  updateAddress: (id: string, input: AddressInput) => authed<SavedAddress[]>(`/v1/me/addresses/${id}`, { method: 'PUT', body: JSON.stringify(input) }),
+  removeAddress: (id: string) => authed<SavedAddress[]>(`/v1/me/addresses/${id}`, { method: 'DELETE' }),
+  defaultAddress: (id: string) => authed<SavedAddress[]>(`/v1/me/addresses/${id}/default`, { method: 'POST' }),
+  quote: (addressId: string) => authed<CheckoutQuote>('/v1/me/checkout/quote', { method: 'POST', body: JSON.stringify({ addressId }) }),
+  checkout: (addressId: string, note?: string) => authed<StoreCheckout>('/v1/me/checkout', { method: 'POST', body: JSON.stringify({ addressId, ...(note && { note }) }) }),
+  orders: async () => (await authed<OrderSummary[]>('/v1/me/orders')).map(orderMedia),
+  order: async (id: string) => orderMedia(await authed<OrderSummary>(`/v1/me/orders/${id}`)),
+  cancelOrder: async (id: string) => orderMedia(await authed<OrderSummary>(`/v1/me/orders/${id}/cancel`, { method: 'POST' })),
+};
+const cartMedia = (c: Cart): Cart => ({ ...c, lines: c.lines.map((l) => ({ ...l, thumbUrl: media(l.thumbUrl) })) });
+const orderMedia = (o: OrderSummary): OrderSummary => ({ ...o, items: o.items.map((i) => ({ ...i, thumbUrl: media(i.thumbUrl) })) });
