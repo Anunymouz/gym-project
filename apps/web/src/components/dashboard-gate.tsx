@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { redirect, unstable_rethrow } from 'next/navigation';
 import { Storefront } from '@phosphor-icons/react/ssr';
 import type { AuthUser } from '@bgym/shared';
 import type { DashboardId } from '@/lib/dashboards';
@@ -15,6 +15,17 @@ const roleFor: Record<Exclude<DashboardId, 'gym'>, AuthUser['roles'][number]> = 
  * nothing without a gym), so the "no gym yet" notice sits above them rather than replacing them.
  */
 export async function DashboardGate({ dashboard, children }: { dashboard: DashboardId; children: ReactNode }) {
+  try {
+    return await gate(dashboard, children);
+  } catch (err) {
+    unstable_rethrow(err); // keep redirects (sign-in, wrong dashboard)
+    // API unreachable: let the page render so its own "Try again" screen shows inside the
+    // sidebar. Safe: this gate is only for the screen; proxy.ts and the API enforce access.
+    return children;
+  }
+}
+
+async function gate(dashboard: DashboardId, children: ReactNode) {
   const me = await getMe();
   const isAdmin = me.roles.includes('admin');
 

@@ -16,7 +16,7 @@ export default function Home() {
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(100deg,#0D1028_25%,rgba(13,16,40,0.82)_55%,rgba(13,16,40,0.55))]" aria-hidden />
       <div className="mx-auto flex max-w-5xl flex-col gap-12">
         <header className="flex items-center justify-between">
-          <Image src="/brand/bgym-lockup-on-dark.svg" alt="BGYM" width={132} height={36} priority />
+          <Image src="/brand/bgym-lockup-on-dark.svg" alt="BGYM" width={127} height={36} priority />
           <Link href="/sign-in" className="rounded-control bg-flare px-4 py-2.5 text-sm font-bold hover:bg-[#f04e14]">
             Sign in
           </Link>

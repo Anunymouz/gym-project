@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { unstable_rethrow } from 'next/navigation';
+import type { AuthUser, StaffGym } from '@bgym/shared';
 import { SignOut } from '@phosphor-icons/react/ssr';
 import { signOut, switchGym } from '@/app/(dashboards)/actions';
 import { getCurrentGym, getMe, getStaffGyms } from '@/lib/session.server';
@@ -10,9 +12,24 @@ const roleLabel = { owner: 'Owner', manager: 'Manager', front_desk: 'Front desk'
 
 /** Signed-in account (and, on the gym dashboard, the gym being managed) at the foot of the sidebar. */
 export async function AccountPanel({ dashboard }: { dashboard: DashboardId }) {
-  const me = await getMe();
-  const [gyms, gym] =
-    dashboard === 'gym' ? await Promise.all([getStaffGyms(), getCurrentGym()]) : [[], null];
+  let me: AuthUser;
+  let gyms: StaffGym[] = [];
+  let gym: StaffGym | null = null;
+  try {
+    me = await getMe();
+    if (dashboard === 'gym') [gyms, gym] = await Promise.all([getStaffGyms(), getCurrentGym()]);
+  } catch (err) {
+    unstable_rethrow(err); // keep Next's redirects (e.g. session expired → sign-in)
+    // The API is unreachable: the page shows its own retry; keep sign-out available here.
+    return (
+      <form action={signOut} className="mt-4 rounded-card bg-white/5 p-3 text-sm lg:collapsed:bg-transparent lg:collapsed:p-0">
+        <p className="lg:collapsed:sr-only">Account unavailable</p>
+        <button type="submit" className="mt-1 inline-flex items-center gap-1.5 font-semibold text-white/80 hover:text-white">
+          <SignOut size={18} aria-hidden /> <span className="lg:collapsed:sr-only">Sign out</span>
+        </button>
+      </form>
+    );
+  }
 
   return (
     <>

@@ -110,7 +110,7 @@ export function DashboardShell({ dashboard, account, children }: { dashboard: Da
     <div className="min-h-dvh lg:flex">
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 flex items-center justify-between bg-midnight px-4 py-3 lg:hidden">
-        <Image src="/brand/bgym-lockup-on-dark.svg" alt="BGYM" width={108} height={30} priority />
+        <Image src="/brand/bgym-lockup-on-dark.svg" alt="BGYM" width={106} height={30} priority />
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -144,7 +144,7 @@ export function DashboardShell({ dashboard, account, children }: { dashboard: Da
             <Image
               src="/brand/bgym-lockup-on-dark.svg"
               alt="BGYM"
-              width={124}
+              width={120}
               height={34}
               priority
               className="lg:collapsed:hidden"
@@ -154,6 +154,7 @@ export function DashboardShell({ dashboard, account, children }: { dashboard: Da
               alt="BGYM"
               width={40}
               height={34}
+              loading="eager"
               className="hidden lg:collapsed:block"
             />
             <span className="sr-only">{config.name} home</span>

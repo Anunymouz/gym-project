@@ -19,9 +19,20 @@ async function forwardedFor(): Promise<Record<string, string>> {
   return visitorHeaders(h.get('x-forwarded-for') ?? h.get('x-real-ip'));
 }
 
+const UNREACHABLE = 'We can’t reach BGYM right now. Check your connection and try again in a moment.';
+
+/** fetch that turns "server not reachable" (API down or restarting) into a clear ApiError. */
+async function send(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch {
+    throw new ApiError(UNREACHABLE, 503);
+  }
+}
+
 /** Calls the API without a session (sign-in endpoints). */
 export async function publicApi<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await send(`${API_URL}${path}`, {
     ...init,
     cache: 'no-store',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(await forwardedFor()), ...init.headers },
@@ -33,7 +44,7 @@ export async function publicApi<T>(path: string, init: RequestInit = {}): Promis
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = (await cookies()).get(COOKIE.access)?.value;
   if (!token) redirect('/sign-in');
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await send(`${API_URL}${path}`, {
     ...init,
     cache: 'no-store',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(await forwardedFor()), ...init.headers },
