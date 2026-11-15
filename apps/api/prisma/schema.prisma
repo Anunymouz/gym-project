@@ -200,29 +200,30 @@ model User {
   createdAt   DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime   @updatedAt @db.Timestamptz(3)
 
-  identities      AuthIdentity[]
-  sessions        Session[]
-  memberProfile   MemberProfile?
-  gymStaff        GymStaff[]
-  trainer         Trainer?
-  memberships     Membership[]
-  remindersSent   MembershipReminder[] @relation("ReminderSender")
-  checkIns        CheckIn[]            @relation("CheckInMember")
-  scannedCheckIns CheckIn[]            @relation("CheckInScanner")
-  posts           Post[]
-  likes           PostLike[]
-  bookings        Booking[]
-  packages        PackagePurchase[]
-  workoutSessions WorkoutSession[]
-  cartItems       CartItem[]
-  addresses       Address[]
-  orders          Order[]
-  payments        Payment[]
-  notifications   Notification[]
-  devices         DeviceToken[]
-  reports         Report[]
-  partnerUsers    PartnerUser[]
-  auditLogs       AuditLog[]
+  identities           AuthIdentity[]
+  sessions             Session[]
+  memberProfile        MemberProfile?
+  gymStaff             GymStaff[]
+  trainer              Trainer?
+  memberships          Membership[]
+  remindersSent        MembershipReminder[]  @relation("ReminderSender")
+  checkIns             CheckIn[]             @relation("CheckInMember")
+  scannedCheckIns      CheckIn[]             @relation("CheckInScanner")
+  posts                Post[]
+  likes                PostLike[]
+  bookings             Booking[]
+  packages             PackagePurchase[]
+  workoutSessions      WorkoutSession[]
+  cartItems            CartItem[]
+  addresses            Address[]
+  orders               Order[]
+  payments             Payment[]
+  notifications        Notification[]
+  devices              DeviceToken[]
+  notificationSettings NotificationSetting[]
+  reports              Report[]
+  partnerUsers         PartnerUser[]
+  auditLogs            AuditLog[]
 
   @@map("users")
 }
@@ -889,16 +890,44 @@ model Notification {
   @@map("notifications")
 }
 
+/// An Expo push token for one install of the app. A token moves to whoever signed in last.
 model DeviceToken {
-  id        String         @id @default(uuid(7)) @db.Uuid
-  userId    String         @db.Uuid
-  platform  DevicePlatform
-  token     String         @unique
-  createdAt DateTime       @default(now()) @db.Timestamptz(3)
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String         @id @default(uuid(7)) @db.Uuid
+  userId     String         @db.Uuid
+  platform   DevicePlatform
+  token      String         @unique
+  createdAt  DateTime       @default(now()) @db.Timestamptz(3)
+  lastSeenAt DateTime       @default(now()) @db.Timestamptz(3)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tickets    PushTicket[]
 
   @@index([userId])
   @@map("device_tokens")
+}
+
+/// Expo accepted a push for delivery; checked later against Expo's receipts to drop dead tokens.
+model PushTicket {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  ticketId      String      @unique
+  deviceTokenId String      @db.Uuid
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+  deviceToken   DeviceToken @relation(fields: [deviceTokenId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@map("push_tickets")
+}
+
+/// A member's choice for one topic on one channel. No row means the topic's default.
+model NotificationSetting {
+  userId    String   @db.Uuid
+  topic     String
+  channel   String
+  enabled   Boolean
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, topic, channel])
+  @@map("notification_settings")
 }
 
 model Report {

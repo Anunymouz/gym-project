@@ -1,8 +1,11 @@
-import { HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { MANUAL_REMINDER_COOLDOWN_HOURS, REMINDER_SEND_HOURS, type ReminderKind, type RemindResponse } from '@bgym/shared';
+import { ConflictException, HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ANDROID_CHANNELS, MANUAL_REMINDER_COOLDOWN_HOURS, REMINDER_SEND_HOURS, type ReminderKind, type RemindResponse } from '@bgym/shared';
 import { AuditService } from '../audit/audit.service.js';
 import { MailService } from '../mail/mail.service.js';
-import { renewalReminderEmail } from '../mail/templates.js';
+import { renewalReminderEmail, renewalReminderPush } from '../mail/templates.js';
+import { NotificationSettingsService } from '../notifications/notification-settings.service.js';
+import { PushService } from '../notifications/push.service.js';
+import { UnsubscribeService } from '../notifications/unsubscribe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const HOUR = 60 * 60 * 1000;
@@ -21,6 +24,7 @@ const MAX_PER_RUN = 500;
 
 interface Candidate {
   id: string;
+  userId: string;
   startsAt: Date;
   endsAt: Date;
   email: string;
@@ -51,6 +55,9 @@ export class RemindersService {
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
     private readonly audit: AuditService,
+    private readonly settings: NotificationSettingsService,
+    private readonly push: PushService,
+    private readonly unsubscribe: UnsubscribeService,
   ) {}
 
   /**
@@ -63,7 +70,7 @@ export class RemindersService {
 
     // Memberships near or just past their end, for active members who haven't renewed at that gym.
     const rows = await this.prisma.$queryRaw<Candidate[]>`
-      SELECT m.id, m."startsAt", m."endsAt", u.email, u.name AS "memberName", g.name AS "gymName", p.name AS "planName"
+      SELECT m.id, m."userId", m."startsAt", m."endsAt", u.email, u.name AS "memberName", g.name AS "gymName", p.name AS "planName"
       FROM memberships m
       JOIN users u ON u.id = m."userId"
       JOIN gyms g ON g.id = m."gymId"
@@ -80,10 +87,13 @@ export class RemindersService {
       ORDER BY m."endsAt"
       LIMIT ${MAX_PER_RUN}`;
 
-    const due = rows.flatMap((m) => {
+    const stages = rows.flatMap((m) => {
       const kind = dueStage(m, now);
       return kind ? [{ m, kind }] : [];
     });
+    // Respect each member's choices: skip anyone who can't be reached on any channel.
+    const channels = await this.reachable(stages.map((s) => s.m.userId));
+    const due = stages.filter((s) => channels.email.has(s.m.userId) || channels.push.has(s.m.userId));
     if (due.length === 0) return { sent: 0, failed: 0 };
 
     const claimed = await this.prisma.membershipReminder.createManyAndReturn({
@@ -97,11 +107,10 @@ export class RemindersService {
     let failed = 0;
     for (const claim of claimed) {
       const m = byMembership.get(claim.membershipId)!;
-      try {
-        await this.mail.send(renewalReminderEmail({ to: m.email, memberName: m.memberName, gymName: m.gymName, planName: m.planName, endsAt: m.endsAt, now }));
+      if (await this.deliver(m, now, channels)) {
         sent++;
-      } catch {
-        // Release the claim so the next run tries again.
+      } else {
+        // Nothing got through: release the claim so the next run tries again.
         await this.prisma.membershipReminder.delete({ where: { id: claim.id } }).catch(() => undefined);
         failed++;
       }
@@ -116,6 +125,8 @@ export class RemindersService {
       where: { id: membershipId, gymId, status: { in: ['active', 'expired'] }, user: { status: 'active' } },
       select: {
         id: true,
+        userId: true,
+        startsAt: true,
         endsAt: true,
         user: { select: { email: true, name: true } },
         gym: { select: { name: true } },
@@ -123,6 +134,10 @@ export class RemindersService {
       },
     });
     if (!m) throw new NotFoundException('Membership not found');
+    const channels = await this.reachable([m.userId]);
+    if (!channels.email.has(m.userId) && !channels.push.has(m.userId)) {
+      throw new ConflictException('This member has turned off renewal reminders.');
+    }
 
     // Lock the membership row so two clicks at once can't both pass the 24-hour check.
     const since = new Date(now.getTime() - MANUAL_REMINDER_COOLDOWN_HOURS * HOUR);
@@ -132,14 +147,47 @@ export class RemindersService {
       if (recent > 0) throw new HttpException('This member was already reminded in the last 24 hours.', HttpStatus.TOO_MANY_REQUESTS);
       return tx.membershipReminder.create({ data: { membershipId: m.id, kind: 'manual', sentById: staffUserId }, select: { id: true, createdAt: true } });
     });
-    try {
-      await this.mail.send(renewalReminderEmail({ to: m.user.email, memberName: m.user.name, gymName: m.gym.name, planName: m.plan.name, endsAt: m.endsAt, now }));
-    } catch (err) {
+    const delivered = await this.deliver(
+      { id: m.id, userId: m.userId, startsAt: m.startsAt, endsAt: m.endsAt, email: m.user.email, memberName: m.user.name, gymName: m.gym.name, planName: m.plan.name },
+      now,
+      channels,
+    );
+    if (!delivered) {
       await this.prisma.membershipReminder.delete({ where: { id: reminder.id } }).catch(() => undefined);
-      throw err;
+      throw new HttpException('We couldn’t send the reminder. Please try again in a moment.', HttpStatus.SERVICE_UNAVAILABLE);
     }
     await this.audit.record({ action: 'membership.reminder_sent', actorId: staffUserId, targetType: 'membership', targetId: m.id, metadata: { gymId } });
     return { remindedAt: reminder.createdAt.toISOString() };
+  }
+
+  /** Who can get renewal reminders by email, and by push (enabled and with a registered phone). */
+  private async reachable(userIds: string[]): Promise<{ email: Set<string>; push: Set<string> }> {
+    const [email, pushOn, devices] = await Promise.all([
+      this.settings.allowing(userIds, 'renewals', 'email'),
+      this.settings.allowing(userIds, 'renewals', 'push'),
+      this.push.hasDevice(userIds),
+    ]);
+    return { email, push: new Set([...pushOn].filter((id) => devices.has(id))) };
+  }
+
+  /** Sends on every channel the member allows. True if at least one got through. */
+  private async deliver(m: Candidate, now: Date, channels: { email: Set<string>; push: Set<string> }): Promise<boolean> {
+    let delivered = false;
+    if (channels.email.has(m.userId)) {
+      try {
+        const unsubscribe = await this.unsubscribe.links(m.userId, 'renewals');
+        await this.mail.send(renewalReminderEmail({ to: m.email, memberName: m.memberName, gymName: m.gymName, planName: m.planName, endsAt: m.endsAt, now, unsubscribe }));
+        delivered = true;
+      } catch {
+        // Logged by the mail service; push may still reach them.
+      }
+    }
+    if (channels.push.has(m.userId)) {
+      const message = renewalReminderPush({ gymName: m.gymName, planName: m.planName, endsAt: m.endsAt, now });
+      const accepted = await this.push.send([m.userId], { ...message, channelId: ANDROID_CHANNELS.reminders, data: { url: '/memberships' } });
+      delivered ||= accepted > 0;
+    }
+    return delivered;
   }
 
   /** When each membership was last reminded (any kind), for the dashboard. */

@@ -3,6 +3,8 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
+import { NotificationsModule } from './notifications/notifications.module.js';
 import { RemindersModule } from './reminders/reminders.module.js';
 import { ClientIpThrottlerGuard } from './common/client-ip-throttler.guard.js';
 import { LoggerModule } from 'nestjs-pino';
@@ -54,6 +56,8 @@ import { PrismaModule } from './prisma/prisma.module.js';
     HealthModule,
     GymsModule,
     PaymentsModule,
+    ScheduleModule.forRoot(),
+    NotificationsModule,
     RemindersModule,
     StaffModule,
     MembershipsModule,

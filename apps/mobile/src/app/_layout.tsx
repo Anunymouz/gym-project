@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
+import { Platform } from 'react-native';
+import { router, Stack, type Href } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -12,6 +14,7 @@ import { Outfit_600SemiBold } from '@expo-google-fonts/outfit/600SemiBold';
 import { Outfit_700Bold } from '@expo-google-fonts/outfit/700Bold';
 import { Outfit_800ExtraBold } from '@expo-google-fonts/outfit/800ExtraBold';
 import { AnimatedSplash } from '@/components/brand/animated-splash';
+import { targetOf } from '@/lib/push';
 import { SessionProvider, useSession } from '@/lib/session';
 import { colors } from '@/theme';
 
@@ -47,6 +50,7 @@ function App() {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
 
+
   if (!ready) return null;
 
   return (
@@ -63,8 +67,22 @@ function App() {
         <Stack.Screen name="checkout/[planId]" />
         <Stack.Screen name="membership/[id]" options={{ gestureEnabled: true }} />
         <Stack.Screen name="memberships" />
+        <Stack.Screen name="notifications" />
       </Stack>
+      {Platform.OS !== 'web' && status === 'ready' && !showSplash && <NotificationTaps />}
       {showSplash && <AnimatedSplash onFinish={() => setShowSplash(false)} />}
     </>
   );
+}
+
+/** Opens the screen a tapped notification points to (also when the tap launched the app). Phones only. */
+function NotificationTaps() {
+  const response = Notifications.useLastNotificationResponse();
+  useEffect(() => {
+    const target = targetOf(response ?? null);
+    if (!target) return;
+    void Notifications.clearLastNotificationResponseAsync();
+    router.push(target as Href);
+  }, [response]);
+  return null;
 }

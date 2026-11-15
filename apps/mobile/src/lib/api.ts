@@ -9,6 +9,9 @@ import {
   type MembershipSummary,
   type PaymentStatusResponse,
   type NearbyGymsQuery,
+  type NotificationSettings,
+  type RegisterDeviceInput,
+  type UpdateNotificationSetting,
   type RequestEmailCodeResponse,
   type UpdateProfileInput,
 } from '@bgym/shared';
@@ -172,4 +175,11 @@ export const membershipsApi = {
   simulatePayment: (reference: string) => authed<PaymentStatusResponse>(`/v1/payments/${reference}/simulate`, { method: 'POST' }),
   list: () => authed<MembershipSummary[]>('/v1/memberships'),
   pass: (membershipId: string) => authed<MembershipPass>(`/v1/memberships/${membershipId}/pass`),
+};
+
+export const notificationsApi = {
+  settings: () => authed<NotificationSettings>('/v1/me/notifications'),
+  update: (change: UpdateNotificationSetting) => authed<NotificationSettings>('/v1/me/notifications', { method: 'PATCH', body: JSON.stringify(change) }),
+  registerDevice: (input: RegisterDeviceInput) => authed<void>('/v1/me/devices', { method: 'PUT', body: JSON.stringify(input) }),
+  unregisterDevice: (token: string) => authed<void>('/v1/me/devices/unregister', { method: 'POST', body: JSON.stringify({ token }) }),
 };

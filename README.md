@@ -48,6 +48,8 @@ Open http://localhost:3000/gym and sign in with a demo account (loaded by `pnpm 
 | `owner@bgym-demo.test` | Owner: everything, including changing plans |
 | `frontdesk@bgym-demo.test` | Front desk: check-ins, members, plans (read-only) |
 
+**Notifications:** in development, push notifications are printed in the API terminal (`PUSH_DRIVER=log`). To get real ones on a phone, create a free Expo account, run `npx eas-cli@latest init` in `apps/mobile`, and use a development build on Android (Expo Go on Android can't receive push notifications; iOS Expo Go can). Members manage everything in the app under Me → Notifications.
+
 Renewal reminder emails run automatically every 15 minutes in the API (`REMINDERS_ENABLED`); in development they're printed in the API terminal like sign-in codes. Staff can also press **Remind** next to members whose membership is ending.
 
 The QR scanner needs the camera, which browsers only allow on `localhost` or HTTPS. On another device over your LAN, use the email lookup on the Check-in page, or open the dashboard through an HTTPS tunnel.

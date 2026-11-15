@@ -7,6 +7,8 @@ export interface MailMessage {
   subject: string;
   text: string;
   html: string;
+  /** Extra headers, e.g. List-Unsubscribe. */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -20,6 +22,8 @@ export class MailService {
   private readonly logger = new Logger(MailService.name);
   /** Last message per recipient, for the memory driver (tests). */
   readonly outbox = new Map<string, MailMessage>();
+  /** Every message, in order, for the memory driver (tests). */
+  readonly sent: MailMessage[] = [];
 
   constructor(private readonly config: ConfigService<Env, true>) {}
 
@@ -27,6 +31,7 @@ export class MailService {
     const driver = this.config.get('MAIL_DRIVER', { infer: true });
     if (driver === 'memory') {
       this.outbox.set(message.to, message);
+      this.sent.push(message);
       return;
     }
     if (driver === 'log') {

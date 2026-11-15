@@ -38,6 +38,12 @@ export const envSchema = z.object({
   PAYMENTS_DRIVER: z.enum(['paystack', 'dev']).default('dev'),
   /** Paystack secret key (sk_test_… or sk_live_…). Also verifies webhook signatures. */
   PAYSTACK_SECRET_KEY: z.string().optional(),
+  /** log = print pushes to the server log (development); memory = tests; expo = Expo push service. */
+  PUSH_DRIVER: z.enum(['log', 'memory', 'expo']).default('log'),
+  /** Optional Expo access token (enable "enhanced push security" in Expo to require it). */
+  EXPO_ACCESS_TOKEN: z.string().optional(),
+  /** Public address of the web dashboards; used for links in emails (unsubscribe). */
+  WEB_URL: z.url().default('http://localhost:3000').transform((v) => v.replace(/\/$/, '')),
   /** Email renewal reminders on a schedule. Turn off for tests or a second region sharing a database. */
   REMINDERS_ENABLED: z.stringbool().default(true),
   /** Where Paystack sends the browser after payment: the app's deep link. */
@@ -57,6 +63,8 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   if (env.NODE_ENV === 'production') {
     if (env.CORS_ORIGINS.length === 0) problems.push('CORS_ORIGINS: required in production');
     if (env.MAIL_DRIVER !== 'resend') problems.push('MAIL_DRIVER: must be "resend" in production');
+    if (env.PUSH_DRIVER !== 'expo') problems.push('PUSH_DRIVER: must be "expo" in production');
+    if (!env.WEB_URL.startsWith('https://')) problems.push('WEB_URL: must be https in production');
     if (env.PAYMENTS_DRIVER !== 'paystack') problems.push('PAYMENTS_DRIVER: must be "paystack" in production');
     if (env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_')) problems.push('PAYSTACK_SECRET_KEY: test key used in production');
     if (!env.DASHBOARD_PROXY_SECRET) problems.push('DASHBOARD_PROXY_SECRET: required in production');

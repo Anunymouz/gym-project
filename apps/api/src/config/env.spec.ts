@@ -16,6 +16,8 @@ const prod = {
   JWT_ACCESS_SECRET: 'x'.repeat(40),
   OTP_PEPPER: 'y'.repeat(40),
   DASHBOARD_PROXY_SECRET: 'z'.repeat(40),
+  PUSH_DRIVER: 'expo',
+  WEB_URL: 'https://business.bgym.app',
 };
 
 describe('validateEnv', () => {
@@ -56,6 +58,11 @@ describe('validateEnv', () => {
   it('requires a real dashboard proxy secret in production', () => {
     expect(() => validateEnv({ ...prod, DASHBOARD_PROXY_SECRET: undefined })).toThrow(/DASHBOARD_PROXY_SECRET/);
     expect(() => validateEnv({ ...prod, DASHBOARD_PROXY_SECRET: `dev-${'z'.repeat(40)}` })).toThrow(/DASHBOARD_PROXY_SECRET/);
+  });
+
+  it('requires real push delivery and an https web address in production', () => {
+    expect(() => validateEnv({ ...prod, PUSH_DRIVER: 'log' })).toThrow(/PUSH_DRIVER/);
+    expect(() => validateEnv({ ...prod, WEB_URL: 'http://business.bgym.app' })).toThrow(/WEB_URL/);
   });
 
   it('rejects short secrets', () => {

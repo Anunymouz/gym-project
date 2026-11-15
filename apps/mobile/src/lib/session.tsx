@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { AuthUser, UpdateProfileInput } from '@bgym/shared';
 import { ApiError, authApi, hasStoredSession, refreshSession, saveTokens, setSessionEndedHandler } from './api';
+import { disablePushForSignOut, enablePush } from './push';
 import { secureStorage } from './secure-storage';
 
 /**
@@ -131,7 +132,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setStatus('ready');
   }, []);
 
+  // Keep this phone's push token current once signed in (never prompts; see lib/push).
+  useEffect(() => {
+    if (status === 'ready') void enablePush({ ask: false }).catch(() => undefined);
+  }, [status]);
+
   const signOut = useCallback(async () => {
+    await disablePushForSignOut(); // while the session still works
     await authApi.signOut();
     await reset();
   }, [reset]);
