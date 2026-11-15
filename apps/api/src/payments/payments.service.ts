@@ -5,6 +5,7 @@ import { Prisma } from '../generated/prisma/client.js';
 import type { PaymentChannel } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FulfilmentRegistry } from './fulfilment.js';
+import { ReceiptsService } from './receipts.service.js';
 
 export interface SuccessfulCharge {
   reference: string;
@@ -27,6 +28,7 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly fulfilment: FulfilmentRegistry,
     private readonly audit: AuditService,
+    private readonly receipts: ReceiptsService,
   ) {}
 
   /**
@@ -34,14 +36,15 @@ export class PaymentsService {
    * Replays of the same provider event are ignored. Amount and currency must match what we charged.
    */
   async recordSuccess(charge: SuccessfulCharge): Promise<'processed' | 'duplicate'> {
+    let result: { status: 'processed' | 'duplicate'; paymentId?: string };
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      result = await this.prisma.$transaction(async (tx) => {
         const payment = await tx.payment.findUnique({ where: { reference: charge.reference } });
         await tx.paymentEvent.create({
           data: { providerEventId: charge.providerEventId, eventType: charge.eventType, payload: charge.payload, paymentId: payment?.id ?? null },
         });
         if (!payment) throw new NotFoundException('Unknown payment reference');
-        if (payment.status === 'success') return 'duplicate';
+        if (payment.status === 'success') return { status: 'duplicate' as const };
         if (charge.amountPesewas !== payment.amountPesewas || charge.currency !== payment.currency) {
           throw new ConflictException('Charged amount does not match the order');
         }
@@ -50,7 +53,7 @@ export class PaymentsService {
           data: { status: 'success', paidAt: new Date(), channel: CHANNELS[charge.channel] ?? 'other' },
         });
         await this.fulfilment.get(payment.type)(tx, payment);
-        return 'processed';
+        return { status: 'processed' as const, paymentId: payment.id };
       });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') return 'duplicate';
@@ -58,6 +61,9 @@ export class PaymentsService {
       await this.audit.record({ action: 'payment.fulfilment_failed', targetType: 'payment', targetId: charge.reference, metadata: { reason: err instanceof Error ? err.message : 'unknown' } });
       throw err;
     }
+    // After the transaction: the receipt is emailed exactly once, and never blocks activation.
+    if (result.status === 'processed' && result.paymentId) await this.receipts.send(result.paymentId);
+    return result.status;
   }
 
   async statusFor(userId: string, reference: string): Promise<PaymentStatusResponse> {

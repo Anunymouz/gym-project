@@ -10,11 +10,11 @@ import { Text } from '@/components/ui/text';
 import { useSession } from '@/lib/session';
 import { colors, radii, space } from '@/theme';
 
-const rows: { label: string; detail: string; Icon: ComponentType<IconProps>; href?: '/memberships' | '/notifications' }[] = [
+const rows: { label: string; detail: string; Icon: ComponentType<IconProps>; href?: '/memberships' | '/notifications' | '/receipts' }[] = [
   { label: 'My memberships', detail: 'QR codes and renewals', Icon: QrCodeIcon, href: '/memberships' },
   { label: 'My bookings', detail: 'Trainer sessions', Icon: UserCircleIcon },
   { label: 'My orders', detail: 'Store orders and delivery', Icon: ShoppingBagIcon },
-  { label: 'Payments & receipts', detail: 'MoMo and card', Icon: ReceiptIcon },
+  { label: 'Payments & receipts', detail: 'Every payment, with a receipt', Icon: ReceiptIcon, href: '/receipts' },
   { label: 'Notifications', detail: 'Reminders, check-ins and email', Icon: BellIcon, href: '/notifications' },
   { label: 'Search area', detail: '', Icon: MapPinIcon },
 ];

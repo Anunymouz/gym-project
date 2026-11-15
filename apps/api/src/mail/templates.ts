@@ -145,3 +145,33 @@ export const staffInvitationEmail = (to: string, gymName: string, role: string, 
     ],
     { label: 'Sign in to accept', url: signInUrl },
   );
+
+export function receiptEmail(r: { to: string; number: string; memberName: string | null; title: string; gymName: string; amount: string; paidAt: Date; channel: string; period: { startsAt: Date; endsAt: Date } | null }): MailMessage {
+  const day = (d: Date) => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: TZ }).format(d);
+  const rows: Array<[string, string]> = [
+    ['Receipt', r.number],
+    ['Date', day(r.paidAt)],
+    ['For', r.title],
+    ...(r.period ? ([['Membership', `${day(r.period.startsAt)} to ${day(r.period.endsAt)}`]] as Array<[string, string]>) : []),
+    ['Paid with', r.channel],
+    ['Total', r.amount],
+  ];
+  const hello = r.memberName ? `Thanks, ${r.memberName.split(' ')[0]}!` : 'Thanks!';
+  const lead = `Your payment to ${r.gymName} through BGYM was successful. Show your pass in the BGYM app at the front desk.`;
+  return {
+    to: r.to,
+    subject: `Receipt ${r.number}: ${r.title} (${r.amount})`,
+    text: `${hello}\n\n${lead}\n\n${rows.map(([k, v]) => `${k}: ${v}`).join('\n')}\n\nBGYM: Be my gym buddy.`,
+    html: `<!doctype html><html><body style="margin:0;background:#F5F6FA;font-family:Helvetica,Arial,sans-serif;color:#0D1028">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:18px;border:1px solid #E6E8F0">
+<tr><td style="padding:32px 32px 8px"><p style="margin:0;font-size:22px;font-weight:800"><span style="color:#FF5A1F">B</span>GYM</p></td></tr>
+<tr><td style="padding:8px 32px 0"><p style="margin:0 0 8px;font-size:22px;font-weight:800">${escape(hello)}</p>
+<p style="margin:0 0 20px;font-size:16px;line-height:1.5">${escape(lead)}</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E6E8F0">
+${rows.map(([k, v], i) => `<tr><td style="padding:10px 0;border-bottom:1px solid #E6E8F0;font-size:14px;color:#6B7280">${escape(k)}</td><td align="right" style="padding:10px 0;border-bottom:1px solid #E6E8F0;font-size:${i === rows.length - 1 ? 18 : 14}px;font-weight:${i === rows.length - 1 ? 800 : 600}">${escape(v)}</td></tr>`).join('\n')}
+</table></td></tr>
+<tr><td style="padding:20px 32px 28px;font-size:12px;color:#6B7280">Keep this email as your receipt. You can also find it in the app under Me → Payments &amp; receipts.<br>BGYM: Be my gym buddy.</td></tr>
+</table></td></tr></table></body></html>`,
+  };
+}

@@ -50,3 +50,29 @@ export interface CheckInResponse {
 
 export const PASS_TTL_SECONDS = 60;
 export const PASS_REFRESH_SECONDS = 30;
+
+/** A successful payment as the member sees it. */
+export interface ReceiptSummary {
+  id: string;
+  /** Short, human receipt number, e.g. BGYM-4723ED0D. */
+  number: string;
+  paidAt: string;
+  amountPesewas: number;
+  channel: string | null;
+  /** e.g. "Monthly · Iron Haven Fitness" */
+  title: string;
+}
+
+export interface Receipt extends ReceiptSummary {
+  reference: string;
+  member: { name: string | null; email: string };
+  gym: { name: string; addressText: string; phone: string | null } | null;
+  plan: string | null;
+  period: { startsAt: string; endsAt: string } | null;
+}
+
+/** BGYM-XXXXXXXX from the payment reference (bgym_<32 hex>). */
+export const receiptNumber = (reference: string) => `BGYM-${reference.replace(/^bgym_/, '').slice(0, 8).toUpperCase()}`;
+
+const CHANNEL_LABELS: Record<string, string> = { mobile_money: 'Mobile money', card: 'Card', bank: 'Bank', other: 'Other' };
+export const paymentChannelLabel = (channel: string | null) => (channel ? (CHANNEL_LABELS[channel] ?? channel) : '—');

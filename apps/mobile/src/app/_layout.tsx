@@ -66,6 +66,8 @@ function App() {
         <Stack.Screen name="membership/[id]" options={{ gestureEnabled: true }} />
         <Stack.Screen name="memberships" />
         <Stack.Screen name="notifications" />
+        <Stack.Screen name="receipts/index" />
+        <Stack.Screen name="receipts/[id]" />
       </Stack>
       {status === 'ready' && !showSplash && <NotificationTaps />}
       {showSplash && <AnimatedSplash onFinish={() => setShowSplash(false)} />}

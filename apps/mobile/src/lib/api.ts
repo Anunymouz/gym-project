@@ -9,6 +9,8 @@ import {
   type MembershipPass,
   type MembershipSummary,
   type PaymentStatusResponse,
+  type Receipt,
+  type ReceiptSummary,
   type NearbyGymsQuery,
   type NotificationSettings,
   type RegisterDeviceInput,
@@ -188,4 +190,9 @@ export const notificationsApi = {
   update: (change: UpdateNotificationSetting) => authed<NotificationSettings>('/v1/me/notifications', { method: 'PATCH', body: JSON.stringify(change) }),
   registerDevice: (input: RegisterDeviceInput) => authed<void>('/v1/me/devices', { method: 'PUT', body: JSON.stringify(input) }),
   unregisterDevice: (token: string) => authed<void>('/v1/me/devices/unregister', { method: 'POST', body: JSON.stringify({ token }) }),
+};
+
+export const receiptsApi = {
+  list: () => authed<ReceiptSummary[]>('/v1/me/payments'),
+  get: (id: string) => authed<Receipt>(`/v1/me/payments/${encodeURIComponent(id)}`),
 };
