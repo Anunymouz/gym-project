@@ -13,7 +13,6 @@ export interface NavItem {
 export interface DashboardConfig {
   id: DashboardId;
   name: string;
-  account: { title: string; subtitle: string };
   nav: NavItem[];
 }
 
@@ -21,7 +20,6 @@ export const dashboards: Record<DashboardId, DashboardConfig> = {
   gym: {
     id: 'gym',
     name: 'Gym dashboard',
-    account: { title: 'Iron Haven Fitness', subtitle: 'East Legon · Owner' },
     nav: [
       { slug: '', label: 'Overview', icon: 'overview', phase: 1 },
       { slug: 'members', label: 'Members', icon: 'members', phase: 1 },
@@ -36,7 +34,6 @@ export const dashboards: Record<DashboardId, DashboardConfig> = {
   trainer: {
     id: 'trainer',
     name: 'Trainer dashboard',
-    account: { title: 'Kwame Asante', subtitle: 'Trainer · Iron Haven' },
     nav: [
       { slug: '', label: 'Schedule', icon: 'calendar', phase: 2 },
       { slug: 'bookings', label: 'Bookings', icon: 'bookings', phase: 2 },
@@ -50,7 +47,6 @@ export const dashboards: Record<DashboardId, DashboardConfig> = {
   partner: {
     id: 'partner',
     name: 'Store partner dashboard',
-    account: { title: 'Accra Fitness Supply', subtitle: 'Store partner' },
     nav: [
       { slug: '', label: 'Orders', icon: 'orders', phase: 3 },
       { slug: 'products', label: 'Products', icon: 'packages', phase: 3 },
@@ -62,7 +58,6 @@ export const dashboards: Record<DashboardId, DashboardConfig> = {
   admin: {
     id: 'admin',
     name: 'Admin dashboard',
-    account: { title: 'BGYM team', subtitle: 'Operations' },
     nav: [
       { slug: '', label: 'Overview', icon: 'overview', phase: 1 },
       { slug: 'approvals', label: 'Gym approvals', icon: 'shield', phase: 1 },

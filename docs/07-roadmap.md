@@ -13,7 +13,8 @@ Phases are ordered so we can launch a paying product early, then layer on.
 - ✅ Sign-in with email codes (API + app): secure sessions, rate limits, audit log.
 - ✅ Profile step; gym pages with plans and opening hours.
 - ✅ Membership checkout (Paystack-ready, development simulator), verified activation, early-renewal extension, My memberships, rotating QR pass, staff check-in API.
-- Next: gym dashboard on live data (members, plans, QR scanner), dashboard sign-in, renewal reminders, Apple & Google sign-in, live Paystack keys and gym subaccounts.
+- ✅ Gym dashboard on live data: secure sign-in, overview, members (filters, search), plans (create, edit, pause), front-desk QR scanner with email fallback, gym switcher, role-based access.
+- Next: renewal reminders, gym settings and revenue pages, admin gym approval, Apple & Google sign-in, live Paystack keys and gym subaccounts.
 - Member: onboarding, location + radius search, gym page, buy membership (MoMo/card), receipt, QR, My memberships, renewal reminders.
 - Gym dashboard: onboarding, plans, members list, QR scanning check-in, revenue view.
 - Admin: gym approval, fee settings, transactions.

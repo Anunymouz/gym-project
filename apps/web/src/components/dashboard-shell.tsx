@@ -3,7 +3,7 @@
 import { useEffect, useId, useState, type ComponentType, type ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import {
   Bank,
   Barbell,
@@ -29,7 +29,7 @@ import {
   type IconProps,
 } from '@phosphor-icons/react';
 import clsx from 'clsx';
-import type { DashboardConfig } from '@/lib/dashboards';
+import { dashboards, isDashboardId } from '@/lib/dashboards';
 
 const icons: Record<string, ComponentType<IconProps>> = {
   overview: ChartBar,
@@ -53,8 +53,9 @@ const icons: Record<string, ComponentType<IconProps>> = {
   percent: Percent,
 };
 
-export function DashboardShell({ config, children }: { config: DashboardConfig; children: ReactNode }) {
+export function DashboardShell({ account, children }: { account: ReactNode; children: ReactNode }) {
   const pathname = usePathname();
+  const { dashboard } = useParams<{ dashboard: string }>();
   const [open, setOpen] = useState(false);
   const navId = useId();
 
@@ -66,6 +67,8 @@ export function DashboardShell({ config, children }: { config: DashboardConfig; 
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
+  if (!isDashboardId(dashboard)) return <main className="px-4 py-6">{children}</main>;
+  const config = dashboards[dashboard];
   const base = `/${config.id}`;
 
   return (
@@ -124,10 +127,7 @@ export function DashboardShell({ config, children }: { config: DashboardConfig; 
           })}
         </nav>
 
-        <div className="mt-4 rounded-card bg-white/5 p-3 text-sm">
-          <p className="font-bold text-white">{config.account.title}</p>
-          <p>{config.account.subtitle}</p>
-        </div>
+        {account}
       </aside>
 
       <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>

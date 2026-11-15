@@ -21,6 +21,11 @@ export const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   /** Number of reverse proxies in front of the API (for correct client IPs behind a load balancer). */
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),
+  /**
+   * Shared with the web dashboard's server so it can pass on its visitors' IPs (for per-person
+   * rate limits). At least 32 random characters; leave unset to ignore the header.
+   */
+  DASHBOARD_PROXY_SECRET: z.string().min(32, 'must be at least 32 characters').optional(),
   /** Signs access tokens (HS256). At least 32 random characters; rotate by redeploying. */
   JWT_ACCESS_SECRET: z.string().min(32, 'must be at least 32 characters'),
   /** Server-side secret mixed into one-time-code and IP hashes, so a database leak can't be brute-forced. */
@@ -52,8 +57,9 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     if (env.MAIL_DRIVER !== 'resend') problems.push('MAIL_DRIVER: must be "resend" in production');
     if (env.PAYMENTS_DRIVER !== 'paystack') problems.push('PAYMENTS_DRIVER: must be "paystack" in production');
     if (env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_')) problems.push('PAYSTACK_SECRET_KEY: test key used in production');
-    for (const key of ['JWT_ACCESS_SECRET', 'OTP_PEPPER'] as const) {
-      if (env[key].startsWith('dev-')) problems.push(`${key}: development value used in production`);
+    if (!env.DASHBOARD_PROXY_SECRET) problems.push('DASHBOARD_PROXY_SECRET: required in production');
+    for (const key of ['JWT_ACCESS_SECRET', 'OTP_PEPPER', 'DASHBOARD_PROXY_SECRET'] as const) {
+      if (env[key]?.startsWith('dev-')) problems.push(`${key}: development value used in production`);
     }
   }
   if (env.PAYMENTS_DRIVER === 'paystack' && !env.PAYSTACK_SECRET_KEY) problems.push('PAYSTACK_SECRET_KEY: required when PAYMENTS_DRIVER is "paystack"');

@@ -3,6 +3,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
+import { sha256 } from '../src/common/crypto.js';
 import { MailService } from '../src/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { setupApp } from '../src/setup-app.js';
@@ -94,13 +95,21 @@ describe('Sign-in with email code (e2e)', () => {
     await http().patch('/v1/auth/me').send({ name: 'Ama Owusu' }).expect(401);
   });
 
-  it('rotates refresh tokens and revokes everything when an old one is reused', async () => {
+  it('rotates refresh tokens; a near-simultaneous reuse is refused without ending the session', async () => {
     const first = await http().post('/v1/auth/refresh').send({ refreshToken: refreshA }).expect(200);
     expect(first.body.refreshToken).not.toBe(refreshA);
-    // Replaying the used token (as a thief would) is refused...
     await http().post('/v1/auth/refresh').send({ refreshToken: refreshA }).expect(401);
-    // ...and kills the legitimate newer session too.
-    await http().post('/v1/auth/refresh').send({ refreshToken: first.body.refreshToken }).expect(401);
+    const second = await http().post('/v1/auth/refresh').send({ refreshToken: first.body.refreshToken }).expect(200);
+    refreshA = second.body.refreshToken;
+  });
+
+  it('revokes every session when an old refresh token is reused later (theft)', async () => {
+    const used = refreshA;
+    const next = await http().post('/v1/auth/refresh').send({ refreshToken: used }).expect(200);
+    // Age the old session past the grace window, as if a thief replayed it later.
+    await app.get(PrismaService).session.updateMany({ where: { refreshTokenHash: sha256(used) }, data: { revokedAt: new Date(Date.now() - 60_000) } });
+    await http().post('/v1/auth/refresh').send({ refreshToken: used }).expect(401);
+    await http().post('/v1/auth/refresh').send({ refreshToken: next.body.refreshToken }).expect(401);
   });
 
   it('signs out by revoking the session', async () => {

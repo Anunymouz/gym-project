@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 export const REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
+const REUSE_GRACE_MS = 30_000;
 const ISSUER = 'bgym-api';
 const AUDIENCE = 'bgym';
 const SESSION_INVALID = 'Your session has ended. Please sign in again.';
@@ -63,6 +64,9 @@ export class TokenService {
     if (!session) throw new UnauthorizedException(SESSION_INVALID);
 
     if (session.revokedAt) {
+      // Two requests refreshing at the same moment (e.g. parallel page loads) is a race, not theft:
+      // refuse quietly within a short grace window, and treat older reuse as a stolen token.
+      if (Date.now() - session.revokedAt.getTime() < REUSE_GRACE_MS) throw new UnauthorizedException(SESSION_INVALID);
       await this.revokeAllForUser(session.userId);
       await this.audit.record({ action: 'auth.refresh_token_reuse', actorId: session.userId, targetType: 'session', targetId: session.id, ipHash: meta.ipHash ?? null });
       throw new UnauthorizedException(SESSION_INVALID);

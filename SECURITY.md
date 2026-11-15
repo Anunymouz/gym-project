@@ -43,7 +43,12 @@ Please do **not** open a public issue. Email the BGYM team privately with the de
 **Web dashboards**
 - Strict security headers (CSP, HSTS, `X-Frame-Options: DENY`, Permissions-Policy with camera limited to our own pages for QR check-in).
 - Self-hosted fonts and assets; no third-party scripts.
-- Planned: nonce-based CSP once dashboards are authenticated.
+- Sessions live in `httpOnly`, `SameSite=Lax` cookies (`Secure` with the `__Host-` prefix in production), so page scripts can never read a token. The browser never calls the API: the dashboard's server does, and `connect-src` is `'self'`.
+- Sign-in, sign-out and every change are server actions (Next.js checks their origin). The access token is renewed in `proxy.ts` before it expires; link prefetches never rotate the refresh token.
+- The gym being managed is always resolved on the server from the person's own staff list, never taken from the browser. The API re-checks the role on every call (front desk is read-only for plans).
+- Sign-in redirects only go back into the dashboards (no open redirects).
+- The API rate-limits each visitor, not the dashboard server as a whole: the dashboard passes the visitor's IP with a shared secret (`DASHBOARD_PROXY_SECRET`), and the API ignores that header from anyone else.
+- Planned: nonce-based CSP.
 
 **Mobile app**
 - Minimum permissions: location "while using the app" only. Background location and microphone are blocked; Android backups are disabled.

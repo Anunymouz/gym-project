@@ -2,6 +2,7 @@ import { StandardSchemaValidationPipe, VersioningType, type INestApplication } f
 import { ConfigService } from '@nestjs/config';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
+import { clientIpMiddleware } from './common/client-ip.js';
 import type { Env } from './config/env.js';
 
 /** Security and HTTP settings shared by the real server and the e2e tests. */
@@ -11,6 +12,7 @@ export function setupApp(app: INestApplication): void {
 
   express.disable('x-powered-by');
   express.set('trust proxy', config.get('TRUST_PROXY', { infer: true }));
+  app.use(clientIpMiddleware(config.get('DASHBOARD_PROXY_SECRET', { infer: true })));
   app.use(helmet());
   app.enableCors({
     origin: config.get('CORS_ORIGINS', { infer: true }),

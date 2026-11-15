@@ -1,0 +1,99 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+import { checkInByEmailSchema, createPlanSchema, updatePlanSchema, type CheckInResponse, type StaffPlan } from '@bgym/shared';
+import { api, ApiError } from '@/lib/api.server';
+import { getCurrentGym } from '@/lib/session.server';
+
+/*
+ * Gym dashboard mutations. The gym is always the one resolved on the server from the
+ * person's own staff list, never an id sent by the browser, and the API re-checks the
+ * person's role at that gym on every call.
+ */
+
+type PlanField = 'name' | 'description' | 'durationDays' | 'price';
+/** `values` echoes what was typed, so the form keeps it after a failed save (React resets forms after an action). */
+export type PlanFormState = { ok?: boolean; error?: string; fieldErrors?: Partial<Record<PlanField, string>>; values?: Record<PlanField, string> };
+
+function typed(form: FormData): Record<PlanField, string> {
+  const get = (k: string) => String(form.get(k) ?? '').slice(0, 200);
+  return { name: get('name'), description: get('description'), durationDays: get('durationDays'), price: get('price') };
+}
+
+function planInput(form: FormData) {
+  const cedis = String(form.get('price') ?? '').replace(/[,\s]/g, '');
+  const price = /^\d+(\.\d{1,2})?$/.test(cedis) ? Math.round(Number(cedis) * 100) : NaN;
+  const description = String(form.get('description') ?? '').trim();
+  return { name: form.get('name'), description: description || null, durationDays: form.get('durationDays'), pricePesewas: price };
+}
+
+function fieldErrors(error: z.ZodError): PlanFormState['fieldErrors'] {
+  const out: NonNullable<PlanFormState['fieldErrors']> = {};
+  for (const issue of error.issues) {
+    const key = issue.path[0] === 'pricePesewas' ? 'price' : (issue.path[0] as keyof typeof out);
+    out[key] ??= key === 'price' && issue.code === 'invalid_type' ? 'Enter a price like 350 or 350.00' : issue.message;
+  }
+  return out;
+}
+
+async function requireGym() {
+  const gym = await getCurrentGym();
+  if (!gym) throw new Error('No gym');
+  return gym;
+}
+
+export async function savePlan(_prev: PlanFormState, form: FormData): Promise<PlanFormState> {
+  const gym = await requireGym();
+  const planId = form.get('planId');
+  const parsed = createPlanSchema.safeParse(planInput(form));
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values: typed(form) };
+  try {
+    if (typeof planId === 'string' && planId) {
+      const id = z.uuid().parse(planId);
+      await api<StaffPlan>(`/v1/staff/gyms/${gym.id}/plans/${id}`, { method: 'PATCH', body: JSON.stringify(parsed.data) });
+    } else {
+      await api<StaffPlan>(`/v1/staff/gyms/${gym.id}/plans`, { method: 'POST', body: JSON.stringify(parsed.data) });
+    }
+  } catch (err) {
+    return { values: typed(form), error: err instanceof ApiError ? (err.status === 403 ? 'Only owners and managers can change plans.' : err.message) : 'Something went wrong.' };
+  }
+  revalidatePath('/gym/plans');
+  return { ok: true };
+}
+
+export async function setPlanActive(form: FormData): Promise<void> {
+  const gym = await requireGym();
+  const id = z.uuid().parse(form.get('planId'));
+  const body = updatePlanSchema.parse({ isActive: form.get('isActive') === 'true' });
+  await api<StaffPlan>(`/v1/staff/gyms/${gym.id}/plans/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+  revalidatePath('/gym/plans');
+}
+
+export type CheckInResult = CheckInResponse | { result: 'error'; message: string };
+
+const token = z.string().min(20).max(2000);
+
+/** Checks a scanned member pass in at the current gym. */
+export async function checkInPass(raw: string): Promise<CheckInResult> {
+  const gym = await requireGym();
+  const parsed = token.safeParse(raw.trim());
+  if (!parsed.success) return { result: 'invalid', member: null, plan: null, endsAt: null };
+  return post('/v1/check-ins', { gymId: gym.id, token: parsed.data });
+}
+
+/** Front-desk fallback when a member's phone can't show the pass. */
+export async function checkInEmail(email: string): Promise<CheckInResult> {
+  const gym = await requireGym();
+  const parsed = checkInByEmailSchema.safeParse({ gymId: gym.id, email });
+  if (!parsed.success) return { result: 'error', message: 'Enter a valid email address.' };
+  return post('/v1/check-ins/by-email', parsed.data);
+}
+
+async function post(path: string, body: unknown): Promise<CheckInResult> {
+  try {
+    return await api<CheckInResponse>(path, { method: 'POST', body: JSON.stringify(body) });
+  } catch (err) {
+    return { result: 'error', message: err instanceof ApiError ? err.message : 'Something went wrong. Try again.' };
+  }
+}

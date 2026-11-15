@@ -15,6 +15,7 @@ const prod = {
   PAYSTACK_SECRET_KEY: 'sk_live_example',
   JWT_ACCESS_SECRET: 'x'.repeat(40),
   OTP_PEPPER: 'y'.repeat(40),
+  DASHBOARD_PROXY_SECRET: 'z'.repeat(40),
 };
 
 describe('validateEnv', () => {
@@ -50,6 +51,11 @@ describe('validateEnv', () => {
   it('refuses the payment simulator and Paystack test keys in production', () => {
     expect(() => validateEnv({ ...prod, PAYMENTS_DRIVER: 'dev' })).toThrow(/PAYMENTS_DRIVER/);
     expect(() => validateEnv({ ...prod, PAYSTACK_SECRET_KEY: 'sk_test_x' })).toThrow(/test key/);
+  });
+
+  it('requires a real dashboard proxy secret in production', () => {
+    expect(() => validateEnv({ ...prod, DASHBOARD_PROXY_SECRET: undefined })).toThrow(/DASHBOARD_PROXY_SECRET/);
+    expect(() => validateEnv({ ...prod, DASHBOARD_PROXY_SECRET: `dev-${'z'.repeat(40)}` })).toThrow(/DASHBOARD_PROXY_SECRET/);
   });
 
   it('rejects short secrets', () => {

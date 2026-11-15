@@ -1,17 +1,17 @@
 import type { NextConfig } from 'next';
 
 const isDev = process.env.NODE_ENV === 'development';
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-// Static CSP (no nonces). TODO(auth phase): move to a nonce-based CSP via proxy.ts once
-// authenticated dashboard pages are dynamically rendered, and drop 'unsafe-inline' for scripts.
+// Static CSP (no nonces). The browser never calls the API directly: every API call is made by
+// this server with the httpOnly session cookie, so connect-src stays 'self'.
+// TODO: move to a nonce-based CSP via proxy.ts and drop 'unsafe-inline' for scripts.
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
   "font-src 'self'",
-  `connect-src 'self' ${apiUrl}${isDev ? ' ws:' : ''}`,
+  `connect-src 'self'${isDev ? ' ws:' : ''}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
