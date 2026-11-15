@@ -81,10 +81,14 @@ export async function saveGymFee(id: string, percent: string): Promise<AdminActi
 
 const reportId = z.uuid();
 
-export async function removeReportedPost(postId: string): Promise<AdminActionResult> {
-  const id = reportId.safeParse(postId);
-  if (!id.success) return { error: 'Unknown post.' };
-  return run(`/v1/admin/posts/${id.data}/remove`);
+const reportTarget = z.enum(['post', 'comment', 'story']);
+const removePath = { post: 'posts', comment: 'comments', story: 'stories' } as const;
+
+export async function removeReported(type: string, targetId: string): Promise<AdminActionResult> {
+  const t = reportTarget.safeParse(type);
+  const id = reportId.safeParse(targetId);
+  if (!t.success || !id.success) return { error: 'Unknown item.' };
+  return run(`/v1/admin/${removePath[t.data]}/${id.data}/remove`);
 }
 
 export async function dismissReport(id: string): Promise<AdminActionResult> {

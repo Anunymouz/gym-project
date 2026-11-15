@@ -56,6 +56,22 @@ export const envSchema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   /** Public base URL the bucket is served from, e.g. https://media.bgym.app (required with s3). */
   MEDIA_PUBLIC_URL: z.url().optional().transform((v) => v?.replace(/\/$/, '')),
+  /**
+   * local = the API converts videos with ffmpeg and keeps them in STORAGE (development, or a
+   * small deployment); stream = Cloudflare Stream (recommended for production): phones upload
+   * straight to Cloudflare, which enforces the length limit and serves adaptive video.
+   */
+  VIDEO_DRIVER: z.enum(['local', 'stream']).default('local'),
+  FFMPEG_PATH: z.string().default('ffmpeg'),
+  FFPROBE_PATH: z.string().default('ffprobe'),
+  CF_ACCOUNT_ID: z.string().optional(),
+  /** API token with Stream:Edit permission. */
+  CF_STREAM_API_TOKEN: z.string().optional(),
+  /** The "customer-<code>" part of your Stream playback domain. */
+  CF_STREAM_CUSTOMER_CODE: z.string().regex(/^[a-z0-9]+$/).optional(),
+  /** Stream signing key (POST /stream/keys): its id and its "pem" value (base64), for members-only playback links. */
+  CF_STREAM_SIGNING_KEY_ID: z.string().optional(),
+  CF_STREAM_SIGNING_KEY_PEM: z.string().optional(),
   /** Email renewal reminders on a schedule. Turn off for tests or a second region sharing a database. */
   REMINDERS_ENABLED: z.stringbool().default(true),
   /** Where Paystack sends the browser after payment: the app's deep link. */
@@ -86,6 +102,11 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     }
   }
   if (env.PAYMENTS_DRIVER === 'paystack' && !env.PAYSTACK_SECRET_KEY) problems.push('PAYSTACK_SECRET_KEY: required when PAYMENTS_DRIVER is "paystack"');
+  if (env.VIDEO_DRIVER === 'stream') {
+    for (const key of ['CF_ACCOUNT_ID', 'CF_STREAM_API_TOKEN', 'CF_STREAM_CUSTOMER_CODE', 'CF_STREAM_SIGNING_KEY_ID', 'CF_STREAM_SIGNING_KEY_PEM'] as const) {
+      if (!env[key]) problems.push(`${key}: required when VIDEO_DRIVER is "stream"`);
+    }
+  }
   if (env.STORAGE_DRIVER === 's3') {
     for (const key of ['S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY', 'MEDIA_PUBLIC_URL'] as const) {
       if (!env[key]) problems.push(`${key}: required when STORAGE_DRIVER is "s3"`);

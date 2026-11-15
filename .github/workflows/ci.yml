@@ -57,6 +57,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+      - name: Install ffmpeg (video conversion tests)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @bgym/shared build
       - run: pnpm --filter @bgym/api db:migrate

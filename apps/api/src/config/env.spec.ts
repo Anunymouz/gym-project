@@ -75,6 +75,13 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ ...prod, MEDIA_PUBLIC_URL: undefined })).toThrow(/MEDIA_PUBLIC_URL/);
   });
 
+  it('needs every Cloudflare Stream setting when videos go to Stream', () => {
+    expect(() => validateEnv({ ...base, VIDEO_DRIVER: 'stream', CF_ACCOUNT_ID: 'acc' })).toThrow(/CF_STREAM_API_TOKEN/);
+    const stream = { CF_ACCOUNT_ID: 'acc', CF_STREAM_API_TOKEN: 't', CF_STREAM_CUSTOMER_CODE: 'abc123', CF_STREAM_SIGNING_KEY_ID: 'k', CF_STREAM_SIGNING_KEY_PEM: 'cGVt' };
+    expect(validateEnv({ ...base, VIDEO_DRIVER: 'stream', ...stream }).VIDEO_DRIVER).toBe('stream');
+    expect(() => validateEnv({ ...base, VIDEO_DRIVER: 'stream', ...stream, CF_STREAM_CUSTOMER_CODE: 'evil.example.com/x' })).toThrow(/CF_STREAM_CUSTOMER_CODE/);
+  });
+
   it('rejects short secrets', () => {
     expect(() => validateEnv({ ...base, JWT_ACCESS_SECRET: 'short' })).toThrow(/JWT_ACCESS_SECRET/);
   });

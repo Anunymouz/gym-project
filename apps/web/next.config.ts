@@ -13,7 +13,9 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' blob: data:${mediaOrigin ? ` ${mediaOrigin}` : ''}`,
+  `img-src 'self' blob: data:${mediaOrigin ? ` ${mediaOrigin}` : ''} https://*.cloudflarestream.com`,
+  // Videos: from the API/CDN in development, Cloudflare Stream (signed links) in production.
+  `media-src 'self' blob:${mediaOrigin ? ` ${mediaOrigin}` : ''} https://*.cloudflarestream.com`,
   "font-src 'self'",
   `connect-src 'self'${isDev ? ' ws:' : ''}`,
   "object-src 'none'",

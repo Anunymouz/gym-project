@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useTransition } from 'react';
-import { CircleNotch, Flag, Heart, ImageSquare, PaperPlaneTilt, Trash, X } from '@phosphor-icons/react';
+import { ChatCircle, CircleNotch, Flag, Heart, ImageSquare, PaperPlaneTilt, Trash, X } from '@phosphor-icons/react';
 import { MAX_POST_LENGTH, MAX_POST_PHOTOS, type StaffPost } from '@bgym/shared';
 import { createPost, deletePost } from '@/app/(dashboards)/gym-actions';
 import { formatDateTime } from '@/lib/format';
@@ -91,7 +91,7 @@ export function FeedManager({ initial, canPost, gymName }: { initial: StaffPost[
         {posts.map((p) => (
           <article key={p.id} className={`rounded-card border bg-white p-5 ${p.status === 'removed' ? 'border-danger/30' : 'border-line'}`}>
             <div className="flex items-start justify-between gap-3">
-              <p className="text-sm text-mute">{p.author ?? 'Staff'} · {formatDateTime(p.createdAt)}</p>
+              <p className="text-sm text-mute">{p.author.kind === 'member' ? `${p.authorName ?? 'A member'} (member)` : (p.authorName ?? 'Staff')} · {formatDateTime(p.createdAt)}</p>
               {canPost && (
                 <button type="button" disabled={pending} onClick={() => { if (confirm('Delete this post? Members will no longer see it.')) start(async () => { const r = await deletePost(p.id); if (r.error) setError(r.error); else setPosts((l) => l.filter((x) => x.id !== p.id)); }); }} aria-label="Delete post" className="grid size-8 place-items-center rounded-full text-mute hover:bg-danger-50 hover:text-danger"><Trash size={16} aria-hidden /></button>
               )}
@@ -100,14 +100,19 @@ export function FeedManager({ initial, canPost, gymName }: { initial: StaffPost[
             {p.body && <p className="mt-2 whitespace-pre-wrap">{p.body}</p>}
             {p.media.length > 0 && (
               <div className={`mt-3 grid gap-1.5 ${p.media.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                {p.media.map((m) => (
-                  // eslint-disable-next-line @next/next/no-img-element -- server-resized
-                  <img key={m.thumbUrl} src={mediaSrc(p.media.length === 1 ? m.url : m.thumbUrl)} alt="" loading="lazy" className={`w-full rounded-lg object-cover ${p.media.length === 1 ? 'max-h-96' : 'aspect-square'}`} />
-                ))}
+                {p.media.map((m) =>
+                  m.type === 'video' ? (
+                    <video key={m.url} src={mediaSrc(m.url)} poster={mediaSrc(m.thumbUrl)} controls preload="none" playsInline className="max-h-96 w-full rounded-lg bg-midnight object-contain" />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element -- server-resized
+                    <img key={m.thumbUrl} src={mediaSrc(p.media.length === 1 ? m.url : m.thumbUrl)} alt="" loading="lazy" className={`w-full rounded-lg object-cover ${p.media.length === 1 ? 'max-h-96' : 'aspect-square'}`} />
+                  ),
+                )}
               </div>
             )}
             <div className="mt-3 flex gap-4 text-sm text-mute">
               <span className="inline-flex items-center gap-1"><Heart size={16} aria-hidden /> {p.likeCount}</span>
+              <span className="inline-flex items-center gap-1"><ChatCircle size={16} aria-hidden /> {p.commentCount}</span>
               {p.openReports > 0 && <span className="inline-flex items-center gap-1 font-semibold text-flare"><Flag size={16} aria-hidden /> {p.openReports} report{p.openReports === 1 ? '' : 's'} under review</span>}
             </div>
           </article>

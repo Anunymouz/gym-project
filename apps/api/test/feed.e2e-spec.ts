@@ -73,7 +73,7 @@ describe('Gym posts and the Home feed (e2e)', () => {
     expect(tooMany.status).toBeGreaterThanOrEqual(400);
 
     const created = (await post(owner.auth, 'New squat racks are in! 🏋️', 2).expect(201)).body;
-    expect(created).toMatchObject({ status: 'published', body: 'New squat racks are in! 🏋️', author: 'owner Tester' });
+    expect(created).toMatchObject({ status: 'published', body: 'New squat racks are in! 🏋️', authorName: 'owner Tester', author: { kind: 'gym' } });
     expect(created.media).toHaveLength(2);
     expect(created.media[0].url).toMatch(/^\/v1\/media\/posts\//);
     await http().get(created.media[0].thumbUrl).expect(200);
@@ -133,11 +133,11 @@ describe('Gym posts and the Home feed (e2e)', () => {
 
     await http().get('/v1/admin/reports').set(member.auth).expect(403);
     const reports = (await http().get('/v1/admin/reports').set(admin.auth).expect(200)).body;
-    expect(reports).toEqual(expect.arrayContaining([expect.objectContaining({ reason: 'spam', details: 'Selling pills', post: expect.objectContaining({ id: bad.id, gymName: 'Legon Strength Club', reportCount: 1 }) })]));
+    expect(reports).toEqual(expect.arrayContaining([expect.objectContaining({ targetType: 'post', reason: 'spam', details: 'Selling pills', target: expect.objectContaining({ id: bad.id, gymName: 'Legon Strength Club', author: 'Legon Strength Club', reportCount: 1 }) })]));
 
     await http().post(`/v1/admin/posts/${bad.id}/remove`).set(admin.auth).expect(204);
     expect((await http().get('/v1/feed').set(member.auth).expect(200)).body.posts.some((p: { id: string }) => p.id === bad.id)).toBe(false);
-    expect((await http().get('/v1/admin/reports').set(admin.auth).expect(200)).body.some((r: { post: { id: string } | null }) => r.post?.id === bad.id)).toBe(false);
+    expect((await http().get('/v1/admin/reports').set(admin.auth).expect(200)).body.some((r: { target: { id: string } | null }) => r.target?.id === bad.id)).toBe(false);
     expect((await http().get(`/v1/staff/gyms/${gymId}/posts`).set(owner.auth).expect(200)).body.find((p: { id: string }) => p.id === bad.id).status).toBe('removed');
   });
 });

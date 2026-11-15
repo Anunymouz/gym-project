@@ -1,17 +1,18 @@
-import { Controller, Get, Header, Param, Res } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Res } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { z } from 'zod';
 import { Public } from '../auth/decorators.js';
-import { StorageService } from './storage.service.js';
+import { isValidKey, StorageService } from './storage.service.js';
 
-const kind = z.enum(['gyms', 'posts']);
+const kind = z.enum(['gyms', 'posts', 'stories', 'videos']);
 const segment = z.string().regex(/^[0-9a-f-]{36}$/);
-const file = z.string().regex(/^[0-9a-f-]{36}(_t)?\.webp$/);
+const file = z.string().regex(/^[0-9a-f-]{36}(_t\.webp|\.webp|\.mp4)$/);
 
 /**
- * Development only: serves photos from local disk (production serves them from the CDN, and
- * this returns 404). Public, like any image on a public gym page.
+ * Development only: serves photos and videos from local disk (production serves them from the
+ * CDN or Cloudflare Stream, and this returns 404). Files are named by random IDs.
+ * Videos support byte ranges, which phones need to play them.
  */
 @Controller('media')
 @Public()
@@ -19,11 +20,15 @@ const file = z.string().regex(/^[0-9a-f-]{36}(_t)?\.webp$/);
 export class MediaController {
   constructor(private readonly storage: StorageService) {}
 
-  @Get(':kind/:gymId/:file')
-  @Header('Content-Type', 'image/webp')
-  @Header('Cache-Control', 'public, max-age=31536000, immutable')
-  @Header('Cross-Origin-Resource-Policy', 'cross-origin')
-  async serve(@Param('kind', { schema: kind }) folder: string, @Param('gymId', { schema: segment }) gymId: string, @Param('file', { schema: file }) name: string, @Res() res: Response): Promise<void> {
-    res.send(await this.storage.read(`${folder}/${gymId}/${name}`));
+  @Get(':kind/:folder/:file')
+  serve(@Param('kind', { schema: kind }) kindName: string, @Param('folder', { schema: segment }) folder: string, @Param('file', { schema: file }) name: string, @Res() res: Response): void {
+    const key = `${kindName}/${folder}/${name}`;
+    if (!isValidKey(key)) throw new NotFoundException();
+    const path = this.storage.localFile(key);
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.sendFile(path, { maxAge: '365d', immutable: true, dotfiles: 'allow', headers: { 'Content-Type': name.endsWith('.mp4') ? 'video/mp4' : 'image/webp' } }, (err) => {
+      if (err && !res.headersSent) res.status(404).end();
+    });
   }
 }

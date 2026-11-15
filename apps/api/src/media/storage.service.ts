@@ -5,8 +5,13 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve, sep } from 'node:path';
 import type { Env } from '../config/env.js';
 
-/** Keys we create: (gyms|posts)/<uuid>/<uuid>[_t].webp. Anything else is refused (no path tricks). */
-const KEY = /^(gyms|posts)\/[0-9a-f-]{36}\/[0-9a-f-]{36}(_t)?\.webp$/;
+/**
+ * Keys we create: (gyms|posts|stories)/<uuid>/<uuid>[_t].webp for photos and
+ * videos/<uuid>/<uuid>(.mp4|_t.webp) for videos and their poster frames. Anything else is
+ * refused (no path tricks).
+ */
+const U = '[0-9a-f-]{36}';
+const KEY = new RegExp(`^(?:(?:gyms|posts|stories)/${U}/${U}(?:_t)?\\.webp|videos/${U}/${U}(?:\\.mp4|_t\\.webp))$`);
 export const isValidKey = (key: string) => KEY.test(key);
 
 /**
@@ -62,6 +67,12 @@ export class StorageService {
     } catch {
       throw new NotFoundException();
     }
+  }
+
+  /** Development only: the file on disk, so it can be streamed with byte ranges (video). */
+  localFile(key: string): string {
+    if (!this.servesLocally || !isValidKey(key)) throw new NotFoundException();
+    return this.localPath(key);
   }
 
   /** Best effort: a leftover file is harmless, a failed request must not undo a delete. */

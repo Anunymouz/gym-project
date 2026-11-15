@@ -79,6 +79,23 @@ enum ContentStatus {
   removed
 }
 
+enum PostAuthorKind {
+  gym
+  member
+}
+
+enum VideoPurpose {
+  post
+  story
+}
+
+enum VideoStatus {
+  awaiting_upload
+  processing
+  ready
+  failed
+}
+
 enum MediaType {
   image
   video
@@ -197,6 +214,8 @@ model User {
   roles       Role[]     @default([member])
   status      UserStatus @default(active)
   lastLoginAt DateTime?  @db.Timestamptz(3)
+  /// When they agreed to the community rules (needed before their first post, story or comment).
+  communityAcceptedAt DateTime? @db.Timestamptz(3)
   createdAt   DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime   @updatedAt @db.Timestamptz(3)
 
@@ -212,6 +231,13 @@ model User {
   scannedCheckIns      CheckIn[]             @relation("CheckInScanner")
   posts                Post[]
   likes                PostLike[]
+  comments             PostComment[]
+  stories              Story[]
+  storyViews           StoryView[]
+  storyLikes           StoryLike[]
+  videoUploads         VideoUpload[]
+  blocking             UserBlock[]           @relation("Blocker")
+  blockedBy            UserBlock[]           @relation("Blocked")
   bookings             Booking[]
   packages             PackagePurchase[]
   workoutSessions      WorkoutSession[]
@@ -326,6 +352,7 @@ model Gym {
   memberships Membership[]
   checkIns    CheckIn[]
   posts       Post[]
+  stories     Story[]
   trainers    Trainer[]
 
   @@index([status])
@@ -468,34 +495,40 @@ model Post {
   id           String        @id @default(uuid(7)) @db.Uuid
   gymId        String        @db.Uuid
   authorUserId String        @db.Uuid
+  /// gym = posted by staff as the gym; member = a member's own post, seen by that gym's members.
+  authorKind   PostAuthorKind @default(gym)
   body         String?
   status       ContentStatus @default(published)
   likeCount    Int           @default(0)
+  commentCount Int           @default(0)
   createdAt    DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
   gym          Gym           @relation(fields: [gymId], references: [id], onDelete: Cascade)
   author       User          @relation(fields: [authorUserId], references: [id])
   media        PostMedia[]
   likes        PostLike[]
+  comments     PostComment[]
 
   @@index([gymId, status, createdAt(sort: Desc)])
+  @@index([authorUserId, createdAt(sort: Desc)])
   @@map("posts")
 }
 
-/// A photo (or, later, a video) in a post. Files live in storage; only keys are stored.
+/// A photo or a video in a post. Photos live in storage (keys only); videos are a VideoUpload.
 model PostMedia {
-  id         String    @id @default(uuid(7)) @db.Uuid
-  postId     String    @db.Uuid
-  type       MediaType
-  /// Storage key of the large image (WebP).
-  key        String
-  thumbKey   String
-  width      Int
-  height     Int
-  /// Video playback ID once videos are supported (Mux / Cloudflare Stream).
-  playbackId String?
-  sortOrder  Int       @default(0)
-  post       Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  id            String       @id @default(uuid(7)) @db.Uuid
+  postId        String       @db.Uuid
+  type          MediaType
+  /// Photos: storage key of the large image and its thumbnail (WebP). Null for videos.
+  key           String?
+  thumbKey      String?
+  width         Int
+  height        Int
+  videoUploadId String?      @unique @db.Uuid
+  playbackId    String?
+  sortOrder     Int          @default(0)
+  post          Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  video         VideoUpload? @relation(fields: [videoUploadId], references: [id])
 
   @@index([postId, sortOrder])
   @@map("post_media")
@@ -510,6 +543,112 @@ model PostLike {
 
   @@id([postId, userId])
   @@map("post_likes")
+}
+
+model PostComment {
+  id        String        @id @default(uuid(7)) @db.Uuid
+  postId    String        @db.Uuid
+  userId    String        @db.Uuid
+  body      String
+  status    ContentStatus @default(published)
+  createdAt DateTime      @default(now()) @db.Timestamptz(3)
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId, status, createdAt])
+  @@map("post_comments")
+}
+
+/// A video someone is uploading. Development: the API stores and converts it (ffmpeg);
+/// production: it goes straight from the phone to Cloudflare Stream.
+model VideoUpload {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  userId      String       @db.Uuid
+  purpose     VideoPurpose
+  provider    String
+  /// Cloudflare Stream video uid, or the local storage key of the MP4.
+  providerId  String?
+  posterKey   String?
+  status      VideoStatus  @default(awaiting_upload)
+  durationSec Float?
+  width       Int?
+  height      Int?
+  error       String?
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+  readyAt     DateTime?    @db.Timestamptz(3)
+  /// Set once a post or story uses it; a video can be used once.
+  usedAt      DateTime?    @db.Timestamptz(3)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postMedia   PostMedia?
+  story       Story?
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt])
+  @@map("video_uploads")
+}
+
+/// A photo or short video that disappears after 24 hours.
+model Story {
+  id            String         @id @default(uuid(7)) @db.Uuid
+  gymId         String         @db.Uuid
+  authorUserId  String         @db.Uuid
+  authorKind    PostAuthorKind
+  type          MediaType
+  key           String?
+  thumbKey      String?
+  videoUploadId String?        @unique @db.Uuid
+  width         Int
+  height        Int
+  caption       String?
+  status        ContentStatus  @default(published)
+  likeCount     Int            @default(0)
+  viewCount     Int            @default(0)
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  expiresAt     DateTime       @db.Timestamptz(3)
+  gym           Gym            @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  author        User           @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  video         VideoUpload?   @relation(fields: [videoUploadId], references: [id])
+  views         StoryView[]
+  likes         StoryLike[]
+
+  @@index([gymId, status, expiresAt])
+  @@index([authorUserId, expiresAt])
+  @@map("stories")
+}
+
+model StoryView {
+  storyId  String   @db.Uuid
+  userId   String   @db.Uuid
+  viewedAt DateTime @default(now()) @db.Timestamptz(3)
+  story    Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, userId])
+  @@map("story_views")
+}
+
+model StoryLike {
+  storyId   String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, userId])
+  @@map("story_likes")
+}
+
+/// Someone a person never wants to see (and who can't see them) in posts, comments and stories.
+model UserBlock {
+  blockerId String   @db.Uuid
+  blockedId String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("user_blocks")
 }
 
 // ───────────────────────────── Trainers ─────────────────────────────
