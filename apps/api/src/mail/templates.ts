@@ -220,3 +220,28 @@ export const partnerWelcomeEmail = (to: string, sellerName: string, signInUrl: s
     `The BGYM team has set up ${sellerName} as a store partner.`,
     `Sign in with this email address (${to}) to add your products, set your pickup point and payout account, and handle orders. Your products go live once the BGYM team has checked them.`,
   ], { label: 'Open your dashboard', url: signInUrl });
+
+export const newOrderEmail = (to: string, sellerName: string, number: string, items: string[], total: string, url: string) =>
+  simpleEmail(to, `New order ${number}`, `New order for ${sellerName}`, [`Order ${number} has been paid (${total}).`, ...items.map((i) => `• ${i}`), 'Prepare it, mark it ready, then enter the rider’s details when it’s collected.'], { label: 'Open orders', url });
+
+export function orderUpdateMessage(number: string, status: string, courier?: { name: string | null; phone: string | null }): { title: string; body: string } {
+  switch (status) {
+    case 'paid':
+      return { title: 'Order confirmed', body: `We’ve got your order ${number}. We’ll let you know when it’s on the way.` };
+    case 'preparing':
+      return { title: 'Getting your order ready', body: `Order ${number} is being prepared.` };
+    case 'out_for_delivery':
+      return { title: 'On the way!', body: `Order ${number} is with ${courier?.name ?? 'the rider'}${courier?.phone ? ` (${courier.phone})` : ''}.` };
+    case 'delivered':
+      return { title: 'Delivered', body: `Order ${number} was delivered. Enjoy!` };
+    case 'delivery_failed':
+      return { title: 'Delivery problem', body: `The rider couldn’t deliver order ${number}. We’ll be in touch to arrange it.` };
+    case 'cancelled':
+      return { title: 'Order cancelled', body: `Order ${number} was cancelled. You’ll get a full refund to the account you paid with.` };
+    default:
+      return { title: `Order ${number}`, body: 'Your order was updated.' };
+  }
+}
+
+export const orderUpdateEmail = (to: string, number: string, status: string, detail: string) =>
+  simpleEmail(to, `${orderUpdateMessage(number, status).title}: ${number}`, orderUpdateMessage(number, status).title, [detail]);

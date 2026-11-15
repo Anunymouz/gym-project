@@ -28,6 +28,8 @@ export class PaystackClient {
     amountPesewas: number;
     subaccount?: string | null;
     platformFeePesewas?: number;
+    /** Several subaccounts (a store checkout with more than one partner): each gets its share, BGYM the rest. */
+    split?: Array<{ subaccount: string; sharePesewas: number }>;
     metadata: Record<string, string>;
   }): Promise<{ authorizationUrl: string }> {
     const body = {
@@ -40,6 +42,8 @@ export class PaystackClient {
       metadata: input.metadata,
       // Split: the gym's subaccount receives the payment minus BGYM's fee; the gym bears Paystack's charges.
       ...(input.subaccount && { subaccount: input.subaccount, transaction_charge: input.platformFeePesewas ?? 0, bearer: 'subaccount' }),
+      // Dynamic multi-split: https://paystack.com/docs/payments/multi-split-payments/#dynamic-splits
+      ...(input.split?.length && { split: { type: 'flat', bearer_type: 'all-proportional', subaccounts: input.split.map((x) => ({ subaccount: x.subaccount, share: x.sharePesewas })) } }),
     };
     const data = await this.call<{ authorization_url: string }>('POST', '/transaction/initialize', body);
     return { authorizationUrl: data.authorization_url };
@@ -72,8 +76,9 @@ export class PaystackClient {
   }
 
   /** Full refund of a transaction: https://paystack.com/docs/api/refund#create */
-  async refund(reference: string): Promise<{ id: string | null }> {
-    const data = await this.call<{ id?: number | string }>('POST', '/refund', { transaction: reference });
+  /** Full refund, or part of the amount (pesewas). */
+  async refund(reference: string, amountPesewas?: number): Promise<{ id: string | null }> {
+    const data = await this.call<{ id?: number | string }>('POST', '/refund', { transaction: reference, ...(amountPesewas !== undefined && { amount: amountPesewas }) });
     return { id: data?.id !== undefined ? String(data.id) : null };
   }
 

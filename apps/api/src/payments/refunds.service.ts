@@ -44,6 +44,42 @@ export class RefundsService {
   }
 
   /**
+   * Refunds part of a payment (one order of a store checkout that paid for several). Never more
+   * than what's left: refunds are added up under a row lock. The payment is marked refunded once
+   * nothing is left.
+   */
+  async refundPart(paymentId: string, amountPesewas: number, actorId: string, reason: string): Promise<boolean> {
+    const claimed = await this.prisma.$transaction(async (tx) => {
+      const [p] = await tx.$queryRaw<Array<{ amountPesewas: number; status: string; reference: string; provider: string }>>`
+        SELECT "amountPesewas", status, reference, provider FROM payments WHERE id = ${paymentId}::uuid FOR UPDATE`;
+      if (!p || p.status !== 'success') return null;
+      const done = await tx.refund.aggregate({ where: { paymentId, status: { not: 'failed' } }, _sum: { amountPesewas: true } });
+      const left = p.amountPesewas - (done._sum.amountPesewas ?? 0);
+      const amount = Math.min(amountPesewas, left);
+      if (amount <= 0) return null;
+      const live = p.provider === 'paystack' && this.config.get('PAYMENTS_DRIVER', { infer: true }) === 'paystack';
+      const refund = await tx.refund.create({ data: { paymentId, amountPesewas: amount, reason, status: live ? 'pending' : 'processed', initiatedById: actorId, processedAt: live ? null : new Date() } });
+      if (amount === left) await tx.payment.update({ where: { id: paymentId }, data: { status: 'refunded' } });
+      return { refund, live, reference: p.reference, amount, wholeLeft: amount === left };
+    });
+    if (!claimed) return false;
+    if (claimed.live) {
+      try {
+        const { id } = await this.paystack.refund(claimed.reference, claimed.amount);
+        await this.prisma.refund.update({ where: { id: claimed.refund.id }, data: { providerRefundId: id } });
+      } catch (err) {
+        await this.prisma.refund.update({ where: { id: claimed.refund.id }, data: { status: 'failed' } });
+        if (claimed.wholeLeft) await this.prisma.payment.update({ where: { id: paymentId }, data: { status: 'success' } });
+        this.logger.error(`Refund of ${claimed.reference} failed: ${err instanceof Error ? err.message : String(err)}`);
+        await this.audit.record({ action: 'payment.refund_failed', actorId, targetType: 'payment', targetId: paymentId, metadata: { reason, amountPesewas: claimed.amount } });
+        return false;
+      }
+    }
+    await this.audit.record({ action: 'payment.refunded', actorId, targetType: 'payment', targetId: paymentId, metadata: { reason, amountPesewas: claimed.amount, partial: !claimed.wholeLeft } });
+    return true;
+  }
+
+  /**
    * Paystack's refund events (from the signed webhook): the money reached the customer, or the
    * refund failed (then the BGYM team follows up; the payment is marked paid again so it can be retried).
    */

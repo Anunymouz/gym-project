@@ -9,6 +9,7 @@ const select = {
   user: { select: { name: true, email: true } },
   membership: { select: { startsAt: true, endsAt: true, plan: { select: { name: true } }, gym: { select: { name: true, addressText: true, phone: true } } } },
   booking: { select: { startsAt: true, endsAt: true, trainer: { select: { user: { select: { name: true } }, gym: { select: { name: true, addressText: true, phone: true } } } } } },
+  orders: { orderBy: { number: 'asc' }, select: { number: true, seller: { select: { name: true } } } },
   packagePurchase: { select: { startsAt: true, endsAt: true, sessionsCount: true, trainerPackage: { select: { name: true } }, trainer: { select: { user: { select: { name: true } }, gym: { select: { name: true, addressText: true, phone: true } } } } } },
 } as const;
 
@@ -65,6 +66,7 @@ export class ReceiptsService {
     membership: { startsAt: Date; endsAt: Date; plan: { name: string }; gym: Gym } | null;
     booking: { startsAt: Date; endsAt: Date; trainer: { user: { name: string | null }; gym: Gym } } | null;
     packagePurchase: { startsAt: Date; endsAt: Date; sessionsCount: number; trainerPackage: { name: string }; trainer: { user: { name: string | null }; gym: Gym } } | null;
+    orders: Array<{ number: string; seller: { name: string } }>;
   }): Receipt {
     const m = r.membership;
     const b = r.booking;
@@ -75,7 +77,9 @@ export class ReceiptsService {
         ? { title: `Personal training · ${b.trainer.user.name ?? 'Trainer'}`, gym: b.trainer.gym, plan: 'Training session', period: { startsAt: b.startsAt, endsAt: b.endsAt } }
         : p
           ? { title: `${p.trainerPackage.name} · ${p.trainer.user.name ?? 'Trainer'}`, gym: p.trainer.gym, plan: `${p.sessionsCount} training sessions`, period: { startsAt: p.startsAt, endsAt: p.endsAt } }
-          : null;
+          : r.orders.length
+            ? { title: `BGYM Store · ${r.orders.map((o) => o.number).join(', ')}`, gym: null, plan: `Order${r.orders.length > 1 ? 's' : ''} ${r.orders.map((o) => o.number).join(', ')}`, period: null }
+            : null;
     return {
       id: r.id,
       number: receiptNumber(r.reference),
@@ -87,7 +91,7 @@ export class ReceiptsService {
       member: r.user,
       gym: what?.gym ?? null,
       plan: what?.plan ?? null,
-      period: what ? { startsAt: what.period.startsAt.toISOString(), endsAt: what.period.endsAt.toISOString() } : null,
+      period: what?.period ? { startsAt: what.period.startsAt.toISOString(), endsAt: what.period.endsAt.toISOString() } : null,
     };
   }
 }
