@@ -57,6 +57,11 @@ Please do **not** open a public issue. Email the BGYM team privately with the de
 - Invitations are tied to an email address and can only be accepted by a person signed in with it (their sign-in code proves ownership), exactly once; there is no secret link to forward or leak.
 - Role rules are enforced by the API (owners: anyone; managers: front desk only). Team changes lock the gym's staff rows, so concurrent changes can't remove the last owner. Every change is audited.
 
+**Workouts**
+- Locked workouts are enforced by the API, not the app: until a member has an active membership, the API leaves out each exercise's steps and demos and refuses to log the workout. Drafts are invisible to members.
+- Only the BGYM team can create exercise videos (the upload ticket is refused for anyone else) and change the library; every change is audited.
+- Imports are validated (up to 500 exercises, HTTPS links only) and imported animations are never loaded by the dashboards, whose content policy only allows BGYM's own media.
+
 **Store**
 - Prices, delivery fees, commissions and totals are worked out by the server from the database at checkout; the app only sends what's in the cart and which saved address to use.
 - Stock can't be oversold: it's held with a conditional update (only if enough is free) inside the checkout transaction, taken when Paystack confirms, released when payment doesn't arrive in time, and the database refuses negative quantities. A payment that arrives after its stock was released is refunded automatically if the stock is gone.

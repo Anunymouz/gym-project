@@ -81,6 +81,9 @@ function App() {
         <Stack.Screen name="trainer/[id]" />
         <Stack.Screen name="book/[trainerId]" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="bookings" />
+        <Stack.Screen name="workout/[id]" />
+        <Stack.Screen name="workout/play/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom', gestureEnabled: false }} />
+        <Stack.Screen name="workout-history" />
       </Stack>
       {status === 'ready' && !showSplash && <NotificationTaps />}
       {showSplash && <AnimatedSplash onFinish={() => setShowSplash(false)} />}

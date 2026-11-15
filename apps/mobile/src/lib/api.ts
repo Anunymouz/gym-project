@@ -2,6 +2,12 @@ import {
   nearbyGymsQuerySchema,
   resolveMediaUrl,
   type AuthSession,
+  type CompleteSessionInput,
+  type ExerciseMedia,
+  type WorkoutDetail,
+  type WorkoutHistoryItem,
+  type WorkoutsHome,
+  type WorkoutStats,
   type AuthTokens,
   type AuthUser,
   type AddressInput,
@@ -416,3 +422,19 @@ export const storeApi = {
 };
 const cartMedia = (c: Cart): Cart => ({ ...c, lines: c.lines.map((l) => ({ ...l, thumbUrl: media(l.thumbUrl) })) });
 const orderMedia = (o: OrderSummary): OrderSummary => ({ ...o, items: o.items.map((i) => ({ ...i, thumbUrl: media(i.thumbUrl) })) });
+
+// ── Workouts ──
+const exerciseMediaUrls = (m: ExerciseMedia | null | undefined): ExerciseMedia | null | undefined =>
+  m && { ...m, url: media(m.url) ?? m.url, thumbUrl: media(m.thumbUrl) };
+export const workoutsApi = {
+  home: async (): Promise<WorkoutsHome> => {
+    const h = await authed<WorkoutsHome>('/v1/workouts');
+    return { ...h, workouts: h.workouts.map((w) => ({ ...w, coverUrl: media(w.coverUrl) })) };
+  },
+  detail: async (id: string): Promise<WorkoutDetail> => {
+    const w = await authed<WorkoutDetail>(`/v1/workouts/${id}`);
+    return { ...w, coverUrl: media(w.coverUrl), steps: w.steps.map((s) => ({ ...s, exercise: { ...s.exercise, ...(s.exercise.media !== undefined && { media: exerciseMediaUrls(s.exercise.media) }) } })) };
+  },
+  complete: (id: string, input: CompleteSessionInput) => authed<WorkoutStats>(`/v1/workouts/${id}/sessions`, { method: 'POST', body: JSON.stringify(input) }),
+  history: async () => (await authed<WorkoutHistoryItem[]>('/v1/me/workouts/history')).map((h) => ({ ...h, workout: { ...h.workout, coverUrl: media(h.workout.coverUrl) } })),
+};

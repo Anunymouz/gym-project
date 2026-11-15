@@ -42,10 +42,9 @@ Phases are ordered so we can launch a paying product early, then layer on.
 - **Later:** Yango Delivery API (automatic quotes and dispatch) once BGYM has a business account and API access; returns after delivery; product reviews; promo codes.
 
 ## Phase 4 — Workouts
-- Licensed exercise library import, workout builder in admin, free vs unlocked.
-- Workout player and history.
-
-*(Workouts can move earlier — it's largely content and doesn't depend on payments beyond the unlock check.)*
+- **Done:** admin Workouts (exercise library with BGYM-written steps and tips, a demo photo or short video per exercise, JSON import from a licensed library export, workout builder with reps or timed sets, rest, notes, cover and publish); app Workouts tab (streak, this week, minutes, goal filters, free and locked workouts with an unlock prompt), workout pages, a guided player (get ready, sets with reps or a timer, rests with skip and +15 s, pause, how-to, screen kept on) and history with effort.
+- **Starter library:** 26 exercises and 6 workouts written by BGYM (3 free). Demos are added from the admin dashboard; until then the player shows the written steps.
+- **Later:** a licensed animation library once BGYM has a licence (the importer is ready), demos filmed for each exercise, programmes over several weeks, voice cues, workouts from gyms and trainers.
 
 ## Phase 5 — Growth
 - Ratings & reviews (gyms, trainers, products), comments, promoted listings, referral codes, card auto-renew, analytics dashboards, expansion beyond Accra.
