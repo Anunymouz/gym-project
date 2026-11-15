@@ -137,4 +137,48 @@ describe('Gym dashboard API (e2e)', () => {
       await http().post('/v1/check-ins/by-email').set(as(outsider)).send({ gymId, email: memberEmail }).expect(403);
     });
   });
+
+  describe('gym profile', () => {
+    const week = (open: string, close: string) =>
+      Object.fromEntries(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((d) => [d, d === 'sun' ? [] : [{ open, close }]]));
+
+    it('lets staff read it and only owners and managers change it', async () => {
+      const original = (await http().get(`/v1/staff/gyms/${gymId}/profile`).set(as(frontDesk)).expect(200)).body;
+      expect(original).toMatchObject({ id: gymId, slug: 'iron-haven-east-legon', status: 'active' });
+      await http().get(`/v1/staff/gyms/${gymId}/profile`).set(as(outsider)).expect(403);
+
+      const update = {
+        name: original.name,
+        description: 'Updated by the e2e test.',
+        phone: '024 123 4567',
+        email: 'Hello@IronHaven.test',
+        addressText: original.addressText,
+        facilities: ['AC', 'Showers', 'Sauna'],
+        openingHours: { ...week('05:30', '21:00'), sat: [{ open: '06:00', close: '10:00' }, { open: '15:00', close: '19:00' }] },
+      };
+      await http().patch(`/v1/staff/gyms/${gymId}/profile`).set(as(frontDesk)).send(update).expect(403);
+      try {
+        const res = await http().patch(`/v1/staff/gyms/${gymId}/profile`).set(as(owner)).send(update).expect(200);
+        expect(res.body).toMatchObject({ phone: '+233241234567', email: 'hello@ironhaven.test', facilities: ['AC', 'Showers', 'Sauna'] });
+        expect(res.body.openingHours.sun).toEqual([]);
+        // The member app sees the change straight away.
+        const pub = await http().get('/v1/gyms/iron-haven-east-legon').expect(200);
+        expect(pub.body.description).toBe('Updated by the e2e test.');
+      } finally {
+        const { id: _id, slug: _slug, status: _status, coverUrl: _cover, updatedAt: _u, ...restore } = original;
+        await http().patch(`/v1/staff/gyms/${gymId}/profile`).set(as(owner)).send(restore).expect(200);
+      }
+    });
+
+    it('rejects impossible hours and unknown facilities', async () => {
+      const base = (await http().get(`/v1/staff/gyms/${gymId}/profile`).set(as(owner)).expect(200)).body;
+      const { id: _id, slug: _slug, status: _status, coverUrl: _cover, updatedAt: _u, ...valid } = base;
+      const send = (body: object) => http().patch(`/v1/staff/gyms/${gymId}/profile`).set(as(owner)).send(body);
+      await send({ ...valid, openingHours: { ...valid.openingHours, mon: [{ open: '22:00', close: '06:00' }] } }).expect(400);
+      await send({ ...valid, openingHours: { ...valid.openingHours, mon: [{ open: '06:00', close: '12:00' }, { open: '11:00', close: '20:00' }] } }).expect(400);
+      await send({ ...valid, openingHours: { ...valid.openingHours, mon: [{ open: '6am', close: '20:00' }] } }).expect(400);
+      await send({ ...valid, facilities: ['Helipad'] }).expect(400);
+      await send({ ...valid, phone: '12345' }).expect(400);
+    });
+  });
 });

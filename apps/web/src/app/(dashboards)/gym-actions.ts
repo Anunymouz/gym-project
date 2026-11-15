@@ -2,7 +2,17 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { checkInByEmailSchema, createPlanSchema, updatePlanSchema, type CheckInResponse, type RemindResponse, type StaffPlan } from '@bgym/shared';
+import {
+  checkInByEmailSchema,
+  createPlanSchema,
+  updateGymProfileSchema,
+  updatePlanSchema,
+  type CheckInResponse,
+  type GymProfile,
+  type RemindResponse,
+  type StaffPlan,
+  type UpdateGymProfileInput,
+} from '@bgym/shared';
 import { api, ApiError } from '@/lib/api.server';
 import { getCurrentGym } from '@/lib/session.server';
 
@@ -112,4 +122,25 @@ export async function remindMember(membershipId: string): Promise<RemindResult> 
   }
   revalidatePath('/gym', 'layout');
   return { ok: true };
+}
+
+export type GymProfileState = { ok?: boolean; saved?: GymProfile; error?: string; fieldErrors?: Record<string, string> };
+
+/** Saves the gym's public profile (owners and managers; the API checks the role). */
+export async function saveGymProfile(input: UpdateGymProfileInput): Promise<GymProfileState> {
+  const gym = await requireGym();
+  const parsed = updateGymProfileSchema.safeParse(input);
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) fieldErrors[issue.path.join('.')] ??= issue.message;
+    return { fieldErrors, error: 'Check the highlighted fields.' };
+  }
+  let saved: GymProfile;
+  try {
+    saved = await api<GymProfile>(`/v1/staff/gyms/${gym.id}/profile`, { method: 'PATCH', body: JSON.stringify(parsed.data) });
+  } catch (err) {
+    return { error: err instanceof ApiError ? (err.status === 403 ? 'Only owners and managers can change the gym’s details.' : err.message) : 'Something went wrong.' };
+  }
+  revalidatePath('/gym', 'layout');
+  return { ok: true, saved };
 }

@@ -7,3 +7,4 @@ export * from './memberships.js';
 export * from './staff.js';
 export * from './reminders.js';
 export * from './notifications.js';
+export * from './gym-profile.js';

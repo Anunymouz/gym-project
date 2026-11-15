@@ -106,13 +106,16 @@ async function seedDemo(): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  // Re-running the seed resets the sample gyms to these values (they are fictional demo data).
   for (const g of gyms) {
     const [row] = await prisma.$queryRaw<Array<{ id: string }>>`
       INSERT INTO gyms (id, name, slug, description, phone, "addressText", "coverUrl", location, "openingHours", facilities, status, "updatedAt")
       VALUES (gen_random_uuid(), ${g.name}, ${g.slug}, ${g.description}, ${g.phone}, ${g.area}, ${g.cover},
               ST_SetSRID(ST_MakePoint(${g.lng}, ${g.lat}), 4326)::geography,
               ${JSON.stringify(openingHours)}::jsonb, ${g.facilities as unknown as string[]}, 'active', now())
-      ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description, phone = EXCLUDED.phone, location = EXCLUDED.location, "coverUrl" = EXCLUDED."coverUrl", "updatedAt" = now()
+      ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description, phone = EXCLUDED.phone, email = NULL,
+        "addressText" = EXCLUDED."addressText", location = EXCLUDED.location, "coverUrl" = EXCLUDED."coverUrl",
+        "openingHours" = EXCLUDED."openingHours", facilities = EXCLUDED.facilities, status = 'active', "updatedAt" = now()
       RETURNING id`;
     if (!row) throw new Error(`Failed to upsert gym ${g.slug}`);
     // Upsert plans by name: plans that members bought must never be duplicated or deleted.

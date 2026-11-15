@@ -8,7 +8,9 @@ import {
   type CreatePlanInput,
   type GymMember,
   type GymOverview,
+  type GymProfile,
   type MembersQuery,
+  updateGymProfileSchema,
   type RemindResponse,
   type StaffGym,
   type StaffPlan,
@@ -59,6 +61,23 @@ export class StaffController {
   ): Promise<RemindResponse> {
     await this.access.require(user, gymId);
     return this.reminders.remindNow(gymId, membershipId, user.userId);
+  }
+
+  @Get('gyms/:gymId/profile')
+  async profile(@CurrentUser() user: AccessClaims, @Param('gymId', { schema: id }) gymId: string): Promise<GymProfile> {
+    await this.access.require(user, gymId);
+    return this.staff.profile(gymId);
+  }
+
+  @Patch('gyms/:gymId/profile')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  async updateProfile(
+    @CurrentUser() user: AccessClaims,
+    @Param('gymId', { schema: id }) gymId: string,
+    @Body({ schema: updateGymProfileSchema }) body: z.output<typeof updateGymProfileSchema>,
+  ): Promise<GymProfile> {
+    await this.access.require(user, gymId, ['owner', 'manager']);
+    return this.staff.updateProfile(gymId, user.userId, body);
   }
 
   @Get('gyms/:gymId/plans')

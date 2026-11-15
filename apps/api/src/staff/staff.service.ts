@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { CreatePlanInput, GymMember, GymOverview, MembersQuery, StaffGym, StaffPlan, UpdatePlanInput } from '@bgym/shared';
+import type { z } from 'zod';
+import type { CreatePlanInput, GymMember, GymOverview, GymProfile, MembersQuery, OpeningHours, StaffGym, StaffPlan, UpdatePlanInput, updateGymProfileSchema } from '@bgym/shared';
 import { AuditService } from '../audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RemindersService } from '../reminders/reminders.service.js';
@@ -162,5 +163,24 @@ export class StaffService {
     });
     const [updated] = (await this.plans(gymId)).filter((p) => p.id === planId);
     return updated!;
+  }
+
+  private static readonly profileSelect = {
+    id: true, slug: true, status: true, name: true, description: true, phone: true, email: true,
+    addressText: true, coverUrl: true, facilities: true, openingHours: true, updatedAt: true,
+  } as const;
+
+  async profile(gymId: string): Promise<GymProfile> {
+    const gym = await this.prisma.gym.findUnique({ where: { id: gymId }, select: StaffService.profileSelect });
+    if (!gym) throw new NotFoundException('Gym not found');
+    return { ...gym, openingHours: gym.openingHours as OpeningHours, updatedAt: gym.updatedAt.toISOString() };
+  }
+
+  async updateProfile(gymId: string, actorId: string, input: z.output<typeof updateGymProfileSchema>): Promise<GymProfile> {
+    const before = await this.profile(gymId);
+    const gym = await this.prisma.gym.update({ where: { id: gymId }, data: input, select: StaffService.profileSelect });
+    const changed = (Object.keys(input) as Array<keyof typeof input>).filter((k) => JSON.stringify(input[k]) !== JSON.stringify(before[k]));
+    if (changed.length) await this.audit.record({ action: 'gym.profile_updated', actorId, targetType: 'gym', targetId: gymId, metadata: { changed } });
+    return { ...gym, openingHours: gym.openingHours as OpeningHours, updatedAt: gym.updatedAt.toISOString() };
   }
 }
