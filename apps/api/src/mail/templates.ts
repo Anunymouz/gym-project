@@ -123,7 +123,7 @@ export function payoutCodeEmail(to: string, code: string): MailMessage {
   const minutes = OTP_TTL_SECONDS / 60;
   return simpleEmail(to, `${code} confirms your payout account change`, 'Confirm your payout account change', [
     `Your confirmation code is ${code}. It expires in ${minutes} minutes.`,
-    'Someone is changing the bank or mobile money account where your gym’s BGYM payments are sent. If this wasn’t you, don’t share this code: reply to this email straight away and sign out of BGYM on all devices.',
+    'Someone is changing the bank or mobile money account where your BGYM payments are sent. If this wasn’t you, don’t share this code: reply to this email straight away and sign out of BGYM on all devices.',
   ]);
 }
 
@@ -175,3 +175,40 @@ ${rows.map(([k, v], i) => `<tr><td style="padding:10px 0;border-bottom:1px solid
 </table></td></tr></table></body></html>`,
   };
 }
+
+// ── Trainers and bookings ──
+
+const sessionTime = (d: Date) =>
+  d.toLocaleString('en-GB', { timeZone: 'Africa/Accra', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', hour12: false });
+
+export const trainerInvitationEmail = (to: string, gymName: string, inviter: string | null, signInUrl: string) =>
+  simpleEmail(
+    to,
+    `${gymName} invited you to train members on BGYM`,
+    `Coach at ${gymName} on BGYM`,
+    [
+      `${inviter ?? 'The gym'} invited you to join ${gymName} as a personal trainer on BGYM.`,
+      'Members will find you in the app, book sessions or packages with you and pay in the app. Payments go straight to your own bank or mobile money account, minus BGYM’s fee.',
+      `Sign in with this email address (${to}) to accept. The invitation lasts 7 days.`,
+    ],
+    { label: 'Sign in to accept', url: signInUrl },
+  );
+
+export const newBookingEmail = (to: string, client: string, startsAt: Date, paidWith: 'payment' | 'package', url: string) =>
+  simpleEmail(to, `New session: ${client}, ${sessionTime(startsAt)}`, 'You have a new session', [
+    `${client} booked a session with you on ${sessionTime(startsAt)} (Accra time).`,
+    paidWith === 'package' ? 'It uses a session from their package.' : 'They’ve paid in the app. The money goes to your payout account, minus BGYM’s fee.',
+  ], { label: 'See your schedule', url });
+
+export const bookingCancelledEmail = (to: string, who: string, startsAt: Date, detail: string) =>
+  simpleEmail(to, `Session cancelled: ${sessionTime(startsAt)}`, 'A session was cancelled', [`${who} cancelled the session on ${sessionTime(startsAt)} (Accra time).`, detail]);
+
+export function bookingReminderPush(trainer: string, startsAt: Date, kind: 'day' | 'hour'): { title: string; body: string } {
+  const at = startsAt.toLocaleTimeString('en-GB', { timeZone: 'Africa/Accra', hour: '2-digit', minute: '2-digit', hour12: false });
+  return kind === 'day'
+    ? { title: 'Training tomorrow', body: `Your session with ${trainer} is tomorrow at ${at}.` }
+    : { title: `Session at ${at}`, body: `Your session with ${trainer} starts in about an hour. Bring water!` };
+}
+
+export const bookingReminderEmail = (to: string, trainer: string, gym: string, startsAt: Date) =>
+  simpleEmail(to, `Reminder: training with ${trainer} tomorrow`, 'See you tomorrow', [`Your session with ${trainer} at ${gym} is on ${sessionTime(startsAt)} (Accra time).`, 'Need to cancel? Do it in the app under Me → My bookings.']);

@@ -71,6 +71,11 @@ export class PaystackClient {
     await this.call('PUT', `/subaccount/${encodeURIComponent(code)}`, { business_name: input.businessName, settlement_bank: input.bankCode, account_number: input.accountNumber });
   }
 
+  /** Full refund of a transaction: https://paystack.com/docs/api/refund#create */
+  async refund(reference: string): Promise<void> {
+    await this.call('POST', '/refund', { transaction: reference });
+  }
+
   /** Paystack signs webhooks with HMAC-SHA512 of the raw body using the secret key. */
   isValidSignature(rawBody: Buffer, signature: string | undefined): boolean {
     if (!this.secret || !signature) return false;

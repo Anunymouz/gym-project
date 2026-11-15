@@ -14,6 +14,11 @@ export const NOTIFICATION_TOPICS = {
     description: '7, 3 and 1 days before a membership ends, and when it ends.',
     defaults: { push: true, email: true },
   },
+  bookings: {
+    label: 'Training sessions',
+    description: 'Reminders a day and an hour before a session with your trainer, and any changes.',
+    defaults: { push: true, email: true },
+  },
   check_ins: {
     label: 'Check-ins',
     description: 'When you’re checked in at a gym, so you know it was you.',
@@ -52,4 +57,4 @@ export interface UnsubscribeResponse {
 }
 
 /** Android notification channels (the app creates them; the API addresses them). */
-export const ANDROID_CHANNELS = { reminders: 'reminders', checkIns: 'check-ins' } as const;
+export const ANDROID_CHANNELS = { reminders: 'reminders', checkIns: 'check-ins', bookings: 'bookings' } as const;

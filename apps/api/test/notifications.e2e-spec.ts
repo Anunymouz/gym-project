@@ -59,7 +59,7 @@ describe('Notifications (e2e)', () => {
   it('starts from sensible defaults and saves changes', async () => {
     const ama = await user('ama');
     const initial = await http().get('/v1/me/notifications').set(ama.auth).expect(200);
-    expect(initial.body).toEqual({ renewals: { push: true, email: true }, check_ins: { push: true }, news: { push: false, email: false } });
+    expect(initial.body).toEqual({ renewals: { push: true, email: true }, bookings: { push: true, email: true }, check_ins: { push: true }, news: { push: false, email: false } });
 
     const res = await http().patch('/v1/me/notifications').set(ama.auth).send({ topic: 'renewals', channel: 'email', enabled: false }).expect(200);
     expect(res.body.renewals).toEqual({ push: true, email: false });

@@ -13,5 +13,5 @@ import { StaffService } from './staff.service.js';
 @Global()
 @Module({
   imports: [AuthModule, PaymentsModule],
-  controllers: [StaffController, GymApplicationsController, TeamController], providers: [StaffService, StaffAccessService, GymApplicationsService, PayoutsService, TeamService], exports: [StaffAccessService] })
+  controllers: [StaffController, GymApplicationsController, TeamController], providers: [StaffService, StaffAccessService, GymApplicationsService, PayoutsService, TeamService], exports: [StaffAccessService, PayoutsService] })
 export class StaffModule {}

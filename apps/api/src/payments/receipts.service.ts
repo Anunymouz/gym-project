@@ -8,7 +8,11 @@ const select = {
   id: true, reference: true, paidAt: true, amountPesewas: true, channel: true,
   user: { select: { name: true, email: true } },
   membership: { select: { startsAt: true, endsAt: true, plan: { select: { name: true } }, gym: { select: { name: true, addressText: true, phone: true } } } },
+  booking: { select: { startsAt: true, endsAt: true, trainer: { select: { user: { select: { name: true } }, gym: { select: { name: true, addressText: true, phone: true } } } } } },
+  packagePurchase: { select: { startsAt: true, endsAt: true, sessionsCount: true, trainerPackage: { select: { name: true } }, trainer: { select: { user: { select: { name: true } }, gym: { select: { name: true, addressText: true, phone: true } } } } } },
 } as const;
+
+type Gym = { name: string; addressText: string; phone: string | null };
 
 /** Receipts for successful payments: emailed once, and listed in the app. */
 @Injectable()
@@ -58,9 +62,20 @@ export class ReceiptsService {
   private toReceipt(r: {
     id: string; reference: string; paidAt: Date | null; amountPesewas: number; channel: string | null;
     user: { name: string | null; email: string };
-    membership: { startsAt: Date; endsAt: Date; plan: { name: string }; gym: { name: string; addressText: string; phone: string | null } } | null;
+    membership: { startsAt: Date; endsAt: Date; plan: { name: string }; gym: Gym } | null;
+    booking: { startsAt: Date; endsAt: Date; trainer: { user: { name: string | null }; gym: Gym } } | null;
+    packagePurchase: { startsAt: Date; endsAt: Date; sessionsCount: number; trainerPackage: { name: string }; trainer: { user: { name: string | null }; gym: Gym } } | null;
   }): Receipt {
     const m = r.membership;
+    const b = r.booking;
+    const p = r.packagePurchase;
+    const what = m
+      ? { title: `${m.plan.name} · ${m.gym.name}`, gym: m.gym, plan: m.plan.name, period: { startsAt: m.startsAt, endsAt: m.endsAt } }
+      : b
+        ? { title: `Personal training · ${b.trainer.user.name ?? 'Trainer'}`, gym: b.trainer.gym, plan: 'Training session', period: { startsAt: b.startsAt, endsAt: b.endsAt } }
+        : p
+          ? { title: `${p.trainerPackage.name} · ${p.trainer.user.name ?? 'Trainer'}`, gym: p.trainer.gym, plan: `${p.sessionsCount} training sessions`, period: { startsAt: p.startsAt, endsAt: p.endsAt } }
+          : null;
     return {
       id: r.id,
       number: receiptNumber(r.reference),
@@ -68,11 +83,11 @@ export class ReceiptsService {
       paidAt: (r.paidAt ?? new Date(0)).toISOString(),
       amountPesewas: r.amountPesewas,
       channel: r.channel,
-      title: m ? `${m.plan.name} · ${m.gym.name}` : 'Payment',
+      title: what?.title ?? 'Payment',
       member: r.user,
-      gym: m?.gym ?? null,
-      plan: m?.plan.name ?? null,
-      period: m ? { startsAt: m.startsAt.toISOString(), endsAt: m.endsAt.toISOString() } : null,
+      gym: what?.gym ?? null,
+      plan: what?.plan ?? null,
+      period: what ? { startsAt: what.period.startsAt.toISOString(), endsAt: what.period.endsAt.toISOString() } : null,
     };
   }
 }

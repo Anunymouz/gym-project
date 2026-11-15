@@ -4,12 +4,13 @@ import { AuditService } from '../audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const KEY = 'fees.default';
-type Stored = { membershipBps?: number | null };
+type Stored = { membershipBps?: number | null; trainerBps?: number | null };
+type Kind = 'membership' | 'trainer';
 const valid = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= MAX_FEE_BPS;
 
 /**
- * BGYM's fee on membership payments: one default for every gym, with an optional special
- * rate per gym. Checkout reads it at the moment of payment and stores the amount on the
+ * BGYM's fees: on membership payments (one default, with an optional special rate per gym)
+ * and on trainer sessions and packages (one default, with an optional rate per trainer). Checkout reads it at the moment of payment and stores the amount on the
  * payment, so changing the fee never changes past payments.
  */
 @Injectable()
@@ -20,9 +21,20 @@ export class FeesService {
   ) {}
 
   async defaultMembershipBps(): Promise<number> {
+    return this.defaultBps('membership');
+  }
+
+  private async defaultBps(kind: Kind): Promise<number> {
     const setting = await this.prisma.platformSetting.findUnique({ where: { key: KEY } });
-    const bps = (setting?.value as Stored | null)?.membershipBps;
+    const bps = (setting?.value as Stored | null)?.[kind === 'membership' ? 'membershipBps' : 'trainerBps'];
     return valid(bps) ? bps : 0;
+  }
+
+  /** The fee on a trainer's sessions and packages right now. */
+  async forTrainer(trainerId: string): Promise<{ bps: number; source: 'default' | 'trainer' }> {
+    const trainer = await this.prisma.trainer.findUnique({ where: { id: trainerId }, select: { platformFeeBps: true } });
+    if (!trainer) throw new NotFoundException('Trainer not found');
+    return valid(trainer.platformFeeBps) ? { bps: trainer.platformFeeBps, source: 'trainer' } : { bps: await this.defaultBps('trainer'), source: 'default' };
   }
 
   async forGym(gymId: string): Promise<GymFee> {
@@ -43,16 +55,18 @@ export class FeesService {
     ]);
     const gymIds = logs.filter((l) => l.action === 'gym.fee_changed' && l.targetId).map((l) => l.targetId!);
     const gyms = new Map((await this.prisma.gym.findMany({ where: { id: { in: gymIds } }, select: { id: true, name: true } })).map((g) => [g.id, g.name]));
-    const bps = (setting?.value as Stored | null)?.membershipBps;
+    const stored = setting?.value as Stored | null;
     return {
-      membershipBps: valid(bps) ? bps : 0,
+      membershipBps: valid(stored?.membershipBps) ? stored.membershipBps : 0,
+      trainerBps: valid(stored?.trainerBps) ? stored.trainerBps : 0,
       updatedAt: setting?.updatedAt.toISOString() ?? null,
       history: logs.map((l) => {
-        const m = (l.metadata ?? {}) as { fromBps?: number | null; toBps?: number | null };
+        const m = (l.metadata ?? {}) as { fromBps?: number | null; toBps?: number | null; kind?: Kind };
         return {
           at: l.createdAt.toISOString(),
           by: l.actor ? (l.actor.name ?? l.actor.email) : null,
           gym: l.action === 'gym.fee_changed' && l.targetId ? (gyms.get(l.targetId) ?? 'A deleted gym') : null,
+          kind: m.kind ?? 'membership',
           fromBps: m.fromBps ?? null,
           toBps: m.toBps ?? null,
         };
@@ -60,13 +74,15 @@ export class FeesService {
     };
   }
 
-  async setDefault(membershipBps: number, adminId: string): Promise<FeeSettings> {
-    const from = await this.defaultMembershipBps();
+  async setDefault(input: { membershipBps?: number; trainerBps?: number }, adminId: string): Promise<FeeSettings> {
+    const before = await this.settings();
     const existing = await this.prisma.platformSetting.findUnique({ where: { key: KEY } });
-    const value = { ...(existing?.value as Record<string, unknown> | null), membershipBps };
+    const value = { ...(existing?.value as Record<string, unknown> | null), ...input };
     await this.prisma.platformSetting.upsert({ where: { key: KEY }, create: { key: KEY, value }, update: { value } });
-    if (from !== membershipBps) {
-      await this.audit.record({ action: 'fees.updated', actorId: adminId, targetType: 'platform', metadata: { fromBps: from, toBps: membershipBps } });
+    for (const kind of ['membership', 'trainer'] as const) {
+      const to = kind === 'membership' ? input.membershipBps : input.trainerBps;
+      const from = kind === 'membership' ? before.membershipBps : before.trainerBps;
+      if (to !== undefined && to !== from) await this.audit.record({ action: 'fees.updated', actorId: adminId, targetType: 'platform', metadata: { kind, fromBps: from, toBps: to } });
     }
     return this.settings();
   }

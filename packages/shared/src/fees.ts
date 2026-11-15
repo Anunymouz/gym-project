@@ -16,7 +16,10 @@ export const formatPercent = (bps: number) => `${(bps / 100).toLocaleString('en-
 /** BGYM's fee on an amount, exactly as charged at checkout. */
 export const feeFor = (amountPesewas: number, bps: number) => Math.round((amountPesewas * bps) / 10_000);
 
-export const updateFeeSettingsSchema = z.object({ membershipBps: feeBpsSchema });
+/** Either fee (or both) can be changed at once. */
+export const updateFeeSettingsSchema = z
+  .object({ membershipBps: feeBpsSchema.optional(), trainerBps: feeBpsSchema.optional() })
+  .refine((v) => v.membershipBps !== undefined || v.trainerBps !== undefined, 'Nothing to change');
 export type UpdateFeeSettingsInput = z.infer<typeof updateFeeSettingsSchema>;
 
 /** null removes the gym's own rate, so it follows the default again. */
@@ -24,8 +27,10 @@ export const gymFeeOverrideSchema = z.object({ bps: feeBpsSchema.nullable() });
 
 export interface FeeSettings {
   membershipBps: number;
+  /** BGYM's fee on trainer sessions and packages. */
+  trainerBps: number;
   updatedAt: string | null;
-  history: Array<{ at: string; by: string | null; gym: string | null; fromBps: number | null; toBps: number | null }>;
+  history: Array<{ at: string; by: string | null; gym: string | null; kind: 'membership' | 'trainer'; fromBps: number | null; toBps: number | null }>;
 }
 
 /** What a gym pays BGYM on each membership sale. */

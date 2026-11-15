@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { FeedModule } from './feed/feed.module.js';
+import { TrainersModule } from './trainers/trainers.module.js';
 import { FeesModule } from './fees/fees.module.js';
 import { MediaModule } from './media/media.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
@@ -64,6 +65,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     FeesModule,
     MediaModule,
     FeedModule,
+    TrainersModule,
     NotificationsModule,
     RemindersModule,
     StaffModule,

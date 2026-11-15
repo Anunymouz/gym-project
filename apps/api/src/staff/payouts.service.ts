@@ -79,28 +79,8 @@ export class PayoutsService {
   }
 
   async update(gymId: string, userId: string, input: z.output<typeof updatePayoutSchema>): Promise<GymPayout> {
-    // Check the details first, so a typo doesn't use up the owner's confirmation code.
-    const bank = (await this.banks()).find((b) => b.code === input.bankCode);
-    if (!bank) throw new BadRequestException('Choose a bank or mobile money provider from the list.');
-    if (bank.method === 'mobile_money' && !/^0[235]\d{8}$/.test(input.accountNumber)) {
-      throw new BadRequestException('Enter the mobile money number like 024 123 4567.');
-    }
-
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
-    // Step-up: prove control of the owner's email right now, not just a signed-in session.
-    await this.otp.verify(user.email, input.code, 'payout');
-
     const gym = await this.prisma.gym.findUniqueOrThrow({ where: { id: gymId }, select: { name: true, email: true, paystackSubaccountCode: true } });
-    let subaccountCode = gym.paystackSubaccountCode;
-    if (this.simulated) {
-      subaccountCode ??= `ACCT_dev_${randomBytes(6).toString('hex')}`;
-    } else if (subaccountCode) {
-      await this.paystack.updateSubaccount(subaccountCode, { businessName: gym.name, bankCode: bank.code, accountNumber: input.accountNumber });
-    } else {
-      subaccountCode = (await this.paystack.createSubaccount({ businessName: gym.name, bankCode: bank.code, accountNumber: input.accountNumber, email: gym.email })).subaccountCode;
-    }
-
-    const last4 = input.accountNumber.slice(-4);
+    const { subaccountCode, bank, last4 } = await this.connect(userId, gym.paystackSubaccountCode, gym.name, gym.email, input);
     await this.prisma.gym.update({
       where: { id: gymId },
       data: { paystackSubaccountCode: subaccountCode, payoutMethod: bank.method, payoutBankName: bank.name, payoutAccountName: input.accountName, payoutAccountLast4: last4, payoutUpdatedAt: new Date() },
@@ -117,5 +97,57 @@ export class PayoutsService {
     const account = `${bank.name} ending ${last4} (${input.accountName})`;
     await Promise.allSettled(owners.map((o) => this.mail.send(payoutChangedEmail(o.user.email, gym.name, account))));
     return this.get(gymId);
+  }
+
+  /** A trainer's own payout account (their sessions and packages are paid there). */
+  async trainerPayout(trainerId: string): Promise<GymPayout> {
+    const t = await this.prisma.trainer.findUniqueOrThrow({ where: { id: trainerId }, select: { paystackSubaccountCode: true, payoutMethod: true, payoutBankName: true, payoutAccountName: true, payoutAccountLast4: true, payoutUpdatedAt: true } });
+    return {
+      connected: !!t.paystackSubaccountCode,
+      method: (t.payoutMethod as PayoutMethod | null) ?? null,
+      bankName: t.payoutBankName,
+      accountName: t.payoutAccountName,
+      accountLast4: t.payoutAccountLast4,
+      updatedAt: t.payoutUpdatedAt?.toISOString() ?? null,
+    };
+  }
+
+  async updateTrainer(trainerId: string, userId: string, input: z.output<typeof updatePayoutSchema>): Promise<GymPayout> {
+    const t = await this.prisma.trainer.findUniqueOrThrow({ where: { id: trainerId }, select: { paystackSubaccountCode: true, user: { select: { name: true, email: true } } } });
+    const name = t.user.name ?? 'BGYM trainer';
+    const { subaccountCode, bank, last4 } = await this.connect(userId, t.paystackSubaccountCode, `${name} (BGYM trainer)`, t.user.email, input);
+    await this.prisma.trainer.update({
+      where: { id: trainerId },
+      data: { paystackSubaccountCode: subaccountCode, payoutMethod: bank.method, payoutBankName: bank.name, payoutAccountName: input.accountName, payoutAccountLast4: last4, payoutUpdatedAt: new Date() },
+    });
+    await this.audit.record({ action: t.paystackSubaccountCode ? 'trainer.payout_changed' : 'trainer.payout_added', actorId: userId, targetType: 'trainer', targetId: trainerId, metadata: { bank: bank.name, last4 } });
+    await this.mail.send(payoutChangedEmail(t.user.email, name, `${bank.name} ending ${last4} (${input.accountName})`)).catch(() => undefined);
+    return this.trainerPayout(trainerId);
+  }
+
+  /**
+   * Checks the details, confirms the person's emailed step-up code, then creates or updates
+   * the Paystack subaccount. The full account number goes to Paystack only.
+   */
+  private async connect(userId: string, existingCode: string | null, businessName: string, email: string | null, input: z.output<typeof updatePayoutSchema>) {
+    // Check the details first, so a typo doesn't use up the confirmation code.
+    const bank = (await this.banks()).find((b) => b.code === input.bankCode);
+    if (!bank) throw new BadRequestException('Choose a bank or mobile money provider from the list.');
+    if (bank.method === 'mobile_money' && !/^0[235]\d{8}$/.test(input.accountNumber)) {
+      throw new BadRequestException('Enter the mobile money number like 024 123 4567.');
+    }
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
+    // Step-up: prove control of the email right now, not just a signed-in session.
+    await this.otp.verify(user.email, input.code, 'payout');
+
+    let subaccountCode = existingCode;
+    if (this.simulated) {
+      subaccountCode ??= `ACCT_dev_${randomBytes(6).toString('hex')}`;
+    } else if (subaccountCode) {
+      await this.paystack.updateSubaccount(subaccountCode, { businessName, bankCode: bank.code, accountNumber: input.accountNumber });
+    } else {
+      subaccountCode = (await this.paystack.createSubaccount({ businessName, bankCode: bank.code, accountNumber: input.accountNumber, email })).subaccountCode;
+    }
+    return { subaccountCode, bank, last4: input.accountNumber.slice(-4) };
   }
 }

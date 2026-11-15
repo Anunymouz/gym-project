@@ -36,7 +36,7 @@ export class PaymentsService {
    * Replays of the same provider event are ignored. Amount and currency must match what we charged.
    */
   async recordSuccess(charge: SuccessfulCharge): Promise<'processed' | 'duplicate'> {
-    let result: { status: 'processed' | 'duplicate'; paymentId?: string };
+    let result: { status: 'processed' | 'duplicate'; paymentId?: string; type?: Prisma.PaymentGetPayload<object>['type'] };
     try {
       result = await this.prisma.$transaction(async (tx) => {
         const payment = await tx.payment.findUnique({ where: { reference: charge.reference } });
@@ -53,7 +53,7 @@ export class PaymentsService {
           data: { status: 'success', paidAt: new Date(), channel: CHANNELS[charge.channel] ?? 'other' },
         });
         await this.fulfilment.get(payment.type)(tx, payment);
-        return { status: 'processed' as const, paymentId: payment.id };
+        return { status: 'processed' as const, paymentId: payment.id, type: payment.type };
       });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') return 'duplicate';
@@ -62,7 +62,11 @@ export class PaymentsService {
       throw err;
     }
     // After the transaction: the receipt is emailed exactly once, and never blocks activation.
-    if (result.status === 'processed' && result.paymentId) await this.receipts.send(result.paymentId);
+    if (result.status === 'processed' && result.paymentId) {
+      await this.receipts.send(result.paymentId);
+      const after = result.type && this.fulfilment.after(result.type);
+      if (after) await after(result.paymentId).catch((err: unknown) => this.logger.error(`After-payment step for ${charge.reference} failed: ${err instanceof Error ? err.message : String(err)}`));
+    }
     return result.status;
   }
 

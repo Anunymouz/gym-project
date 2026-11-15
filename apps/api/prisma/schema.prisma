@@ -115,6 +115,18 @@ enum BookingStatus {
   no_show
 }
 
+enum PackageStatus {
+  pending
+  active
+  cancelled
+}
+
+enum BookingCanceller {
+  member
+  trainer
+  system
+}
+
 enum AvailabilityExceptionType {
   blocked
   extra
@@ -227,6 +239,7 @@ model User {
   memberships          Membership[]
   remindersSent        MembershipReminder[]  @relation("ReminderSender")
   invitationsSent      GymInvitation[]       @relation("InvitationSender")
+  trainerInvitesSent   TrainerInvitation[]   @relation("TrainerInvitationSender")
   checkIns             CheckIn[]             @relation("CheckInMember")
   scannedCheckIns      CheckIn[]             @relation("CheckInScanner")
   posts                Post[]
@@ -348,6 +361,7 @@ model Gym {
   staff       GymStaff[]
   photos      GymPhoto[]
   invitations GymInvitation[]
+  trainerInvitations TrainerInvitation[]
   plans       MembershipPlan[]
   memberships Membership[]
   checkIns    CheckIn[]
@@ -653,6 +667,8 @@ model UserBlock {
 
 // ───────────────────────────── Trainers ─────────────────────────────
 
+/// A personal trainer, linked to one gym (which invited them). Members see them in the app
+/// once their profile, price, availability and payout account are set and they choose to be listed.
 model Trainer {
   id                     String                  @id @default(uuid(7)) @db.Uuid
   userId                 String                  @unique @db.Uuid
@@ -660,11 +676,26 @@ model Trainer {
   bio                    String?
   specialties            String[]
   certifications         Json                    @default("[]")
-  sessionPricePesewas    Int
+  sessionPricePesewas    Int                     @default(0)
   sessionDurationMin     Int                     @default(60)
+  /// Members can cancel for free (refund, or the session back on their package) up to this many hours before.
+  cancelHours            Int                     @default(24)
   cancellationPolicy     String?
+  /// Profile photo (storage keys, WebP).
+  photoKey               String?
+  photoThumbKey          String?
+  /// active = linked to the gym; suspended = removed by the gym or the BGYM team.
   status                 TrainerStatus           @default(pending)
+  /// The trainer chose to appear in the app (only allowed once everything is set up).
+  listed                 Boolean                 @default(false)
+  /// Optional BGYM fee override for this trainer, in basis points.
+  platformFeeBps         Int?
   paystackSubaccountCode String?
+  payoutMethod           String?
+  payoutBankName         String?
+  payoutAccountName      String?
+  payoutAccountLast4     String?
+  payoutUpdatedAt        DateTime?               @db.Timestamptz(3)
   createdAt              DateTime                @default(now()) @db.Timestamptz(3)
   updatedAt              DateTime                @updatedAt @db.Timestamptz(3)
   user                   User                    @relation(fields: [userId], references: [id])
@@ -673,9 +704,28 @@ model Trainer {
   exceptions             AvailabilityException[]
   packages               TrainerPackage[]
   bookings               Booking[]
+  purchases              PackagePurchase[]
 
   @@index([gymId, status])
   @@map("trainers")
+}
+
+/// A gym inviting a trainer by email. Only someone signed in with that email can accept.
+model TrainerInvitation {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  gymId       String    @db.Uuid
+  email       String
+  invitedById String?   @db.Uuid
+  expiresAt   DateTime  @db.Timestamptz(3)
+  acceptedAt  DateTime? @db.Timestamptz(3)
+  closedAt    DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  gym         Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  invitedBy   User?     @relation("TrainerInvitationSender", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([email, acceptedAt, closedAt])
+  @@index([gymId, createdAt])
+  @@map("trainer_invitations")
 }
 
 model AvailabilityRule {
@@ -707,10 +757,12 @@ model TrainerPackage {
   id            String            @id @default(uuid(7)) @db.Uuid
   trainerId     String            @db.Uuid
   name          String
+  description   String?
   sessionsCount Int
   validityDays  Int
   pricePesewas  Int
   isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now()) @db.Timestamptz(3)
   trainer       Trainer           @relation(fields: [trainerId], references: [id], onDelete: Cascade)
   purchases     PackagePurchase[]
 
@@ -721,18 +773,23 @@ model TrainerPackage {
 model PackagePurchase {
   id                String         @id @default(uuid(7)) @db.Uuid
   trainerPackageId  String         @db.Uuid
+  trainerId         String         @db.Uuid
   userId            String         @db.Uuid
+  status            PackageStatus  @default(pending)
+  sessionsCount     Int
   sessionsRemaining Int
   startsAt          DateTime       @db.Timestamptz(3)
   endsAt            DateTime       @db.Timestamptz(3)
   paymentId         String?        @unique @db.Uuid
   createdAt         DateTime       @default(now()) @db.Timestamptz(3)
   trainerPackage    TrainerPackage @relation(fields: [trainerPackageId], references: [id])
+  trainer           Trainer        @relation(fields: [trainerId], references: [id])
   user              User           @relation(fields: [userId], references: [id])
   payment           Payment?       @relation(fields: [paymentId], references: [id])
   bookings          Booking[]
 
-  @@index([userId])
+  @@index([userId, status])
+  @@index([trainerId, status])
   @@map("package_purchases")
 }
 
@@ -743,8 +800,18 @@ model Booking {
   startsAt          DateTime         @db.Timestamptz(3)
   endsAt            DateTime         @db.Timestamptz(3)
   status            BookingStatus    @default(pending)
+  /// Unpaid single sessions hold the slot until then.
+  holdExpiresAt     DateTime?        @db.Timestamptz(3)
   packagePurchaseId String?          @db.Uuid
   paymentId         String?          @unique @db.Uuid
+  /// Something for the trainer: goals, injuries…
+  note              String?
+  cancelledAt       DateTime?        @db.Timestamptz(3)
+  cancelledBy       BookingCanceller?
+  /// Cancelled early enough for a refund (or the session back on the package).
+  refundDue         Boolean          @default(false)
+  remindedDayAt     DateTime?        @db.Timestamptz(3)
+  remindedHourAt    DateTime?        @db.Timestamptz(3)
   createdAt         DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime         @updatedAt @db.Timestamptz(3)
   trainer           Trainer          @relation(fields: [trainerId], references: [id])
@@ -754,6 +821,7 @@ model Booking {
 
   @@index([trainerId, startsAt])
   @@index([userId, startsAt])
+  @@index([status, startsAt])
   @@map("bookings")
 }
 

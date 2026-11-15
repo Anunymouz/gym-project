@@ -4,6 +4,10 @@
  */
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 
@@ -58,9 +62,19 @@ const demoMembers: Array<[name: string, plan: 'Day pass' | 'Monthly' | 'Quarterl
 
 async function seedDemo(): Promise<void> {
   await prisma.gymInvitation.deleteMany({ where: { email: { endsWith: DEMO_DOMAIN } } });
+  await prisma.trainerInvitation.deleteMany({ where: { email: { endsWith: DEMO_DOMAIN } } });
   const demoUsers = await prisma.user.findMany({ where: { email: { endsWith: DEMO_DOMAIN } }, select: { id: true } });
   const ids = demoUsers.map((u) => u.id);
   if (ids.length) {
+    // Things demo accounts made while trying the app and dashboards.
+    const trainerIds = (await prisma.trainer.findMany({ where: { userId: { in: ids } }, select: { id: true } })).map((t) => t.id);
+    const byDemo = { OR: [{ userId: { in: ids } }, { trainerId: { in: trainerIds } }] };
+    await prisma.booking.deleteMany({ where: byDemo });
+    await prisma.packagePurchase.deleteMany({ where: byDemo });
+    await prisma.trainer.deleteMany({ where: { id: { in: trainerIds } } });
+    await prisma.post.deleteMany({ where: { authorUserId: { in: ids } } });
+    await prisma.refund.deleteMany({ where: { payment: { userId: { in: ids } } } });
+    await prisma.paymentEvent.deleteMany({ where: { payment: { userId: { in: ids } } } });
     await prisma.checkIn.deleteMany({ where: { OR: [{ userId: { in: ids } }, { scannedById: { in: ids } }] } });
     const ms = await prisma.membership.findMany({ where: { userId: { in: ids } }, select: { paymentId: true } });
     await prisma.membership.deleteMany({ where: { userId: { in: ids } } });
@@ -114,7 +128,60 @@ async function seedDemo(): Promise<void> {
       }
     }
   }
-  console.log(`Demo: owner${DEMO_DOMAIN} (owner) and frontdesk${DEMO_DOMAIN} (front desk) at ${gym.name}, ${demoMembers.length} members; admin${DEMO_DOMAIN} (BGYM team).`);
+  const trainers = await seedTrainers(gym.id);
+  console.log(`Demo: owner${DEMO_DOMAIN} (owner) and frontdesk${DEMO_DOMAIN} (front desk) at ${gym.name}, ${demoMembers.length} members; admin${DEMO_DOMAIN} (BGYM team); trainers ${trainers.join(', ')}.`);
+}
+
+/** Two listed trainers at the demo gym, with photos, hours and packages, ready to book. */
+async function seedTrainers(gymId: string): Promise<string[]> {
+  const people = [
+    {
+      email: `trainer${DEMO_DOMAIN}`, name: 'Kwame Asante', photo: 'trainer-kwame.jpg', price: 12000, duration: 60,
+      bio: 'Strength coach for 9 years. I help beginners lift with confidence and experienced lifters break plateaus, with simple plans you can follow on your own between sessions.',
+      specialties: ['Strength', 'Weight loss', 'Bodybuilding'], certifications: ['NASM Certified Personal Trainer', 'First Aid & CPR'],
+      packages: [{ name: '8 sessions a month', description: 'Two sessions a week with a written plan for your other days.', sessionsCount: 8, validityDays: 31, pricePesewas: 84000 }, { name: 'Kick-start: 4 sessions', description: null, sessionsCount: 4, validityDays: 21, pricePesewas: 44000 }],
+      hours: [1, 2, 3, 4, 5].flatMap((weekday) => [{ weekday, startTime: '06:00', endTime: '10:00' }, { weekday, startTime: '16:00', endTime: '20:00' }]).concat([{ weekday: 6, startTime: '07:00', endTime: '12:00' }]),
+    },
+    {
+      email: `trainer2${DEMO_DOMAIN}`, name: 'Akua Boateng', photo: 'trainer-akua.jpg', price: 9000, duration: 45,
+      bio: 'Mobility, HIIT and women’s strength. Sessions are tough but friendly, and built around your schedule, your goals and how your body feels that day.',
+      specialties: ['HIIT', 'Mobility', 'Pre & postnatal'], certifications: ['ACE Group Fitness Instructor'],
+      packages: [{ name: '6 sessions', description: 'Use them within 6 weeks.', sessionsCount: 6, validityDays: 42, pricePesewas: 48000 }],
+      hours: [2, 4, 6].map((weekday) => ({ weekday, startTime: '06:30', endTime: '11:00' })).concat([1, 3, 5].map((weekday) => ({ weekday, startTime: '17:00', endTime: '20:30' }))),
+    },
+  ];
+  const names: string[] = [];
+  for (const p of people) {
+    const user = await prisma.user.create({ data: { email: p.email, name: p.name, roles: ['member', 'trainer'], phone: '+233240000000' } });
+    const trainer = await prisma.trainer.create({
+      data: {
+        userId: user.id, gymId, status: 'active', listed: true, bio: p.bio, specialties: p.specialties, certifications: p.certifications,
+        sessionPricePesewas: p.price, sessionDurationMin: p.duration, cancelHours: 24,
+        paystackSubaccountCode: `ACCT_dev_demo_${p.photo.slice(8, 13)}`, payoutMethod: 'mobile_money', payoutBankName: 'MTN Mobile Money', payoutAccountName: p.name, payoutAccountLast4: '4321', payoutUpdatedAt: new Date(),
+        availability: { createMany: { data: p.hours } },
+        packages: { createMany: { data: p.packages } },
+      },
+    });
+    const keys = await seedPhoto('trainers', trainer.id, p.photo);
+    if (keys) await prisma.trainer.update({ where: { id: trainer.id }, data: { photoKey: keys.key, photoThumbKey: keys.thumbKey } });
+    names.push(`${p.email} (${p.name})`);
+  }
+  return names;
+}
+
+/** Writes a seed photo into local storage the way uploads are stored (development storage only). */
+async function seedPhoto(folder: string, ownerId: string, file: string): Promise<{ key: string; thumbKey: string } | null> {
+  if ((process.env.STORAGE_DRIVER ?? 'local') !== 'local') return null;
+  const here = dirname(fileURLToPath(import.meta.url));
+  const input = await readFile(resolve(here, 'seed-assets', file));
+  const id = randomUUID();
+  const key = `${folder}/${ownerId}/${id}.webp`;
+  const thumbKey = `${folder}/${ownerId}/${id}_t.webp`;
+  const root = resolve(process.env.STORAGE_LOCAL_DIR ?? './storage');
+  await mkdir(resolve(root, folder, ownerId), { recursive: true });
+  await writeFile(resolve(root, key), await sharp(input).rotate().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).webp({ quality: 80 }).toBuffer());
+  await writeFile(resolve(root, thumbKey), await sharp(input).rotate().resize({ width: 480, height: 480, fit: 'inside' }).webp({ quality: 75 }).toBuffer());
+  return { key, thumbKey };
 }
 
 async function main(): Promise<void> {

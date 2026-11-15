@@ -32,7 +32,7 @@ export class AdminFeesController {
 
   @Put('fees')
   update(@CurrentUser() user: AccessClaims, @Body({ schema: updateFeeSettingsSchema }) body: UpdateFeeSettingsInput): Promise<FeeSettings> {
-    return this.fees.setDefault(body.membershipBps, user.userId);
+    return this.fees.setDefault(body, user.userId);
   }
 
   @Put('gyms/:gymId/fee')
