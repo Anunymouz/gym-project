@@ -27,6 +27,7 @@ import {
   Newspaper,
   Package,
   Percent,
+  PersonSimpleRun,
   QrCode,
   Receipt,
   ShieldCheck,
@@ -63,6 +64,7 @@ const icons: Record<string, ComponentType<IconProps>> = {
   gyms: MapPinArea,
   flag: Flag,
   percent: Percent,
+  workouts: PersonSimpleRun,
 };
 
 function subscribe(onChange: () => void) {

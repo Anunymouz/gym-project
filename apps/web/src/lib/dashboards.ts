@@ -66,6 +66,7 @@ export const dashboards: Record<DashboardId, DashboardConfig> = {
       { slug: 'trainers', label: 'Trainers', icon: 'trainers', phase: 2 },
       { slug: 'members', label: 'Members', icon: 'members', phase: 1 },
       { slug: 'store', label: 'Store & partners', icon: 'store', phase: 3 },
+      { slug: 'workouts', label: 'Workouts', icon: 'workouts', phase: 4 },
       { slug: 'payments', label: 'Payments', icon: 'revenue', phase: 1 },
       { slug: 'reports', label: 'Reports', icon: 'flag', phase: 2 },
       { slug: 'fees', label: 'Fees', icon: 'percent', phase: 1 },

@@ -6,6 +6,7 @@ const tones = {
   warning: 'bg-flare-50 text-flare',
   info: 'bg-violet-50 text-violet',
   danger: 'bg-danger-50 text-danger',
+  neutral: 'bg-cloud text-mute',
 } as const;
 
 export type BadgeTone = keyof typeof tones;

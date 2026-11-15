@@ -1,7 +1,11 @@
 'use client';
 
-import { MAX_POST_VIDEO_SECONDS, MAX_STORY_VIDEO_SECONDS, MAX_VIDEO_BYTES } from '@bgym/shared';
+import { MAX_EXERCISE_VIDEO_SECONDS, MAX_POST_VIDEO_SECONDS, MAX_STORY_VIDEO_SECONDS, MAX_VIDEO_BYTES } from '@bgym/shared';
 import { startVideo, videoStatus } from '@/app/(dashboards)/gym-actions';
+import { exerciseVideoStatus, startExerciseVideo } from '@/app/(dashboards)/workout-actions';
+
+export type VideoPurpose = 'post' | 'story' | 'exercise';
+const MAX_SECONDS: Record<VideoPurpose, number> = { post: MAX_POST_VIDEO_SECONDS, story: MAX_STORY_VIDEO_SECONDS, exercise: MAX_EXERCISE_VIDEO_SECONDS };
 
 export type VideoProgress = { stage: 'uploading'; fraction: number } | { stage: 'processing' };
 
@@ -24,21 +28,22 @@ export function videoDuration(file: File): Promise<number | null> {
 }
 
 /** Checks a picked video before uploading: size and length. Returns an error message or null. */
-export async function checkVideo(file: File, purpose: 'post' | 'story'): Promise<string | null> {
+export async function checkVideo(file: File, purpose: VideoPurpose): Promise<string | null> {
   if (file.size > MAX_VIDEO_BYTES) return 'That video is too big (200 MB at most). Try a shorter clip.';
-  const max = purpose === 'story' ? MAX_STORY_VIDEO_SECONDS : MAX_POST_VIDEO_SECONDS;
+  const max = MAX_SECONDS[purpose];
   const seconds = await videoDuration(file);
   if (seconds !== null && seconds > max + 1) return `Videos can be up to ${max >= 60 ? `${max / 60} minute${max === 60 ? '' : 's'}` : `${max} seconds`} long.`;
   return null;
 }
 
 /**
- * Uploads a video and waits until it's ready; resolves with its id for a post or story.
+ * Uploads a video and waits until it's ready; resolves with its id for a post, story or exercise demo.
  * Development: through this dashboard's upload route to the API. Production: straight to
  * Cloudflare Stream with the one-time URL from the API.
  */
-export async function uploadVideo(file: File, purpose: 'post' | 'story', onProgress: (p: VideoProgress) => void): Promise<string> {
-  const started = await startVideo(purpose);
+export async function uploadVideo(file: File, purpose: VideoPurpose, onProgress: (p: VideoProgress) => void): Promise<string> {
+  const exercise = purpose === 'exercise';
+  const started = exercise ? await startExerciseVideo() : await startVideo(purpose);
   if (!started.ticket) throw new Error(started.error ?? 'Couldn’t start the upload.');
   const { ticket } = started;
   const url = ticket.authenticated ? `/gym/feed/video/${ticket.id}` : ticket.uploadUrl;
@@ -64,7 +69,7 @@ export async function uploadVideo(file: File, purpose: 'post' | 'story', onProgr
   });
   onProgress({ stage: 'processing' });
   for (let i = 0; i < 150; i++) {
-    const res = await videoStatus(ticket.id);
+    const res = exercise ? await exerciseVideoStatus(ticket.id) : await videoStatus(ticket.id);
     if (res.error) throw new Error(res.error);
     if (res.status?.status === 'ready') return ticket.id;
     if (res.status?.status === 'failed') throw new Error(res.status.error ?? 'We couldn’t process that video.');
