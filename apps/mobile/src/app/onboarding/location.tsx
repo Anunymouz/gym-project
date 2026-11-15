@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import * as Location from 'expo-location';
-import { Redirect, router } from 'expo-router';
-import Animated, { Easing, cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import Animated, {
+  Easing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Circle, Defs, G, LinearGradient, Path, Stop } from 'react-native-svg';
 import { SEARCH_RADII_KM } from '@bgym/shared';
+import { Header } from '@/components/header';
 import { CaretRightIcon, CrosshairIcon, ShoppingBagIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
@@ -16,11 +24,18 @@ import { colors, fonts, radii, space } from '@/theme';
 /** Used when location permission is declined, until the person picks an area (Phase 1 adds search). */
 const DEFAULT_AREA = { lat: 5.6357, lng: -0.1573, label: 'East Legon, Accra' };
 
-type LocState = { kind: 'locating' } | { kind: 'found'; lat: number; lng: number; label: string } | { kind: 'fallback'; reason: string };
+type LocState =
+  | { kind: 'locating' }
+  | { kind: 'found'; lat: number; lng: number; label: string }
+  | { kind: 'fallback'; reason: string };
 
+/** Onboarding step, and (with ?edit=1, from Me → Search area) where members change their area later. */
 export default function LocationStep() {
-  const { status, completeOnboarding } = useSession();
-  const [radiusKm, setRadiusKm] = useState<number>(5);
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const { status, area: saved, completeOnboarding } = useSession();
+  const editing = edit === '1' && status === 'ready';
+  const [radiusKm, setRadiusKm] = useState<number>(editing && saved ? saved.radiusKm : 5);
+  const [saving, setSaving] = useState(false);
   const [loc, setLoc] = useState<LocState>({ kind: 'locating' });
   // While finishing, this screen navigates itself (to Gyms or the Store), so the guard stands down.
   const [finishing, setFinishing] = useState(false);
@@ -35,18 +50,34 @@ export default function LocationStep() {
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const [place] = await Location.reverseGeocodeAsync(pos.coords).catch(() => []);
-      const label = [place?.district ?? place?.subregion, place?.city].filter(Boolean).join(', ') || 'Your current location';
-      if (!cancelled) setLoc({ kind: 'found', lat: pos.coords.latitude, lng: pos.coords.longitude, label });
-    })().catch(() => !cancelled && setLoc({ kind: 'fallback', reason: "Couldn't get your location" }));
+      const label =
+        [place?.district ?? place?.subregion, place?.city].filter(Boolean).join(', ') ||
+        'Your current location';
+      if (!cancelled)
+        setLoc({ kind: 'found', lat: pos.coords.latitude, lng: pos.coords.longitude, label });
+    })().catch(
+      () => !cancelled && setLoc({ kind: 'fallback', reason: "Couldn't get your location" }),
+    );
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (status !== 'needsOnboarding' && !finishing) return <Redirect href={homeFor(status)} />;
+  if (status !== 'needsOnboarding' && !finishing && !editing)
+    return <Redirect href={homeFor(status)} />;
 
+  // Without location, keep the member's saved area (when editing) rather than the default.
+  const fallback = editing && saved ? saved : DEFAULT_AREA;
   const area: SearchArea =
-    loc.kind === 'found' ? { lat: loc.lat, lng: loc.lng, label: loc.label, radiusKm } : { ...DEFAULT_AREA, radiusKm };
+    loc.kind === 'found'
+      ? { lat: loc.lat, lng: loc.lng, label: loc.label, radiusKm }
+      : { lat: fallback.lat, lng: fallback.lng, label: fallback.label, radiusKm };
+
+  async function save() {
+    setSaving(true);
+    await completeOnboarding(area); // stores the area; the Gyms tab reloads with it
+    router.back();
+  }
 
   async function finish(next: '/gyms' | '/store') {
     setFinishing(true);
@@ -57,7 +88,11 @@ export default function LocationStep() {
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <Text variant="title">Find gyms near you</Text>
+      {editing ? (
+        <Header back title="Search area" />
+      ) : (
+        <Text variant="title">Find gyms near you</Text>
+      )}
       <Text muted>We show partner gyms inside the distance you choose.</Text>
 
       <RadiusGraphic radiusKm={radiusKm} />
@@ -67,9 +102,21 @@ export default function LocationStep() {
           <CrosshairIcon size={20} color={colors.violet} weight="bold" />
         </View>
         <View style={{ flex: 1 }}>
-          <Text variant="bodyBold">{loc.kind === 'found' ? loc.label : loc.kind === 'locating' ? 'Finding your location…' : DEFAULT_AREA.label}</Text>
+          <Text variant="bodyBold">
+            {loc.kind === 'found'
+              ? loc.label
+              : loc.kind === 'locating'
+                ? 'Finding your location…'
+                : fallback.label}
+          </Text>
           <Text variant="small" muted>
-            {loc.kind === 'found' ? 'Using your current location' : loc.kind === 'locating' ? 'This only takes a moment' : `${loc.reason} · showing a default area`}
+            {loc.kind === 'found'
+              ? 'Using your current location'
+              : loc.kind === 'locating'
+                ? 'This only takes a moment'
+                : editing
+                  ? `${loc.reason} · keeping your saved area`
+                  : `${loc.reason} · showing a default area`}
           </Text>
         </View>
       </View>
@@ -92,24 +139,49 @@ export default function LocationStep() {
         })}
       </View>
 
-      <View style={{ marginTop: 'auto', gap: space.md }}>
-        <Button title={`Show gyms within ${radiusKm} km`} disabled={loc.kind === 'locating'} onPress={() => void finish('/gyms')} />
-        <View style={styles.divider}>
-          <View style={styles.rule} />
-          <Text variant="small" muted>or just shopping?</Text>
-          <View style={styles.rule} />
+      {editing ? (
+        <View style={{ marginTop: 'auto' }}>
+          <Button
+            title={`Save · gyms within ${radiusKm} km`}
+            loading={saving}
+            disabled={loc.kind === 'locating'}
+            onPress={() => void save()}
+          />
         </View>
-        <Pressable accessibilityRole="button" onPress={() => void finish('/store')} style={({ pressed }) => [styles.store, pressed && { opacity: 0.9 }]}>
-          <View style={styles.storeIcon}>
-            <ShoppingBagIcon size={22} color={colors.white} weight="fill" />
+      ) : (
+        <View style={{ marginTop: 'auto', gap: space.md }}>
+          <Button
+            title={`Show gyms within ${radiusKm} km`}
+            disabled={loc.kind === 'locating'}
+            onPress={() => void finish('/gyms')}
+          />
+          <View style={styles.divider}>
+            <View style={styles.rule} />
+            <Text variant="small" muted>
+              or just shopping?
+            </Text>
+            <View style={styles.rule} />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text variant="bodyBold" style={{ color: colors.white }}>Go to the BGYM Store</Text>
-            <Text variant="small" style={{ color: colors.onDarkMuted }}>No gym needed: supplements, apparel & gear</Text>
-          </View>
-          <CaretRightIcon size={20} color={colors.white} />
-        </Pressable>
-      </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void finish('/store')}
+            style={({ pressed }) => [styles.store, pressed && { opacity: 0.9 }]}
+          >
+            <View style={styles.storeIcon}>
+              <ShoppingBagIcon size={22} color={colors.white} weight="fill" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text variant="bodyBold" style={{ color: colors.white }}>
+                Go to the BGYM Store
+              </Text>
+              <Text variant="small" style={{ color: colors.onDarkMuted }}>
+                No gym needed: supplements, apparel & gear
+              </Text>
+            </View>
+            <CaretRightIcon size={20} color={colors.white} />
+          </Pressable>
+        </View>
+      )}
     </Screen>
   );
 }
@@ -117,7 +189,15 @@ export default function LocationStep() {
 /** Illustrative radius view (the live map arrives with Google Maps in Phase 1). */
 function RadiusGraphic({ radiusKm }: { radiusKm: number }) {
   const r = 30 + (SEARCH_RADII_KM.indexOf(radiusKm as (typeof SEARCH_RADII_KM)[number]) + 1) * 14;
-  const pins: [number, number][] = [[-44, -30], [38, -46], [56, 24], [-18, 52], [-70, 12], [84, -70], [-96, -64]];
+  const pins: [number, number][] = [
+    [-44, -30],
+    [38, -46],
+    [56, 24],
+    [-18, 52],
+    [-70, 12],
+    [84, -70],
+    [-96, -64],
+  ];
   return (
     <View style={styles.graphic} accessibilityLabel={`Search radius ${radiusKm} kilometres`}>
       <RadarSweep />
@@ -125,12 +205,22 @@ function RadiusGraphic({ radiusKm }: { radiusKm: number }) {
         {[30, 60, 90, 120, 150].map((ring) => (
           <Circle key={ring} r={ring} fill="none" stroke="#DCE3DA" strokeWidth={1} />
         ))}
-        <Circle r={r} fill="rgba(108,92,231,0.08)" stroke={colors.violet} strokeWidth={2} strokeDasharray="6 5" />
+        <Circle
+          r={r}
+          fill="rgba(108,92,231,0.08)"
+          stroke={colors.violet}
+          strokeWidth={2}
+          strokeDasharray="6 5"
+        />
         {pins.map(([x, y], i) => {
           const inside = Math.hypot(x, y) <= r;
           return (
             <G key={i} transform={`translate(${x} ${y})`}>
-              <Path d="M0 0c-6-8-9-12-9-16a9 9 0 0 1 18 0c0 4-3 8-9 16z" fill={inside ? colors.flare : colors.midnight} opacity={inside ? 1 : 0.35} />
+              <Path
+                d="M0 0c-6-8-9-12-9-16a9 9 0 0 1 18 0c0 4-3 8-9 16z"
+                fill={inside ? colors.flare : colors.midnight}
+                opacity={inside ? 1 : 0.35}
+              />
               <Circle cy={-16} r={3.4} fill={colors.white} />
             </G>
           );
@@ -160,23 +250,77 @@ function RadarSweep() {
             <Stop offset="1" stopColor={colors.violet} stopOpacity={0} />
           </LinearGradient>
         </Defs>
-        <Path d={`M0 0 L150 0 A150 150 0 0 0 ${150 * Math.cos(a)} ${-150 * Math.sin(a)} Z`} fill="url(#sweep)" />
+        <Path
+          d={`M0 0 L150 0 A150 150 0 0 0 ${150 * Math.cos(a)} ${-150 * Math.sin(a)} Z`}
+          fill="url(#sweep)"
+        />
       </Svg>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  sweep: { position: 'absolute', width: 300, height: 300, left: '50%', top: '50%', marginLeft: -150, marginTop: -150 },
-  graphic: { height: 210, borderRadius: radii.lg, backgroundColor: '#EEF2EC', overflow: 'hidden', marginVertical: space.sm },
-  locCard: { flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, padding: space.md },
-  locIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.violetSoft, alignItems: 'center', justifyContent: 'center' },
+  sweep: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    left: '50%',
+    top: '50%',
+    marginLeft: -150,
+    marginTop: -150,
+  },
+  graphic: {
+    height: 210,
+    borderRadius: radii.lg,
+    backgroundColor: '#EEF2EC',
+    overflow: 'hidden',
+    marginVertical: space.sm,
+  },
+  locCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    backgroundColor: colors.white,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: space.md,
+  },
+  locIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.violetSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: radii.pill, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.white },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+  },
   chipOn: { backgroundColor: colors.midnight, borderColor: colors.midnight },
   chipText: { fontFamily: fonts.semibold, fontSize: 14, color: colors.text },
   divider: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   rule: { flex: 1, height: 1, backgroundColor: colors.border },
-  store: { flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: colors.midnight, borderRadius: radii.lg, padding: space.md },
-  storeIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.flare, alignItems: 'center', justifyContent: 'center' },
+  store: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    backgroundColor: colors.midnight,
+    borderRadius: radii.lg,
+    padding: space.md,
+  },
+  storeIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: colors.flare,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import type { ComponentType } from 'react';
 import type { IconProps } from 'phosphor-react-native';
 import { Header } from '@/components/header';
@@ -10,13 +10,13 @@ import { Text } from '@/components/ui/text';
 import { useSession } from '@/lib/session';
 import { colors, radii, space } from '@/theme';
 
-const rows: { label: string; detail: string; Icon: ComponentType<IconProps>; href?: '/memberships' | '/notifications' | '/receipts' }[] = [
+const rows: { label: string; detail: string; Icon: ComponentType<IconProps>; href?: Href }[] = [
   { label: 'My memberships', detail: 'QR codes and renewals', Icon: QrCodeIcon, href: '/memberships' },
   { label: 'My bookings', detail: 'Trainer sessions', Icon: UserCircleIcon },
   { label: 'My orders', detail: 'Store orders and delivery', Icon: ShoppingBagIcon },
   { label: 'Payments & receipts', detail: 'Every payment, with a receipt', Icon: ReceiptIcon, href: '/receipts' },
   { label: 'Notifications', detail: 'Reminders, check-ins and email', Icon: BellIcon, href: '/notifications' },
-  { label: 'Search area', detail: '', Icon: MapPinIcon },
+  { label: 'Search area', detail: '', Icon: MapPinIcon, href: { pathname: '/onboarding/location', params: { edit: '1' } } },
 ];
 
 export default function Me() {

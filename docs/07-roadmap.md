@@ -21,7 +21,9 @@ Phases are ordered so we can launch a paying product early, then layer on.
 - ✅ Platform fee set by the BGYM team (Fees page, special rates per gym, change history); admin Payments page showing what BGYM earned; gyms see the fee and what they receive per plan.
 - ✅ Gym photos: up to 12 per gym, cover photo, cleaned and resized on the server, gallery in the app; a photo is now part of the setup checklist.
 - ✅ Staff: owners invite managers and front desk by email, change roles and remove people; a gym always keeps an owner.
-- Next: payment receipts, change search area in the app, Apple & Google sign-in, live Paystack keys and gym subaccounts.
+- ✅ Payment receipts (email + Me → Payments & receipts) and changing the search area from Me.
+- **Phase 1 status:** feature-complete for gyms and memberships. Still needed before launch: Apple & Google sign-in (needs Apple Developer + Google Cloud accounts), live Paystack test (needs test keys), Resend email domain, Cloudflare R2 bucket, hosting.
+- Next: Apple & Google sign-in, live Paystack keys and gym subaccounts.
 - Member: onboarding, location + radius search, gym page, buy membership (MoMo/card), receipt, QR, My memberships, renewal reminders.
 - Gym dashboard: onboarding, plans, members list, QR scanning check-in, revenue view.
 - Admin: gym approval, fee settings, transactions.
