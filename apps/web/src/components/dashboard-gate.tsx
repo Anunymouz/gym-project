@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
-import { LockKey, Storefront } from '@phosphor-icons/react/ssr';
+import { redirect } from 'next/navigation';
+import { Storefront } from '@phosphor-icons/react/ssr';
 import type { AuthUser } from '@bgym/shared';
-import { dashboards, type DashboardId } from '@/lib/dashboards';
+import type { DashboardId } from '@/lib/dashboards';
 import { getMe, getStaffGyms } from '@/lib/session.server';
 
 const roleFor: Record<Exclude<DashboardId, 'gym'>, AuthUser['roles'][number]> = { trainer: 'trainer', partner: 'partner', admin: 'admin' };
@@ -10,6 +10,8 @@ const roleFor: Record<Exclude<DashboardId, 'gym'>, AuthUser['roles'][number]> = 
 /**
  * Shows a dashboard only to people it is for. This is a courtesy for the screen: the API
  * enforces the same rules on every request, so hiding a page is never the only protection.
+ * People without the role are sent to the gym dashboard (by proxy.ts, before rendering). Gym pages always render (they show
+ * nothing without a gym), so the "no gym yet" notice sits above them rather than replacing them.
  */
 export async function DashboardGate({ dashboard, children }: { dashboard: DashboardId; children: ReactNode }) {
   const me = await getMe();
@@ -17,23 +19,21 @@ export async function DashboardGate({ dashboard, children }: { dashboard: Dashbo
 
   if (dashboard === 'gym') {
     const gyms = await getStaffGyms();
-    if (gyms.length === 0) {
-      return (
-        <Notice icon={<Storefront size={30} weight="duotone" aria-hidden />} title="No gym is linked to your account yet">
-          Ask the gym owner to add <span className="font-bold text-midnight">{me.email}</span> as staff, or contact the BGYM team to list your gym.
-        </Notice>
-      );
-    }
-    return children;
+    return (
+      <>
+        {gyms.length === 0 && (
+          <Notice icon={<Storefront size={30} weight="duotone" aria-hidden />} title="No gym is linked to your account yet">
+            Ask the gym owner to add <span className="font-bold text-midnight">{me.email}</span> as staff, or contact the BGYM team to list your gym.
+          </Notice>
+        )}
+        {children}
+      </>
+    );
   }
 
-  if (isAdmin || me.roles.includes(roleFor[dashboard])) return children;
-  return (
-    <Notice icon={<LockKey size={30} weight="duotone" aria-hidden />} title={`The ${dashboards[dashboard].name.toLowerCase()} is not on your account`}>
-      You are signed in as <span className="font-bold text-midnight">{me.email}</span>.{' '}
-      <Link href="/gym" className="font-bold text-flare hover:underline">Go to the gym dashboard</Link>
-    </Notice>
-  );
+  // proxy.ts normally redirects before this renders; this covers a token whose roles just changed.
+  if (!isAdmin && !me.roles.includes(roleFor[dashboard])) redirect('/gym');
+  return children;
 }
 
 function Notice({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {

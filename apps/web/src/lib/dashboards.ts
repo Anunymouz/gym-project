@@ -79,3 +79,8 @@ export function findSection(id: DashboardId, slug: string): NavItem | undefined 
 export function isDashboardId(value: string): value is DashboardId {
   return Object.hasOwn(dashboards, value);
 }
+
+/** Static page title for a section ('' is the dashboard home). Used by each page's `metadata` export. */
+export function sectionTitle(id: DashboardId, slug: string): string {
+  return slug ? (findSection(id, slug)?.label ?? dashboards[id].name) : dashboards[id].name;
+}

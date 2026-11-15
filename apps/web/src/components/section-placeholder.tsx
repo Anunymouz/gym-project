@@ -1,4 +1,5 @@
 import { HardHat } from '@phosphor-icons/react/ssr';
+import { findSection, dashboards, type DashboardId } from '@/lib/dashboards';
 import { PageHeader } from './ui/page-header';
 
 export function SectionPlaceholder({ title, dashboard, phase }: { title: string; dashboard: string; phase: number }) {
@@ -16,4 +17,11 @@ export function SectionPlaceholder({ title, dashboard, phase }: { title: string;
       </div>
     </div>
   );
+}
+
+/** A dashboard section that is designed but not built yet. */
+export function PlaceholderPage({ dashboard, slug }: { dashboard: DashboardId; slug: string }) {
+  const config = dashboards[dashboard];
+  const item = findSection(dashboard, slug) ?? config.nav[0]!;
+  return <SectionPlaceholder title={item.label} dashboard={config.name} phase={item.phase} />;
 }

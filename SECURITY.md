@@ -52,6 +52,7 @@ Please do **not** open a public issue. Email the BGYM team privately with the de
 - Sign-in, sign-out and every change are server actions (Next.js checks their origin). The access token is renewed in `proxy.ts` before it expires; link prefetches never rotate the refresh token.
 - The gym being managed is always resolved on the server from the person's own staff list, never taken from the browser. The API re-checks the role on every call (front desk is read-only for plans).
 - Sign-in redirects only go back into the dashboards (no open redirects).
+- `proxy.ts` sends people to a dashboard they have a role for, reading the roles in their access token. It doesn't verify the token (the dashboard server never holds the signing key), so this is routing only: the API verifies the token and the role on every data request.
 - The API rate-limits each visitor, not the dashboard server as a whole: the dashboard passes the visitor's IP with a shared secret (`DASHBOARD_PROXY_SECRET`), and the API ignores that header from anyone else.
 - Planned: nonce-based CSP.
 

@@ -10,7 +10,7 @@ import {
 } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   Bank,
   Barbell,
@@ -37,7 +37,7 @@ import {
   type IconProps,
 } from '@phosphor-icons/react';
 import clsx from 'clsx';
-import { dashboards, isDashboardId } from '@/lib/dashboards';
+import { dashboards, type DashboardId } from '@/lib/dashboards';
 import { isSidebarCollapsed, setSidebarCollapsed, SIDEBAR_EVENT } from '@/lib/sidebar';
 
 const icons: Record<string, ComponentType<IconProps>> = {
@@ -71,9 +71,8 @@ const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLElement &&
   (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
 
-export function DashboardShell({ account, children }: { account: ReactNode; children: ReactNode }) {
+export function DashboardShell({ dashboard, account, children }: { dashboard: DashboardId; account: ReactNode; children: ReactNode }) {
   const pathname = usePathname();
-  const { dashboard } = useParams<{ dashboard: string }>();
   const [open, setOpen] = useState(false);
   const collapsed = useSyncExternalStore(subscribe, isSidebarCollapsed, () => false);
   const navId = useId();
@@ -104,7 +103,6 @@ export function DashboardShell({ account, children }: { account: ReactNode; chil
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  if (!isDashboardId(dashboard)) return <main className="px-4 py-6">{children}</main>;
   const config = dashboards[dashboard];
   const base = `/${config.id}`;
 
