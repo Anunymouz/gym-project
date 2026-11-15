@@ -2,36 +2,12 @@
 
 import { useRef, useState, useTransition } from 'react';
 import { CheckCircle, CircleNotch, ImageSquare, Star, Trash, UploadSimple, WarningCircle } from '@phosphor-icons/react';
-import { MAX_GYM_PHOTOS, MAX_PHOTO_BYTES, MIN_PHOTO_LONG_SIDE, type GymPhotoItem } from '@bgym/shared';
+import { MAX_GYM_PHOTOS, MAX_PHOTO_BYTES, type GymPhotoItem } from '@bgym/shared';
 import { deleteGymPhoto, makeCoverPhoto, uploadGymPhoto } from '@/app/(dashboards)/gym-actions';
 import { mediaSrc } from '@/lib/media';
+import { preparePhoto } from '@/lib/prepare-photo';
 
 type Upload = { name: string; state: 'preparing' | 'uploading' | 'done' | 'error'; message?: string };
-
-/**
- * Big phone photos are shrunk in the browser first (to 2400 px, JPEG): uploads are faster on
- * mobile data. The server still checks and re-encodes everything.
- */
-async function prepare(file: File): Promise<Blob> {
-  let bitmap: ImageBitmap;
-  try {
-    bitmap = await createImageBitmap(file); // applies the photo's rotation
-  } catch {
-    throw new Error('This browser can’t read that file. Use a JPEG or PNG photo.');
-  }
-  const long = Math.max(bitmap.width, bitmap.height);
-  if (long < MIN_PHOTO_LONG_SIDE) throw new Error(`Too small: use a photo at least ${MIN_PHOTO_LONG_SIDE} pixels wide.`);
-  if (file.size <= 2.5 * 1024 * 1024 && (file.type === 'image/jpeg' || file.type === 'image/webp')) return file;
-  const scale = Math.min(1, 2400 / long);
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.88));
-  if (!blob) throw new Error('Couldn’t prepare that photo.');
-  return blob;
-}
 
 export function PhotosSection({ initial, canEdit }: { initial: GymPhotoItem[]; canEdit: boolean }) {
   const [photos, setPhotos] = useState(initial);
@@ -52,8 +28,7 @@ export function PhotosSection({ initial, canEdit }: { initial: GymPhotoItem[]; c
     // One at a time: steady progress, and a failure only affects its own photo.
     for (const [i, file] of batch.entries()) {
       try {
-        if (file.size > 40 * 1024 * 1024) throw new Error('That file is too big.');
-        const blob = await prepare(file);
+        const blob = await preparePhoto(file);
         if (blob.size > MAX_PHOTO_BYTES) throw new Error('That photo is over 10 MB, even after shrinking.');
         update(i, { state: 'uploading' });
         const form = new FormData();

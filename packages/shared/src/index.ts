@@ -14,3 +14,4 @@ export * from './payouts.js';
 export * from './fees.js';
 export * from './media.js';
 export * from './team.js';
+export * from './posts.js';

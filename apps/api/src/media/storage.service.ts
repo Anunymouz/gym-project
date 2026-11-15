@@ -5,8 +5,8 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve, sep } from 'node:path';
 import type { Env } from '../config/env.js';
 
-/** Keys we create: gyms/<uuid>/<uuid>[_t].webp. Anything else is refused (no path tricks). */
-const KEY = /^gyms\/[0-9a-f-]{36}\/[0-9a-f-]{36}(_t)?\.webp$/;
+/** Keys we create: (gyms|posts)/<uuid>/<uuid>[_t].webp. Anything else is refused (no path tricks). */
+const KEY = /^(gyms|posts)\/[0-9a-f-]{36}\/[0-9a-f-]{36}(_t)?\.webp$/;
 export const isValidKey = (key: string) => KEY.test(key);
 
 /**

@@ -482,11 +482,17 @@ model Post {
   @@map("posts")
 }
 
+/// A photo (or, later, a video) in a post. Files live in storage; only keys are stored.
 model PostMedia {
   id         String    @id @default(uuid(7)) @db.Uuid
   postId     String    @db.Uuid
   type       MediaType
-  url        String
+  /// Storage key of the large image (WebP).
+  key        String
+  thumbKey   String
+  width      Int
+  height     Int
+  /// Video playback ID once videos are supported (Mux / Cloudflare Stream).
   playbackId String?
   sortOrder  Int       @default(0)
   post       Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -982,10 +988,15 @@ model Report {
   targetType     String
   targetId       String       @db.Uuid
   reason         String
+  details        String?
   status         ReportStatus @default(open)
   createdAt      DateTime     @default(now()) @db.Timestamptz(3)
-  reporter       User         @relation(fields: [reporterUserId], references: [id])
+  resolvedAt     DateTime?    @db.Timestamptz(3)
+  resolvedById   String?      @db.Uuid
+  reporter       User         @relation(fields: [reporterUserId], references: [id], onDelete: Cascade)
 
+  /// One open report per person per item.
+  @@unique([reporterUserId, targetType, targetId])
   @@index([status, createdAt])
   @@map("reports")
 }

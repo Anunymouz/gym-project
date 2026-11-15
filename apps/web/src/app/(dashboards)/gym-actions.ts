@@ -12,6 +12,8 @@ import {
   updatePlanSchema,
   type CheckInResponse,
   MAX_PHOTO_BYTES,
+  MAX_POST_PHOTOS,
+  postBodySchema,
   type GymPayout,
   type GymPhotoItem,
   type GymProfile,
@@ -19,6 +21,7 @@ import {
   type GymReadiness,
   type RemindResponse,
   type StaffPlan,
+  type StaffPost,
   type UpdateGymProfileInput,
   type UpdatePayoutInput,
 } from '@bgym/shared';
@@ -272,4 +275,39 @@ export async function removeStaff(userId: string): Promise<TeamResult> {
   const id = z.uuid().safeParse(userId);
   if (!id.success) return { error: 'Not found.' };
   return teamCall(() => api<GymTeam>(`/v1/staff/gyms/${gym.id}/team/${id.data}`, { method: 'DELETE' }));
+}
+
+export type PostResult = { post?: StaffPost; error?: string };
+
+/** Body text and up to 4 photos, as multipart (photos already shrunk in the browser). */
+export async function createPost(form: FormData): Promise<PostResult> {
+  const gym = await requireGym();
+  const body = postBodySchema.safeParse(String(form.get('body') ?? ''));
+  if (!body.success) return { error: body.error.issues[0]?.message ?? 'Check the post text.' };
+  const photos = form.getAll('photos').filter((f): f is File => f instanceof File && f.size > 0);
+  if (photos.length > MAX_POST_PHOTOS) return { error: `Up to ${MAX_POST_PHOTOS} photos per post.` };
+  if (!body.data && photos.length === 0) return { error: 'Write something or add a photo.' };
+  const out = new FormData();
+  out.set('body', body.data);
+  for (const p of photos) out.append('photos', p, 'photo');
+  try {
+    const post = await apiUpload<StaffPost>(`/v1/staff/gyms/${gym.id}/posts`, out);
+    revalidatePath('/gym/feed');
+    return { post };
+  } catch (err) {
+    return { error: err instanceof ApiError ? (err.status === 403 ? 'Only owners and managers can post.' : err.message) : 'Something went wrong.' };
+  }
+}
+
+export async function deletePost(postId: string): Promise<{ error?: string }> {
+  const gym = await requireGym();
+  const id = z.uuid().safeParse(postId);
+  if (!id.success) return { error: 'Post not found.' };
+  try {
+    await api<void>(`/v1/staff/gyms/${gym.id}/posts/${id.data}`, { method: 'DELETE' });
+    revalidatePath('/gym/feed');
+    return {};
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : 'Something went wrong.' };
+  }
 }

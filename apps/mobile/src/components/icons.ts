@@ -43,3 +43,7 @@ export const UsersThreeIcon: Icon = require('phosphor-react-native/src/icons/Use
 export const WarningCircleIcon: Icon = require('phosphor-react-native/src/icons/WarningCircle').WarningCircleIcon;
 export const WifiSlashIcon: Icon = require('phosphor-react-native/src/icons/WifiSlash').WifiSlashIcon;
 export const XIcon: Icon = require('phosphor-react-native/src/icons/X').XIcon;
+export const HeartIcon: Icon = require('phosphor-react-native/src/icons/Heart').HeartIcon;
+export const NewspaperIcon: Icon = require('phosphor-react-native/src/icons/Newspaper').NewspaperIcon;
+export const DotsThreeIcon: Icon = require('phosphor-react-native/src/icons/DotsThree').DotsThreeIcon;
+export const FlagIcon: Icon = require('phosphor-react-native/src/icons/Flag').FlagIcon;

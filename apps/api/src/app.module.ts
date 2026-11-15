@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
+import { FeedModule } from './feed/feed.module.js';
 import { FeesModule } from './fees/fees.module.js';
 import { MediaModule } from './media/media.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
@@ -62,6 +63,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     ScheduleModule.forRoot(),
     FeesModule,
     MediaModule,
+    FeedModule,
     NotificationsModule,
     RemindersModule,
     StaffModule,

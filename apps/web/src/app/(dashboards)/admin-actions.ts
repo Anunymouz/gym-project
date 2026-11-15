@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { feeBpsSchema, percentToBps, reviewGymSchema, suspendGymSchema, type AdminGym, type FeeSettings, type GymFee } from '@bgym/shared';
+import { feeBpsSchema, percentToBps, reviewGymSchema, suspendGymSchema, type FeeSettings, type GymFee } from '@bgym/shared';
 import { api, ApiError } from '@/lib/api.server';
 
 /* BGYM team actions. The API requires the admin role on every call. */
@@ -13,7 +13,7 @@ const gymId = z.uuid();
 
 async function run(path: string, body?: unknown): Promise<AdminActionResult> {
   try {
-    await api<AdminGym>(path, { method: 'POST', ...(body !== undefined && { body: JSON.stringify(body) }) });
+    await api<unknown>(path, { method: 'POST', ...(body !== undefined && { body: JSON.stringify(body) }) });
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : 'Something went wrong.' };
   }
@@ -77,4 +77,18 @@ export async function saveGymFee(id: string, percent: string): Promise<AdminActi
   }
   revalidatePath('/admin', 'layout');
   return {};
+}
+
+const reportId = z.uuid();
+
+export async function removeReportedPost(postId: string): Promise<AdminActionResult> {
+  const id = reportId.safeParse(postId);
+  if (!id.success) return { error: 'Unknown post.' };
+  return run(`/v1/admin/posts/${id.data}/remove`);
+}
+
+export async function dismissReport(id: string): Promise<AdminActionResult> {
+  const parsed = reportId.safeParse(id);
+  if (!parsed.success) return { error: 'Unknown report.' };
+  return run(`/v1/admin/reports/${parsed.data}/dismiss`);
 }

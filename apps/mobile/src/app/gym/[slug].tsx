@@ -3,15 +3,17 @@ import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { formatGhs, openingStatus, pesewas, planPeriodLabel, type GymDetail, type MembershipPlanSummary } from '@bgym/shared';
+import { formatGhs, openingStatus, pesewas, planPeriodLabel, type FeedPost, type GymDetail, type MembershipPlanSummary } from '@bgym/shared';
 import { GlassButton } from '@/components/glass-button';
+import { PostCard } from '@/components/feed/post-card';
+import { ReportSheet } from '@/components/feed/report-sheet';
 import { GymGallery } from '@/components/gym-gallery';
-import { ArrowLeftIcon, CheckCircleIcon, ClockIcon, MapTrifoldIcon, PhoneIcon, ShoppingBagIcon, UsersThreeIcon, WifiSlashIcon } from '@/components/icons';
+import { ArrowLeftIcon, CheckCircleIcon, ClockIcon, MapTrifoldIcon, PhoneIcon, NewspaperIcon, ShoppingBagIcon, UsersThreeIcon, WifiSlashIcon } from '@/components/icons';
 import { Skeleton } from '@/components/motion/skeleton';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Text } from '@/components/ui/text';
-import { fetchGym } from '@/lib/api';
+import { feedApi, fetchGym } from '@/lib/api';
 import { colors, fonts, radii, space } from '@/theme';
 
 type Tab = 'Plans' | 'Info' | 'Feed' | 'Trainers';
@@ -141,11 +143,13 @@ export default function GymPage() {
                 </View>
               )}
 
-              {(tab === 'Feed' || tab === 'Trainers') && (
+              {tab === 'Feed' && <GymPosts slug={gym.slug} />}
+
+              {tab === 'Trainers' && (
                 <EmptyState
                   icon={<UsersThreeIcon size={28} color={colors.flare} weight="duotone" />}
-                  title={tab === 'Feed' ? 'Posts from this gym' : 'Trainers at this gym'}
-                  body={tab === 'Feed' ? 'Workout videos and news from the gym. Coming in Phase 2.' : 'Book personal training sessions here. Coming in Phase 2.'}
+                  title="Trainers at this gym"
+                  body="Book personal training sessions here. Coming soon."
                 />
               )}
             </Animated.View>
@@ -226,3 +230,26 @@ const styles = StyleSheet.create({
     shadowColor: colors.midnight, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: -4 }, elevation: 10,
   },
 });
+
+/** The gym's recent posts. Anyone can read them; liking is for members. */
+function GymPosts({ slug }: { slug: string }) {
+  const [posts, setPosts] = useState<FeedPost[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [reporting, setReporting] = useState<string | null>(null);
+  const [now] = useState(() => Date.now());
+  useEffect(() => {
+    let live = true;
+    feedApi.gymPosts(slug).then((p) => live && setPosts(p), () => live && setFailed(true));
+    return () => { live = false; };
+  }, [slug]);
+
+  if (failed) return <EmptyState icon={<WifiSlashIcon size={28} color={colors.flare} weight="duotone" />} title="Couldn’t load posts" body="Check your connection and try again." />;
+  if (!posts) return <View style={{ gap: space.md }}>{[0, 1].map((i) => <Skeleton key={i} height={260} radius={radii.lg} />)}</View>;
+  if (posts.length === 0) return <EmptyState icon={<NewspaperIcon size={28} color={colors.flare} weight="duotone" />} title="No posts yet" body="Tips, news and photos from this gym will show up here." />;
+  return (
+    <View style={{ gap: space.md }}>
+      {posts.map((p) => <PostCard key={p.id} post={p} now={now} showGym={false} onReport={setReporting} />)}
+      <ReportSheet postId={reporting} onClose={() => setReporting(null)} />
+    </View>
+  );
+}

@@ -4,6 +4,9 @@ import {
   type AuthSession,
   type AuthTokens,
   type AuthUser,
+  type FeedPage,
+  type FeedPost,
+  type ReportInput,
   type CheckoutResponse,
   type GymDetail,
   type MembershipPass,
@@ -195,4 +198,21 @@ export const notificationsApi = {
 export const receiptsApi = {
   list: () => authed<ReceiptSummary[]>('/v1/me/payments'),
   get: (id: string) => authed<Receipt>(`/v1/me/payments/${encodeURIComponent(id)}`),
+};
+
+/** Make post photo URLs absolute (they may be relative to the API in development). */
+const withMedia = (p: FeedPost): FeedPost => ({
+  ...p,
+  gym: { ...p.gym, coverUrl: media(p.gym.coverUrl) },
+  media: p.media.map((m) => ({ ...m, url: media(m.url) ?? m.url, thumbUrl: media(m.thumbUrl) ?? m.thumbUrl })),
+});
+
+export const feedApi = {
+  page: async (cursor?: string | null): Promise<FeedPage> => {
+    const page = await authed<FeedPage>(`/v1/feed${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`);
+    return { ...page, posts: page.posts.map(withMedia) };
+  },
+  gymPosts: async (slug: string) => (await request<FeedPost[]>(`/v1/gyms/${encodeURIComponent(slug)}/posts`)).map(withMedia),
+  like: (postId: string, on: boolean) => authed<{ likeCount: number; likedByMe: boolean }>(`/v1/posts/${postId}/like`, { method: on ? 'PUT' : 'DELETE' }),
+  report: (postId: string, input: ReportInput) => authed<void>(`/v1/posts/${postId}/report`, { method: 'POST', body: JSON.stringify(input) }),
 };

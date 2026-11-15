@@ -57,6 +57,11 @@ Please do **not** open a public issue. Email the BGYM team privately with the de
 - Invitations are tied to an email address and can only be accepted by a person signed in with it (their sign-in code proves ownership), exactly once; there is no secret link to forward or leak.
 - Role rules are enforced by the API (owners: anyone; managers: front desk only). Team changes lock the gym's staff rows, so concurrent changes can't remove the last owner. Every change is audited.
 
+**Posts and reports**
+- Only owners and managers of a gym can post or delete its posts; photos go through the same processing as gym photos (re-encoded, metadata stripped), and all photos are checked before anything is saved.
+- The feed only includes a gym's posts while the member has an active membership there; removed posts disappear everywhere at once. Only members of that gym can like (one like per person, counted exactly).
+- Reports are one per person per post. The gym never sees who reported; the BGYM team decides, and every decision is audited.
+
 **Notifications**
 - Push tokens are tied to the account that signed in last on that phone and removed on sign-out; tokens Expo reports as dead are deleted.
 - Unsubscribe links are signed with their own key and audience, last a year, and can only turn emails off. The page needs a button press (link scanners don't unsubscribe anyone); one-click unsubscribe follows RFC 8058 and only accepts POST.
