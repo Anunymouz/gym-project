@@ -72,6 +72,9 @@ function App() {
         <Stack.Screen name="compose" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="stories/[key]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
         <Stack.Screen name="blocked" />
+        <Stack.Screen name="trainer/[id]" />
+        <Stack.Screen name="book/[trainerId]" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="bookings" />
       </Stack>
       {status === 'ready' && !showSplash && <NotificationTaps />}
       {showSplash && <AnimatedSplash onFinish={() => setShowSplash(false)} />}

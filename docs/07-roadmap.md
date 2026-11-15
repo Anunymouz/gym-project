@@ -33,9 +33,8 @@ Phases are ordered so we can launch a paying product early, then layer on.
 ## Phase 2 — Feed & trainers
 - Gym posts and Home feed. **Done:** owners and managers post from the dashboard (text, up to 4 photos or a video); members see posts from gyms they belong to and can like, comment, share and report; the BGYM team handles reports in the admin dashboard.
 - Gym communities. **Done:** members with an active membership post to their gym (text, up to 4 photos or a video up to 3 minutes); stories from gyms and members (a photo or a video up to 60 seconds, gone after 24 hours) in a tray at the top of Home; comments; share links with a preview page; blocking; community rules before the first post; gym owners and managers moderate their community. Video: Cloudflare Stream in production (needs an account), converted on the API in development.
-- Trainer dashboard: profile, availability, single sessions, packages, earnings.
-- Member: Trainers tab, booking flows, booking reminders.
-- Trainer subaccounts and booking payments.
+- Trainers and bookings. **Done:** gyms invite trainers by email; the trainer dashboard covers schedule, bookings (complete, no-show, cancel), clients, packages, weekly hours and time off, earnings, profile, photo and payout account (Paystack subaccount). Members find trainers in the Trainers tab and on gym pages, book a time and pay (split straight to the trainer minus BGYM's trainer fee) or use a package session, cancel within the trainer's notice period for a refund, and get reminders a day and an hour before. The BGYM team sets the trainer fee and can pause trainers.
+- **Later:** reschedule in one step (today: cancel and rebook), ratings and reviews, trainers applying to a gym themselves, an optional gym share of trainer payments, Paystack refund webhooks (refunds are marked "pending" until then).
 
 ## Phase 3 — Store
 - Partner dashboard: products, variants, stock, orders.

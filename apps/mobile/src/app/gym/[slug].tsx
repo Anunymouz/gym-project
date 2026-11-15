@@ -3,7 +3,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { formatGhs, openingStatus, pesewas, planPeriodLabel, type FeedPost, type GymDetail, type MembershipPlanSummary } from '@bgym/shared';
+import { formatGhs, openingStatus, pesewas, planPeriodLabel, type FeedPost, type GymDetail, type TrainerCard as TrainerCardData, type MembershipPlanSummary } from '@bgym/shared';
 import { GlassButton } from '@/components/glass-button';
 import { PostCard } from '@/components/feed/post-card';
 import { ReportSheet, type ReportTarget } from '@/components/feed/report-sheet';
@@ -13,7 +13,8 @@ import { Skeleton } from '@/components/motion/skeleton';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Text } from '@/components/ui/text';
-import { feedApi, fetchGym } from '@/lib/api';
+import { feedApi, fetchGym, trainersApi } from '@/lib/api';
+import { TrainerCard } from '@/components/trainers/trainer-card';
 import { colors, fonts, radii, space } from '@/theme';
 
 type Tab = 'Plans' | 'Info' | 'Feed' | 'Trainers';
@@ -145,13 +146,7 @@ export default function GymPage() {
 
               {tab === 'Feed' && <GymPosts slug={gym.slug} />}
 
-              {tab === 'Trainers' && (
-                <EmptyState
-                  icon={<UsersThreeIcon size={28} color={colors.flare} weight="duotone" />}
-                  title="Trainers at this gym"
-                  body="Book personal training sessions here. Coming soon."
-                />
-              )}
+              {tab === 'Trainers' && <GymTrainers slug={gym.slug} />}
             </Animated.View>
           )}
         </Animated.View>
@@ -252,4 +247,17 @@ function GymPosts({ slug }: { slug: string }) {
       <ReportSheet target={reporting} onClose={() => setReporting(null)} />
     </View>
   );
+}
+
+/** Personal trainers at this gym. */
+function GymTrainers({ slug }: { slug: string }) {
+  const [trainers, setTrainers] = useState<TrainerCardData[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    trainersApi.list(slug).then((t) => live && setTrainers(t), () => live && setTrainers([]));
+    return () => { live = false; };
+  }, [slug]);
+  if (!trainers) return <View style={{ gap: space.md }}>{[0, 1].map((i) => <Skeleton key={i} height={130} radius={radii.lg} />)}</View>;
+  if (trainers.length === 0) return <EmptyState icon={<UsersThreeIcon size={28} color={colors.flare} weight="duotone" />} title="No trainers yet" body="This gym hasn’t added personal trainers to BGYM yet." />;
+  return <View style={{ gap: space.md }}>{trainers.map((t) => <TrainerCard key={t.id} trainer={t} />)}</View>;
 }

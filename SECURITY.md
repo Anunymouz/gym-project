@@ -57,6 +57,12 @@ Please do **not** open a public issue. Email the BGYM team privately with the de
 - Invitations are tied to an email address and can only be accepted by a person signed in with it (their sign-in code proves ownership), exactly once; there is no secret link to forward or leak.
 - Role rules are enforced by the API (owners: anyone; managers: front desk only). Team changes lock the gym's staff rows, so concurrent changes can't remove the last owner. Every change is audited.
 
+**Trainers and bookings**
+- Only a gym's owners and managers invite or remove its trainers; an invitation can only be accepted by someone signed in with the invited email, once. Trainer pages need the trainer role (checked in the database on every request), and a trainer only ever sees their own bookings, clients and earnings.
+- Slots can't be sold twice: bookings for a trainer are made one at a time under a row lock, the requested time must be one the server itself offers, and the database refuses overlapping live bookings (an exclusion constraint). A member can't be in two sessions at once.
+- Payments: the amount and BGYM's fee are set by the server and stored on the payment; money is split at Paystack straight to the trainer's subaccount; real checkout is refused without one. Payout changes need a fresh emailed code (as for gyms). A payment that arrives after its slot was released is refunded automatically.
+- Cancellations and refunds happen exactly once (conditional updates); a refund is claimed before Paystack is asked and put back if Paystack refuses. Package sessions can't go below zero or above what was bought (database check).
+
 **Posts, stories and comments**
 - One set of rules decides who sees what (`CommunityAccessService`): a gym's own posts are public; members' posts, comments and stories only reach that gym's active members and staff. Anything else answers 404, so post IDs can't be probed.
 - Only members with an active membership can post to a gym, and only after accepting the community rules. Gym owners and managers can delete anything in their community (audited); the BGYM team removes reported posts, comments and stories (audited) and every open report on them is closed.

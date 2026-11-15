@@ -12,7 +12,7 @@ import { colors, radii, space } from '@/theme';
 
 const rows: { label: string; detail: string; Icon: ComponentType<IconProps>; href?: Href }[] = [
   { label: 'My memberships', detail: 'QR codes and renewals', Icon: QrCodeIcon, href: '/memberships' },
-  { label: 'My bookings', detail: 'Trainer sessions', Icon: UserCircleIcon },
+  { label: 'My bookings', detail: 'Trainer sessions and packages', Icon: UserCircleIcon, href: '/bookings' },
   { label: 'My orders', detail: 'Store orders and delivery', Icon: ShoppingBagIcon },
   { label: 'Payments & receipts', detail: 'Every payment, with a receipt', Icon: ReceiptIcon, href: '/receipts' },
   { label: 'Notifications', detail: 'Reminders, check-ins and email', Icon: BellIcon, href: '/notifications' },

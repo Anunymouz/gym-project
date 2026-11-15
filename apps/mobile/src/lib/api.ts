@@ -5,6 +5,13 @@ import {
   type AuthTokens,
   type AuthUser,
   type BlockedUser,
+  type BookingCheckout,
+  type BookSessionInput,
+  type DaySlots,
+  type MyBooking,
+  type MyPackage,
+  type TrainerCard,
+  type TrainerDetail,
   type CommentPage,
   type FeedPage,
   type FeedPost,
@@ -351,4 +358,20 @@ export const videoApi = {
     if (status.status !== 'ready') throw new ApiError(status.error ?? 'That video took too long to process. Try again.');
     return status;
   },
+};
+
+const trainerMedia = <T extends { photoUrl: string | null }>(t: T): T => ({ ...t, photoUrl: media(t.photoUrl) });
+
+export const trainersApi = {
+  list: async (gymSlug?: string) => (await authed<TrainerCard[]>(`/v1/trainers${gymSlug ? `?gym=${encodeURIComponent(gymSlug)}` : ''}`)).map(trainerMedia),
+  detail: async (id: string) => trainerMedia(await authed<TrainerDetail>(`/v1/trainers/${id}`)),
+  slots: (id: string, from: string, days = 7) => authed<DaySlots[]>(`/v1/trainers/${id}/slots?from=${from}&days=${days}`),
+  book: (id: string, input: BookSessionInput) => authed<BookingCheckout>(`/v1/trainers/${id}/bookings`, { method: 'POST', body: JSON.stringify(input) }),
+  buyPackage: (packageId: string) => authed<BookingCheckout>(`/v1/trainer-packages/${packageId}/purchase`, { method: 'POST' }),
+  myBookings: async () => (await authed<MyBooking[]>('/v1/me/bookings')).map((b) => ({ ...b, trainer: trainerMedia(b.trainer) })),
+  cancel: async (bookingId: string) => {
+    const b = await authed<MyBooking>(`/v1/me/bookings/${bookingId}/cancel`, { method: 'POST' });
+    return { ...b, trainer: trainerMedia(b.trainer) };
+  },
+  myPackages: () => authed<MyPackage[]>('/v1/me/packages'),
 };
