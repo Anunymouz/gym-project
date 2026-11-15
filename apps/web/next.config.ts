@@ -7,7 +7,8 @@ const apiUrl = (process.env.API_URL ?? 'http://localhost:4000').replace(/\/$/, '
 const mediaOrigin = process.env.MEDIA_PUBLIC_URL ? new URL(process.env.MEDIA_PUBLIC_URL).origin : '';
 
 // Static CSP (no nonces). The browser never calls the API directly: every API call is made by
-// this server with the httpOnly session cookie, so connect-src stays 'self'.
+// this server with the httpOnly session cookie. The one exception is video uploads in production, which go
+// straight to Cloudflare Stream through one-time URLs the API hands out.
 // TODO: move to a nonce-based CSP via proxy.ts and drop 'unsafe-inline' for scripts.
 const csp = [
   "default-src 'self'",
@@ -17,7 +18,8 @@ const csp = [
   // Videos: from the API/CDN in development, Cloudflare Stream (signed links) in production.
   `media-src 'self' blob:${mediaOrigin ? ` ${mediaOrigin}` : ''} https://*.cloudflarestream.com`,
   "font-src 'self'",
-  `connect-src 'self'${isDev ? ' ws:' : ''}`,
+  // Videos go straight from the browser to Cloudflare Stream (one-time upload URLs).
+  `connect-src 'self' https://upload.cloudflarestream.com https://upload.videodelivery.net${isDev ? ' ws:' : ''}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

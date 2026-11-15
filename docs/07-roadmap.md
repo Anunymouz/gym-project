@@ -31,7 +31,8 @@ Phases are ordered so we can launch a paying product early, then layer on.
 - **Goal:** sign up the first batch of Accra gyms and take real payments.
 
 ## Phase 2 — Feed & trainers
-- Gym posts and Home feed. **Done (photos and text):** owners and managers post from the dashboard (up to 4 photos); members see posts from gyms they have an active membership at, newest first, and can like and report them; anyone can read a gym's posts on its page; the BGYM team handles reports in the admin dashboard. **Later:** video posts (needs Mux or Cloudflare Stream).
+- Gym posts and Home feed. **Done:** owners and managers post from the dashboard (text, up to 4 photos or a video); members see posts from gyms they belong to and can like, comment, share and report; the BGYM team handles reports in the admin dashboard.
+- Gym communities. **Done:** members with an active membership post to their gym (text, up to 4 photos or a video up to 3 minutes); stories from gyms and members (a photo or a video up to 60 seconds, gone after 24 hours) in a tray at the top of Home; comments; share links with a preview page; blocking; community rules before the first post; gym owners and managers moderate their community. Video: Cloudflare Stream in production (needs an account), converted on the API in development.
 - Trainer dashboard: profile, availability, single sessions, packages, earnings.
 - Member: Trainers tab, booking flows, booking reminders.
 - Trainer subaccounts and booking payments.

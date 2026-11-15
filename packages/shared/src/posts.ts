@@ -124,6 +124,12 @@ export interface StoryTray {
   postableGyms: { id: string; name: string }[];
   communityAccepted: boolean;
 }
+/** A current story as the gym sees it in its dashboard (with views and likes). */
+export interface StaffStory extends StoryItem {
+  author: string;
+  authorKind: 'gym' | 'member';
+}
+
 export const storyBodySchema = z.object({
   gymId: z.uuid(),
   caption: z.string().trim().max(MAX_STORY_CAPTION).optional(),

@@ -81,3 +81,21 @@ export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
   if (res.status === 401) redirect('/sign-in');
   return parse<T>(res);
 }
+
+/**
+ * Streams a large upload (a video) to the API as the signed-in person, without holding it in
+ * this server's memory. The browser's Content-Type (with its multipart boundary) is kept.
+ */
+export async function apiStream(path: string, body: ReadableStream<Uint8Array>, contentType: string): Promise<Response> {
+  const token = (await cookies()).get(COOKIE.access)?.value;
+  if (!token) return Response.json({ message: 'Sign in again.' }, { status: 401 });
+  const res = await send(`${API_URL}${path}`, {
+    method: 'POST',
+    body,
+    cache: 'no-store',
+    headers: { Accept: 'application/json', 'Content-Type': contentType, Authorization: `Bearer ${token}`, ...(await forwardedFor()) },
+    // Required by Node's fetch to stream a request body.
+    ...({ duplex: 'half' } as object),
+  });
+  return new Response(res.body, { status: res.status, headers: { 'Content-Type': res.headers.get('Content-Type') ?? 'application/json' } });
+}

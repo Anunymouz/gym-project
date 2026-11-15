@@ -57,10 +57,15 @@ Please do **not** open a public issue. Email the BGYM team privately with the de
 - Invitations are tied to an email address and can only be accepted by a person signed in with it (their sign-in code proves ownership), exactly once; there is no secret link to forward or leak.
 - Role rules are enforced by the API (owners: anyone; managers: front desk only). Team changes lock the gym's staff rows, so concurrent changes can't remove the last owner. Every change is audited.
 
-**Posts and reports**
-- Only owners and managers of a gym can post or delete its posts; photos go through the same processing as gym photos (re-encoded, metadata stripped), and all photos are checked before anything is saved.
-- The feed only includes a gym's posts while the member has an active membership there; removed posts disappear everywhere at once. Only members of that gym can like (one like per person, counted exactly).
-- Reports are one per person per post. The gym never sees who reported; the BGYM team decides, and every decision is audited.
+**Posts, stories and comments**
+- One set of rules decides who sees what (`CommunityAccessService`): a gym's own posts are public; members' posts, comments and stories only reach that gym's active members and staff. Anything else answers 404, so post IDs can't be probed.
+- Only members with an active membership can post to a gym, and only after accepting the community rules. Gym owners and managers can delete anything in their community (audited); the BGYM team removes reported posts, comments and stories (audited) and every open report on them is closed.
+- Blocking works both ways and applies everywhere: the feed, comments, stories and single posts.
+- Reports are one per person per item. Nobody but the BGYM team sees who reported.
+- Photos go through the same processing as gym photos (re-encoded, metadata removed), all checked before anything is saved.
+- Videos: an upload ticket belongs to one person and is used once (conditional update), and a video can be attached to one post or story. In development the API checks the file with ffprobe (it must really be a video, within the length limit), converts it with ffmpeg run without a shell and with a time limit, and strips all metadata, including GPS. Uploads go to a temp file with a random name (never into memory) and are deleted afterwards. In production videos go straight to Cloudflare Stream through one-time URLs with a length limit, and playback links are signed RS256 tokens that expire after 6 hours.
+- The dashboard's video upload route only accepts same-origin multipart requests (route handlers don't get server actions' CSRF check), streams the body without holding it, and the API still checks the ticket's owner.
+- Like, view and comment counts are exact under double taps (conditional inserts and deletes in transactions).
 
 **Notifications**
 - Push tokens are tied to the account that signed in last on that phone and removed on sign-out; tokens Expo reports as dead are deleted.

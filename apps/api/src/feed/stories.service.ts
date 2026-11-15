@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { STORY_HOURS, type ReportInput, type StoryGroup, type StoryItem, type StoryTray } from '@bgym/shared';
+import { STORY_HOURS, type ReportInput, type StaffStory, type StoryGroup, type StoryItem, type StoryTray } from '@bgym/shared';
 import { AuditService } from '../audit/audit.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { StorageService } from '../media/storage.service.js';
@@ -161,7 +161,7 @@ export class StoriesService {
   }
 
   // ── Gym staff ──
-  async staffList(gymId: string): Promise<Array<StoryItem & { author: string; authorKind: 'gym' | 'member' }>> {
+  async staffList(gymId: string): Promise<StaffStory[]> {
     const rows = await this.prisma.story.findMany({ where: { gymId, status: 'published', expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'desc' }, take: 100, select: storySelect });
     return Promise.all(rows.map(async (r) => ({ ...(await this.toItem(r, true, true, false)), author: r.authorKind === 'gym' ? r.gym.name : (r.author.name ?? 'BGYM member'), authorKind: r.authorKind })));
   }

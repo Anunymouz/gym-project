@@ -19,7 +19,7 @@ A fitness marketplace for Ghana, starting in Accra. Members find partner gyms ne
 
 ## Getting started
 
-**You need:** Node.js 22 (see `.nvmrc`), pnpm 10 (`corepack enable`), Docker Desktop, and the Expo Go app on your phone.
+**You need:** Node.js 22 (see `.nvmrc`), pnpm 10 (`corepack enable`), Docker Desktop, ffmpeg (for videos in posts and stories: `winget install ffmpeg` on Windows, `brew install ffmpeg` on Mac), and the Expo Go app on your phone.
 
 ```bash
 pnpm install

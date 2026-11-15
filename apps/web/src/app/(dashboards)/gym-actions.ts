@@ -22,6 +22,9 @@ import {
   type RemindResponse,
   type StaffPlan,
   type StaffPost,
+  type StaffStory,
+  type VideoUploadStatus,
+  type VideoUploadTicket,
   type UpdateGymProfileInput,
   type UpdatePayoutInput,
 } from '@bgym/shared';
@@ -285,10 +288,13 @@ export async function createPost(form: FormData): Promise<PostResult> {
   const body = postBodySchema.safeParse(String(form.get('body') ?? ''));
   if (!body.success) return { error: body.error.issues[0]?.message ?? 'Check the post text.' };
   const photos = form.getAll('photos').filter((f): f is File => f instanceof File && f.size > 0);
+  const videoId = z.uuid().optional().safeParse(form.get('videoId') || undefined);
+  if (!videoId.success) return { error: 'That video isn’t ready.' };
   if (photos.length > MAX_POST_PHOTOS) return { error: `Up to ${MAX_POST_PHOTOS} photos per post.` };
-  if (!body.data && photos.length === 0) return { error: 'Write something or add a photo.' };
+  if (!body.data && photos.length === 0 && !videoId.data) return { error: 'Write something, or add a photo or video.' };
   const out = new FormData();
   out.set('body', body.data);
+  if (videoId.data) out.set('videoId', videoId.data);
   for (const p of photos) out.append('photos', p, 'photo');
   try {
     const post = await apiUpload<StaffPost>(`/v1/staff/gyms/${gym.id}/posts`, out);
@@ -305,6 +311,67 @@ export async function deletePost(postId: string): Promise<{ error?: string }> {
   if (!id.success) return { error: 'Post not found.' };
   try {
     await api<void>(`/v1/staff/gyms/${gym.id}/posts/${id.data}`, { method: 'DELETE' });
+    revalidatePath('/gym/feed');
+    return {};
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : 'Something went wrong.' };
+  }
+}
+
+// ── Videos and stories ──
+
+/** Step 1 of a video upload: where to send the file (our upload route, or Cloudflare). */
+export async function startVideo(purpose: 'post' | 'story'): Promise<{ ticket?: VideoUploadTicket; error?: string }> {
+  await requireGym();
+  if (purpose !== 'post' && purpose !== 'story') return { error: 'Unknown upload.' };
+  try {
+    return { ticket: await api<VideoUploadTicket>('/v1/videos', { method: 'POST', body: JSON.stringify({ purpose }) }) };
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : 'Couldn’t start the upload.' };
+  }
+}
+
+export async function videoStatus(id: string): Promise<{ status?: VideoUploadStatus; error?: string }> {
+  const parsed = z.uuid().safeParse(id);
+  if (!parsed.success) return { error: 'Unknown upload.' };
+  try {
+    return { status: await api<VideoUploadStatus>(`/v1/videos/${parsed.data}`) };
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : 'Couldn’t check the upload.' };
+  }
+}
+
+export type StoryResult = { stories?: StaffStory[]; error?: string };
+
+/** A story as the gym: one photo or a ready video, with an optional caption. */
+export async function createStory(form: FormData): Promise<StoryResult> {
+  const gym = await requireGym();
+  const caption = z.string().trim().max(200, 'Keep the caption under 200 characters.').safeParse(String(form.get('caption') ?? ''));
+  if (!caption.success) return { error: caption.error.issues[0]?.message };
+  const photo = form.get('photo');
+  const videoId = z.uuid().optional().safeParse(form.get('videoId') || undefined);
+  if (!videoId.success) return { error: 'That video isn’t ready.' };
+  const hasPhoto = photo instanceof File && photo.size > 0;
+  if (!hasPhoto && !videoId.data) return { error: 'Add a photo or a video.' };
+  const out = new FormData();
+  if (caption.data) out.set('caption', caption.data);
+  if (videoId.data) out.set('videoId', videoId.data);
+  if (hasPhoto) out.append('photos', photo, 'photo');
+  try {
+    const stories = await apiUpload<StaffStory[]>(`/v1/staff/gyms/${gym.id}/stories`, out);
+    revalidatePath('/gym/feed');
+    return { stories };
+  } catch (err) {
+    return { error: err instanceof ApiError ? (err.status === 403 ? 'Only owners and managers can post stories.' : err.message) : 'Something went wrong.' };
+  }
+}
+
+export async function deleteStory(storyId: string): Promise<{ error?: string }> {
+  const gym = await requireGym();
+  const id = z.uuid().safeParse(storyId);
+  if (!id.success) return { error: 'Story not found.' };
+  try {
+    await api<void>(`/v1/staff/gyms/${gym.id}/stories/${id.data}`, { method: 'DELETE' });
     revalidatePath('/gym/feed');
     return {};
   } catch (err) {
