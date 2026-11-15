@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Suspense,
   useEffect,
   useId,
   useState,
@@ -10,7 +11,7 @@ import {
 } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useSelectedLayoutSegment } from 'next/navigation';
 import {
   Bank,
   Barbell,
@@ -74,7 +75,6 @@ const isTyping = (el: EventTarget | null) =>
   (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
 
 export function DashboardShell({ dashboard, account, children }: { dashboard: DashboardId; account: ReactNode; children: ReactNode }) {
-  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const collapsed = useSyncExternalStore(subscribe, isSidebarCollapsed, () => false);
   const navId = useId();
@@ -178,16 +178,36 @@ export function DashboardShell({ dashboard, account, children }: { dashboard: Da
           aria-label={config.name}
           className="flex flex-1 flex-col gap-1 overflow-y-auto lg:collapsed:overflow-visible"
         >
-          {config.nav.map((item) => {
+          {/* The highlighted section comes from the URL, which dynamic pages only know at request time. */}
+          <Suspense fallback={<NavLinks dashboard={dashboard} section={undefined} onNavigate={() => setOpen(false)} />}>
+            <ActiveNavLinks dashboard={dashboard} onNavigate={() => setOpen(false)} />
+          </Suspense>
+        </nav>
+
+        {account}
+      </aside>
+
+      <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+    </div>
+  );
+}
+
+/** Sidebar links; `section` is the open section (undefined while the URL isn't known yet). */
+function NavLinks({ dashboard, section, onNavigate }: { dashboard: DashboardId; section: string | null | undefined; onNavigate: () => void }) {
+  const config = dashboards[dashboard];
+  const base = `/${dashboard}`;
+  return (
+    <>
+      {config.nav.map((item) => {
             const href = item.slug ? `${base}/${item.slug}` : base;
-            const active = item.slug ? pathname.startsWith(href) : pathname === base;
+            const active = item.slug ? section === item.slug : section === null;
             const Icon = icons[item.icon] ?? ChartBar;
             return (
               <Link
                 key={item.slug || 'home'}
                 href={href}
                 aria-current={active ? 'page' : undefined}
-                onClick={() => setOpen(false)}
+                onClick={onNavigate}
                 className={clsx(
                   'group/nav relative flex items-center gap-3 rounded-control px-3 py-2.5 font-semibold transition-colors lg:collapsed:justify-center lg:collapsed:px-0',
                   active ? 'bg-flare/15 text-white' : 'hover:bg-white/5 hover:text-white',
@@ -209,12 +229,10 @@ export function DashboardShell({ dashboard, account, children }: { dashboard: Da
               </Link>
             );
           })}
-        </nav>
-
-        {account}
-      </aside>
-
-      <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
-    </div>
+    </>
   );
+}
+
+function ActiveNavLinks({ dashboard, onNavigate }: { dashboard: DashboardId; onNavigate: () => void }) {
+  return <NavLinks dashboard={dashboard} section={useSelectedLayoutSegment()} onNavigate={onNavigate} />;
 }

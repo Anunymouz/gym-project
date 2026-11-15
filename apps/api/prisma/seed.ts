@@ -65,6 +65,12 @@ async function seedDemo(): Promise<void> {
   await prisma.trainerInvitation.deleteMany({ where: { email: { endsWith: DEMO_DOMAIN } } });
   const demoUsers = await prisma.user.findMany({ where: { email: { endsWith: DEMO_DOMAIN } }, select: { id: true } });
   const ids = demoUsers.map((u) => u.id);
+  // The demo store partner (its products, orders and pickup point) is rebuilt from scratch.
+  const demoSellers = (await prisma.seller.findMany({ where: { contactEmail: { endsWith: DEMO_DOMAIN } }, select: { id: true } })).map((x) => x.id);
+  await prisma.order.deleteMany({ where: { OR: [{ userId: { in: ids } }, { sellerId: { in: demoSellers } }] } });
+  await prisma.product.deleteMany({ where: { sellerId: { in: demoSellers } } });
+  await prisma.pickupLocation.deleteMany({ where: { sellerId: { in: demoSellers } } });
+  await prisma.seller.deleteMany({ where: { id: { in: demoSellers } } });
   if (ids.length) {
     // Things demo accounts made while trying the app and dashboards.
     const trainerIds = (await prisma.trainer.findMany({ where: { userId: { in: ids } }, select: { id: true } })).map((t) => t.id);
@@ -129,7 +135,8 @@ async function seedDemo(): Promise<void> {
     }
   }
   const trainers = await seedTrainers(gym.id);
-  console.log(`Demo: owner${DEMO_DOMAIN} (owner) and frontdesk${DEMO_DOMAIN} (front desk) at ${gym.name}, ${demoMembers.length} members; admin${DEMO_DOMAIN} (BGYM team); trainers ${trainers.join(', ')}.`);
+  await seedStore();
+  console.log(`Demo: owner${DEMO_DOMAIN} (owner) and frontdesk${DEMO_DOMAIN} (front desk) at ${gym.name}, ${demoMembers.length} members; admin${DEMO_DOMAIN} (BGYM team); trainers ${trainers.join(', ')}; store partner partner${DEMO_DOMAIN} (Accra Nutrition Hub).`);
 }
 
 /** Two listed trainers at the demo gym, with photos, hours and packages, ready to book. */
@@ -167,6 +174,60 @@ async function seedTrainers(gymId: string): Promise<string[]> {
     names.push(`${p.email} (${p.name})`);
   }
   return names;
+}
+
+type DemoProduct = { title: string; brand: string; category: string; photo: string; description: string; variants: Array<[name: string, sku: string, price: number, stock: number, was?: number]> };
+
+/** BGYM's own demo products and a demo partner, with photos, ready to buy in the app. */
+async function seedStore(): Promise<void> {
+  const categories = new Map((await prisma.category.findMany({ select: { id: true, slug: true } })).map((c) => [c.slug, c.id]));
+  const platform = (await prisma.seller.findFirst({ where: { type: 'platform' } }))!;
+  await prisma.$executeRaw`DELETE FROM pickup_locations p WHERE "sellerId" = ${platform.id}::uuid AND NOT EXISTS (SELECT 1 FROM orders o WHERE o."pickupLocationId" = p.id)`;
+  if (!(await prisma.pickupLocation.count({ where: { sellerId: platform.id } }))) {
+    await prisma.$executeRaw`INSERT INTO pickup_locations (id, "sellerId", "addressText", "contactPhone", location)
+      VALUES (gen_random_uuid(), ${platform.id}::uuid, 'BGYM warehouse, Spintex Road, near Coca-Cola roundabout', '+233302000000', ST_SetSRID(ST_MakePoint(-0.1012, 5.6342), 4326)::geography)`;
+  }
+  const own: DemoProduct[] = [
+    { title: 'BGYM Resistance Band Set', brand: 'BGYM', category: 'accessories', photo: 'product-bands.jpg', description: 'Five latex bands from light to extra heavy, with handles, ankle straps and a door anchor. Great for warm-ups, rehab and training at home.', variants: [['Set of 5', 'DEMO-BANDS-5', 18000, 40, 22000]] },
+    { title: 'Rubber Hex Dumbbells (pair)', brand: 'BGYM', category: 'equipment', photo: 'product-dumbbells.jpg', description: 'Rubber-coated hex heads that don’t roll, with knurled chrome handles. Sold as a pair.', variants: [['2 × 5 kg', 'DEMO-DB-5', 35000, 12], ['2 × 10 kg', 'DEMO-DB-10', 62000, 8], ['2 × 15 kg', 'DEMO-DB-15', 89000, 2]] },
+    { title: 'Olympic Bumper Plates', brand: 'BGYM', category: 'equipment', photo: 'product-plates.jpg', description: 'Solid rubber bumper plates with a steel insert for 50 mm Olympic bars. Price per plate.', variants: [['10 kg', 'DEMO-PLATE-10', 40000, 20], ['20 kg', 'DEMO-PLATE-20', 75000, 10]] },
+    { title: 'BGYM Training Shoes', brand: 'BGYM', category: 'apparel', photo: 'product-shoes.jpg', description: 'Flat, stable sole for lifting and a breathable upper for conditioning work.', variants: [['EU 40', 'DEMO-SHOE-40', 65000, 4], ['EU 42', 'DEMO-SHOE-42', 65000, 6], ['EU 44', 'DEMO-SHOE-44', 65000, 3]] },
+  ];
+  for (const p of own) await upsertDemoProduct(platform.id, categories, p);
+
+  const user = await prisma.user.create({ data: { email: `partner${DEMO_DOMAIN}`, name: 'Yaw Mensah', roles: ['member', 'partner'] } });
+  const partner = await prisma.seller.create({
+    data: {
+      type: 'partner', name: 'Accra Nutrition Hub', commissionBps: 1500, contactEmail: `partner${DEMO_DOMAIN}`, contactPhone: '+233201234567',
+      paystackSubaccountCode: 'ACCT_dev_demo_partner', payoutMethod: 'mobile_money', payoutBankName: 'MTN Mobile Money', payoutAccountName: 'Accra Nutrition Hub', payoutAccountLast4: '7788', payoutUpdatedAt: new Date(),
+      users: { create: { userId: user.id, role: 'owner' } },
+    },
+  });
+  await prisma.$executeRaw`INSERT INTO pickup_locations (id, "sellerId", "addressText", "contactPhone", location)
+    VALUES (gen_random_uuid(), ${partner.id}::uuid, 'Accra Nutrition Hub, Oxford Street, Osu', '+233201234567', ST_SetSRID(ST_MakePoint(-0.1820, 5.5571), 4326)::geography)`;
+  await upsertDemoProduct(partner.id, categories, {
+    title: 'Gold Standard 100% Whey', brand: 'Optimum Nutrition', category: 'supplements', photo: 'product-whey.jpg',
+    description: '24 g of protein per scoop from whey isolate, concentrate and peptides. Mixes easily with water or milk.',
+    variants: [['2 lb · Double Rich Chocolate', 'DEMO-ON-WHEY-2', 85000, 15, 95000], ['5 lb · Double Rich Chocolate', 'DEMO-ON-WHEY-5', 165000, 6], ['5 lb · Vanilla Ice Cream', 'DEMO-ON-WHEY-5V', 165000, 0]],
+  });
+}
+
+/** Creates (or refreshes, by SKU) a live demo product with its photo. */
+async function upsertDemoProduct(sellerId: string, categories: Map<string, string>, p: DemoProduct): Promise<void> {
+  const existing = await prisma.productVariant.findUnique({ where: { sku: p.variants[0]![1] }, select: { productId: true } });
+  const data = { title: p.title, brand: p.brand, description: p.description, categoryId: categories.get(p.category)!, status: 'active' as const, publishedAt: new Date(), sellerId };
+  const product = existing ? await prisma.product.update({ where: { id: existing.productId }, data }) : await prisma.product.create({ data });
+  for (const [i, [name, sku, price, stock, was]] of p.variants.entries()) {
+    await prisma.productVariant.upsert({
+      where: { sku },
+      update: { name, pricePesewas: price, compareAtPricePesewas: was ?? null, stock, reserved: 0, isActive: true, sortOrder: i, productId: product.id },
+      create: { productId: product.id, name, sku, pricePesewas: price, compareAtPricePesewas: was ?? null, stock, sortOrder: i },
+    });
+  }
+  if (!(await prisma.productImage.count({ where: { productId: product.id } }))) {
+    const keys = await seedPhoto('products', product.id, p.photo);
+    if (keys) await prisma.productImage.create({ data: { productId: product.id, key: keys.key, thumbKey: keys.thumbKey, width: 1000, height: 1000 } });
+  }
 }
 
 /** Writes a seed photo into local storage the way uploads are stored (development storage only). */

@@ -151,6 +151,16 @@ export class ProductsService {
     return this.get(sellerId, productId);
   }
 
+  /** Quick stock change (Inventory). Never below what's held for orders being paid. */
+  async setStock(sellerId: string, actorId: string, variantId: string, stock: number): Promise<SellerProduct> {
+    const v = await this.prisma.productVariant.findFirst({ where: { id: variantId, product: { sellerId } }, select: { productId: true, reserved: true, stock: true } });
+    if (!v) throw new NotFoundException('Option not found');
+    const n = await this.prisma.$executeRaw`UPDATE product_variants SET stock = ${stock} WHERE id = ${variantId}::uuid AND reserved <= ${stock}`;
+    if (!n) throw new BadRequestException(`${v.reserved} are held for orders being paid. Set stock to at least that.`);
+    await this.audit.record({ action: 'product.stock', actorId, targetType: 'product', targetId: v.productId, metadata: { variantId, from: v.stock, to: stock } });
+    return this.get(sellerId, v.productId);
+  }
+
   // ── BGYM team ──
 
   async pendingReview(): Promise<Array<SellerProduct & { seller: string }>> {

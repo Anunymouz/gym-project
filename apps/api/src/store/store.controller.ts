@@ -10,6 +10,7 @@ import {
   productInputSchema,
   productReviewSchema,
   productStatusActionSchema,
+  stockAdjustSchema,
   storeQuerySchema,
   updatePayoutSchema,
   type CreatePartnerInput,
@@ -131,6 +132,11 @@ export class PartnerController {
     return this.products.setStatus(await this.seller(user), user.userId, productId, body.action);
   }
 
+  @Put('variants/:variantId/stock')
+  async stock(@CurrentUser() user: AccessClaims, @Param('variantId', { schema: id }) variantId: string, @Body({ schema: stockAdjustSchema }) body: { stock: number }) {
+    return this.products.setStock(await this.seller(user), user.userId, variantId, body.stock);
+  }
+
   @Post('products/:productId/photos')
   @Throttle({ default: { limit: 60, ttl: 60 * 60_000 } })
   @UseInterceptors(photo())
@@ -226,6 +232,11 @@ export class AdminStoreController {
   @HttpCode(HttpStatus.OK)
   async ownStatus(@CurrentUser() user: AccessClaims, @Param('productId', { schema: id }) productId: string, @Body({ schema: productStatusActionSchema }) body: { action: 'publish' | 'unpublish' | 'archive' }) {
     return this.products.setStatus(await this.sellers.platformSellerId(), user.userId, productId, body.action);
+  }
+
+  @Put('own/variants/:variantId/stock')
+  async ownStock(@CurrentUser() user: AccessClaims, @Param('variantId', { schema: id }) variantId: string, @Body({ schema: stockAdjustSchema }) body: { stock: number }) {
+    return this.products.setStock(await this.sellers.platformSellerId(), user.userId, variantId, body.stock);
   }
 
   @Post('own/products/:productId/photos')
