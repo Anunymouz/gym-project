@@ -69,3 +69,26 @@ export const checkInByEmailSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email('Enter a valid email address')),
 });
 export type CheckInByEmailInput = z.infer<typeof checkInByEmailSchema>;
+
+/** A calendar month, e.g. "2026-11" (Accra time = UTC). */
+export const monthSchema = z.string().regex(/^20\d{2}-(0[1-9]|1[0-2])$/, 'Use a month like 2026-11');
+export const revenueQuerySchema = z.object({ month: monthSchema.optional() });
+
+export interface RevenueMonth {
+  month: string;
+  /** Months that have at least one payment, newest first (for the month picker). */
+  months: string[];
+  totals: { payments: number; grossPesewas: number; feePesewas: number; netPesewas: number };
+  byPlan: Array<{ plan: string; payments: number; netPesewas: number }>;
+  payments: Array<{
+    id: string;
+    reference: string;
+    paidAt: string;
+    memberName: string | null;
+    plan: string;
+    channel: string | null;
+    grossPesewas: number;
+    feePesewas: number;
+    netPesewas: number;
+  }>;
+}

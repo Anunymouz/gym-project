@@ -181,4 +181,26 @@ describe('Gym dashboard API (e2e)', () => {
       await send({ ...valid, phone: '12345' }).expect(400);
     });
   });
+
+  describe('revenue', () => {
+    it('is for owners and managers only, and adds up', async () => {
+      await http().get(`/v1/staff/gyms/${gymId}/revenue`).set(as(frontDesk)).expect(403);
+      await http().get(`/v1/staff/gyms/${gymId}/revenue`).query({ month: '2026-13' }).set(as(owner)).expect(400);
+
+      const res = await http().get(`/v1/staff/gyms/${gymId}/revenue`).set(as(owner)).expect(200);
+      const r = res.body;
+      const now = new Date();
+      expect(r.month).toBe(`${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`);
+      expect(r.months[0]).toBe(r.month);
+      // The member who paid in beforeAll is in this month.
+      expect(r.payments.some((p: { memberName: string }) => p.memberName === 'Test member')).toBe(true);
+      const sum = (k: string) => r.payments.reduce((t: number, p: Record<string, number>) => t + p[k]!, 0);
+      expect(r.totals).toEqual({ payments: r.payments.length, grossPesewas: sum('grossPesewas'), feePesewas: sum('feePesewas'), netPesewas: sum('netPesewas') });
+      expect(r.totals.netPesewas).toBe(r.totals.grossPesewas - r.totals.feePesewas);
+      expect(r.byPlan.reduce((t: number, p: { netPesewas: number }) => t + p.netPesewas, 0)).toBe(r.totals.netPesewas);
+
+      const empty = await http().get(`/v1/staff/gyms/${gymId}/revenue`).query({ month: '2020-01' }).set(as(owner)).expect(200);
+      expect(empty.body.totals).toEqual({ payments: 0, grossPesewas: 0, feePesewas: 0, netPesewas: 0 });
+    });
+  });
 });

@@ -12,6 +12,8 @@ import {
   type MembersQuery,
   updateGymProfileSchema,
   type RemindResponse,
+  type RevenueMonth,
+  revenueQuerySchema,
   type StaffGym,
   type StaffPlan,
   type UpdatePlanInput,
@@ -78,6 +80,13 @@ export class StaffController {
   ): Promise<GymProfile> {
     await this.access.require(user, gymId, ['owner', 'manager']);
     return this.staff.updateProfile(gymId, user.userId, body);
+  }
+
+  /** Money is for owners and managers only. */
+  @Get('gyms/:gymId/revenue')
+  async revenue(@CurrentUser() user: AccessClaims, @Param('gymId', { schema: id }) gymId: string, @Query({ schema: revenueQuerySchema }) query: { month?: string }): Promise<RevenueMonth> {
+    await this.access.require(user, gymId, ['owner', 'manager']);
+    return this.staff.revenue(gymId, query.month);
   }
 
   @Get('gyms/:gymId/plans')

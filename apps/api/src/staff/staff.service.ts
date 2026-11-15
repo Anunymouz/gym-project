@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { z } from 'zod';
-import type { CreatePlanInput, GymMember, GymOverview, GymProfile, MembersQuery, OpeningHours, StaffGym, StaffPlan, UpdatePlanInput, updateGymProfileSchema } from '@bgym/shared';
+import type { CreatePlanInput, GymMember, GymOverview, GymProfile, MembersQuery, OpeningHours, RevenueMonth, StaffGym, StaffPlan, UpdatePlanInput, updateGymProfileSchema } from '@bgym/shared';
 import { AuditService } from '../audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RemindersService } from '../reminders/reminders.service.js';
@@ -182,5 +182,57 @@ export class StaffService {
     const changed = (Object.keys(input) as Array<keyof typeof input>).filter((k) => JSON.stringify(input[k]) !== JSON.stringify(before[k]));
     if (changed.length) await this.audit.record({ action: 'gym.profile_updated', actorId, targetType: 'gym', targetId: gymId, metadata: { changed } });
     return { ...gym, openingHours: gym.openingHours as OpeningHours, updatedAt: gym.updatedAt.toISOString() };
+  }
+
+  /** Successful membership payments at this gym in one calendar month (Accra = UTC). */
+  async revenue(gymId: string, month?: string): Promise<RevenueMonth> {
+    const now = new Date();
+    const key = month ?? `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    const [y, m] = key.split('-').map(Number) as [number, number];
+    const from = new Date(Date.UTC(y, m - 1, 1));
+    const to = new Date(Date.UTC(y, m, 1));
+
+    const [rows, months] = await Promise.all([
+      this.prisma.payment.findMany({
+        where: { status: 'success', membership: { gymId }, paidAt: { gte: from, lt: to } },
+        orderBy: { paidAt: 'desc' },
+        take: 5000,
+        select: { id: true, reference: true, paidAt: true, channel: true, amountPesewas: true, platformFeePesewas: true, user: { select: { name: true } }, membership: { select: { plan: { select: { name: true } } } } },
+      }),
+      this.prisma.$queryRaw<Array<{ month: string }>>`
+        SELECT DISTINCT to_char(p."paidAt" AT TIME ZONE 'UTC', 'YYYY-MM') AS month
+        FROM payments p JOIN memberships m ON m."paymentId" = p.id
+        WHERE m."gymId" = ${gymId}::uuid AND p.status = 'success' AND p."paidAt" IS NOT NULL
+        ORDER BY month DESC LIMIT 36`,
+    ]);
+
+    const payments = rows.map((p) => ({
+      id: p.id,
+      reference: p.reference,
+      paidAt: p.paidAt!.toISOString(), // filtered on paidAt, so always set
+      memberName: p.user.name,
+      plan: p.membership?.plan.name ?? 'Membership',
+      channel: p.channel,
+      grossPesewas: p.amountPesewas,
+      feePesewas: p.platformFeePesewas,
+      netPesewas: p.amountPesewas - p.platformFeePesewas,
+    }));
+    const byPlan = new Map<string, { plan: string; payments: number; netPesewas: number }>();
+    for (const p of payments) {
+      const entry = byPlan.get(p.plan) ?? { plan: p.plan, payments: 0, netPesewas: 0 };
+      entry.payments++;
+      entry.netPesewas += p.netPesewas;
+      byPlan.set(p.plan, entry);
+    }
+    const sum = (k: 'grossPesewas' | 'feePesewas' | 'netPesewas') => payments.reduce((t, p) => t + p[k], 0);
+    const monthList = months.map((r) => r.month);
+    if (!monthList.includes(key)) monthList.unshift(key);
+    return {
+      month: key,
+      months: monthList.sort().reverse(),
+      totals: { payments: payments.length, grossPesewas: sum('grossPesewas'), feePesewas: sum('feePesewas'), netPesewas: sum('netPesewas') },
+      byPlan: [...byPlan.values()].sort((a, b) => b.netPesewas - a.netPesewas),
+      payments,
+    };
   }
 }
