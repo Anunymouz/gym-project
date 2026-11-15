@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { FeesModule } from './fees/fees.module.js';
+import { MediaModule } from './media/media.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { RemindersModule } from './reminders/reminders.module.js';
 import { ClientIpThrottlerGuard } from './common/client-ip-throttler.guard.js';
@@ -60,6 +61,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     PaymentsModule,
     ScheduleModule.forRoot(),
     FeesModule,
+    MediaModule,
     NotificationsModule,
     RemindersModule,
     StaffModule,

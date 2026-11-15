@@ -44,6 +44,18 @@ export const envSchema = z.object({
   EXPO_ACCESS_TOKEN: z.string().optional(),
   /** Public address of the web dashboards; used for links in emails (unsubscribe). */
   WEB_URL: z.url().default('http://localhost:3000').transform((v) => v.replace(/\/$/, '')),
+  /** local = files on this server's disk (development); s3 = S3-compatible storage such as Cloudflare R2. */
+  STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
+  STORAGE_LOCAL_DIR: z.string().default('./storage'),
+  S3_BUCKET: z.string().optional(),
+  /** "auto" for Cloudflare R2. */
+  S3_REGION: z.string().default('auto'),
+  /** e.g. https://<account>.r2.cloudflarestorage.com (leave unset for AWS S3). */
+  S3_ENDPOINT: z.url().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
+  /** Public base URL the bucket is served from, e.g. https://media.bgym.app (required with s3). */
+  MEDIA_PUBLIC_URL: z.url().optional().transform((v) => v?.replace(/\/$/, '')),
   /** Email renewal reminders on a schedule. Turn off for tests or a second region sharing a database. */
   REMINDERS_ENABLED: z.stringbool().default(true),
   /** Where Paystack sends the browser after payment: the app's deep link. */
@@ -63,6 +75,7 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   if (env.NODE_ENV === 'production') {
     if (env.CORS_ORIGINS.length === 0) problems.push('CORS_ORIGINS: required in production');
     if (env.MAIL_DRIVER !== 'resend') problems.push('MAIL_DRIVER: must be "resend" in production');
+    if (env.STORAGE_DRIVER !== 's3') problems.push('STORAGE_DRIVER: must be "s3" in production');
     if (env.PUSH_DRIVER !== 'expo') problems.push('PUSH_DRIVER: must be "expo" in production');
     if (!env.WEB_URL.startsWith('https://')) problems.push('WEB_URL: must be https in production');
     if (env.PAYMENTS_DRIVER !== 'paystack') problems.push('PAYMENTS_DRIVER: must be "paystack" in production');
@@ -73,6 +86,11 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     }
   }
   if (env.PAYMENTS_DRIVER === 'paystack' && !env.PAYSTACK_SECRET_KEY) problems.push('PAYSTACK_SECRET_KEY: required when PAYMENTS_DRIVER is "paystack"');
+  if (env.STORAGE_DRIVER === 's3') {
+    for (const key of ['S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY', 'MEDIA_PUBLIC_URL'] as const) {
+      if (!env[key]) problems.push(`${key}: required when STORAGE_DRIVER is "s3"`);
+    }
+  }
   if (env.MAIL_DRIVER === 'resend' && !env.RESEND_API_KEY) problems.push('RESEND_API_KEY: required when MAIL_DRIVER is "resend"');
   if (env.JWT_ACCESS_SECRET === env.OTP_PEPPER) problems.push('OTP_PEPPER: must differ from JWT_ACCESS_SECRET');
   if (problems.length) {

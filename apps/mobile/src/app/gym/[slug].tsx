@@ -5,7 +5,7 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatGhs, openingStatus, pesewas, planPeriodLabel, type GymDetail, type MembershipPlanSummary } from '@bgym/shared';
 import { GlassButton } from '@/components/glass-button';
-import { GymCover } from '@/components/gym-cover';
+import { GymGallery } from '@/components/gym-gallery';
 import { ArrowLeftIcon, CheckCircleIcon, ClockIcon, MapTrifoldIcon, PhoneIcon, ShoppingBagIcon, UsersThreeIcon, WifiSlashIcon } from '@/components/icons';
 import { Skeleton } from '@/components/motion/skeleton';
 import { Button } from '@/components/ui/button';
@@ -50,7 +50,7 @@ export default function GymPage() {
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
-        <GymCover uri={gym?.coverUrl ?? null} height={320} name={gym?.name ?? 'Gym'} />
+        <GymGallery photos={gym?.photos ?? []} coverUrl={gym?.coverUrl ?? null} height={320} name={gym?.name ?? 'Gym'} />
 
         <Animated.View entering={FadeInUp.duration(450)} style={styles.sheet}>
           {!gym && !error && (

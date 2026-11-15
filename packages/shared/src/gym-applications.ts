@@ -38,7 +38,7 @@ export interface GymReadiness {
   status: GymStatus;
   reviewNote: string | null;
   submittedAt: string | null;
-  steps: { profile: boolean; hours: boolean; plans: boolean; payout: boolean };
+  steps: { profile: boolean; photos: boolean; hours: boolean; plans: boolean; payout: boolean };
   canSubmit: boolean;
 }
 
@@ -66,6 +66,8 @@ export interface AdminGym {
   location: GymLocation;
   owner: { name: string | null; email: string } | null;
   plans: Array<{ name: string; durationDays: number; pricePesewas: number; isActive: boolean }>;
+  /** Thumbnail URLs, cover first. */
+  photos: string[];
   payoutReady: boolean;
   /** BGYM's special rate for this gym in bps, or null when it follows the default. */
   feeBps: number | null;

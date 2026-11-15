@@ -51,6 +51,8 @@ Open http://localhost:3000/gym and sign in with a demo account (loaded by `pnpm 
 
 To try listing a new gym, sign in with any new email: you'll see **List your gym**. In development, payout accounts are simulated (`PAYMENTS_DRIVER=dev`) and the confirmation code appears in the API terminal.
 
+**Photos:** in development, gym photos are saved in `apps/api/storage/` and served by the API (`STORAGE_DRIVER=local`). Production uses an S3-compatible bucket such as Cloudflare R2 (`STORAGE_DRIVER=s3` and the `S3_*` / `MEDIA_PUBLIC_URL` settings in `apps/api/.env.example`).
+
 **Notifications:** in development, push notifications are printed in the API terminal (`PUSH_DRIVER=log`). The app is linked to the Expo project `@cyberscec/bgym`. Real push works in Expo Go on iPhone; on Android it needs a development build (Expo Go on Android can't receive push notifications): run `npx eas-cli@latest build --profile development --platform android` in `apps/mobile`, install the APK it links to, then start Metro with `pnpm dev:mobile` and open the project from the BGYM dev app. Members manage everything in the app under Me → Notifications.
 
 Renewal reminder emails run automatically every 15 minutes in the API (`REMINDERS_ENABLED`); in development they're printed in the API terminal like sign-in codes. Staff can also press **Remind** next to members whose membership is ending.

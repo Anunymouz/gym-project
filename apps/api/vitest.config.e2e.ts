@@ -16,6 +16,8 @@ export default defineConfig({
       PAYMENTS_DRIVER: 'dev',
       REMINDERS_ENABLED: 'false',
       PUSH_DRIVER: 'memory',
+      STORAGE_DRIVER: 'local',
+      STORAGE_LOCAL_DIR: './.test-storage',
       DASHBOARD_PROXY_SECRET: 'test-dashboard-proxy-secret-0123456789abcdef',
       PAYSTACK_SECRET_KEY: 'sk_test_e2e_webhook_secret',
     },

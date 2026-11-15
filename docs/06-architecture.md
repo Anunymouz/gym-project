@@ -65,6 +65,7 @@ Tooling: pnpm workspaces + Turborepo, ESLint, Prettier, GitHub Actions CI.
 | API | NestJS 12 (Express adapter), zod validation via Standard Schema, helmet, throttler, pino, terminus, Swagger outside production |
 | Database | PostgreSQL 17 + PostGIS 3.5, Prisma 7 with the `pg` driver adapter; raw SQL (bound parameters) for geo queries |
 | Local services | Docker Compose: PostGIS, Redis |
+| Media | sharp (re-encode to WebP, strip metadata); local disk in development, S3-compatible storage (Cloudflare R2) + CDN in production |
 | CI | GitHub Actions (lint, typecheck, tests, builds, API e2e on PostGIS, mobile bundling, audit), CodeQL, Dependabot |
 
 **Icons:** Phosphor (MIT) on web and mobile, using duotone/fill weights for active states, instead of a generic default set. Apple and Google sign-in buttons use their official marks; on iOS, Phase 1 switches to Apple's native sign-in button as Apple requires.

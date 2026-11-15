@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { GymDetail, NearbyGymsQuery, OpeningHours } from '@bgym/shared';
+import { StorageService } from '../media/storage.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 export interface NearbyGym {
@@ -15,7 +16,10 @@ export interface NearbyGym {
 
 @Injectable()
 export class GymsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   /**
    * Live gyms within the radius, nearest first, with their cheapest active plan.
@@ -54,7 +58,7 @@ export class GymsService {
     if (!gym) throw new NotFoundException('We couldn’t find that gym.');
 
     const [photos, plans] = await Promise.all([
-      this.prisma.gymPhoto.findMany({ where: { gymId: gym.id }, orderBy: { sortOrder: 'asc' }, select: { url: true } }),
+      this.prisma.gymPhoto.findMany({ where: { gymId: gym.id }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], select: { key: true } }),
       this.prisma.membershipPlan.findMany({
         where: { gymId: gym.id, isActive: true },
         orderBy: { pricePesewas: 'asc' },
@@ -62,6 +66,6 @@ export class GymsService {
       }),
     ]);
     const { lat, lng, ...rest } = gym;
-    return { ...rest, location: { lat, lng }, photos: photos.map((p) => p.url), plans };
+    return { ...rest, location: { lat, lng }, photos: photos.map((p) => this.storage.publicUrl(p.key)), plans };
   }
 }

@@ -36,7 +36,7 @@ export function GymDecision({ gymId, gymName, status, canApprove }: { gymId: str
             <button type="button" onClick={() => open('return')} disabled={pending} className="inline-flex h-10 items-center gap-1.5 rounded-control border-[1.5px] border-line bg-white px-3.5 text-sm font-bold hover:bg-cloud">
               <ArrowCounterClockwise size={16} weight="bold" aria-hidden /> Send back
             </button>
-            <button type="button" onClick={() => act(() => reviewGym(gymId, 'approve'))} disabled={pending || !canApprove} title={canApprove ? undefined : 'Needs a payout account first'} className="inline-flex h-10 items-center gap-1.5 rounded-control bg-success px-3.5 text-sm font-bold text-white hover:bg-[#13893f] disabled:opacity-50">
+            <button type="button" onClick={() => act(() => reviewGym(gymId, 'approve'))} disabled={pending || !canApprove} title={canApprove ? undefined : 'Needs photos, a plan and a payout account first'} className="inline-flex h-10 items-center gap-1.5 rounded-control bg-success px-3.5 text-sm font-bold text-white hover:bg-[#13893f] disabled:opacity-50">
               {pending ? <CircleNotch size={16} className="animate-spin" aria-hidden /> : <CheckCircle size={16} weight="bold" aria-hidden />} Approve
             </button>
           </>

@@ -64,13 +64,14 @@ export class GymApplicationsService {
       where: { id: gymId },
       select: {
         status: true, reviewNote: true, submittedAt: true, description: true, phone: true, openingHours: true, paystackSubaccountCode: true,
-        _count: { select: { plans: { where: { isActive: true } } } },
+        _count: { select: { plans: { where: { isActive: true } }, photos: true } },
       },
     });
     if (!gym) throw new NotFoundException('Gym not found');
     const hours = gym.openingHours as OpeningHours;
     const steps = {
       profile: !!gym.phone && (gym.description?.trim().length ?? 0) >= 30,
+      photos: gym._count.photos > 0,
       hours: Object.values(hours).some((d) => d.length > 0),
       plans: gym._count.plans > 0,
       payout: !!gym.paystackSubaccountCode,

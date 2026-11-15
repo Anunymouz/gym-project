@@ -71,3 +71,13 @@ async function parse<T>(res: Response): Promise<T> {
   }
   return body as T;
 }
+
+/** Uploads a multipart form (photos) as the signed-in person. */
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  const token = (await cookies()).get(COOKIE.access)?.value;
+  if (!token) redirect('/sign-in');
+  // No Content-Type: fetch sets the multipart boundary itself.
+  const res = await send(`${API_URL}${path}`, { method: 'POST', body: form, cache: 'no-store', headers: { Accept: 'application/json', Authorization: `Bearer ${token}`, ...(await forwardedFor()) } });
+  if (res.status === 401) redirect('/sign-in');
+  return parse<T>(res);
+}

@@ -9,7 +9,9 @@ import {
   updatePayoutSchema,
   updatePlanSchema,
   type CheckInResponse,
+  MAX_PHOTO_BYTES,
   type GymPayout,
+  type GymPhotoItem,
   type GymProfile,
   type GymReadiness,
   type RemindResponse,
@@ -17,7 +19,7 @@ import {
   type UpdateGymProfileInput,
   type UpdatePayoutInput,
 } from '@bgym/shared';
-import { api, ApiError } from '@/lib/api.server';
+import { api, ApiError, apiUpload } from '@/lib/api.server';
 import { getCurrentGym } from '@/lib/session.server';
 
 /*
@@ -189,4 +191,41 @@ export async function savePayout(input: UpdatePayoutInput): Promise<PayoutState>
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : 'Something went wrong.' };
   }
+}
+
+export type PhotosResult = { photos?: GymPhotoItem[]; error?: string };
+
+async function photosCall(fn: () => Promise<GymPhotoItem[]>): Promise<PhotosResult> {
+  try {
+    const photos = await fn();
+    revalidatePath('/gym', 'layout');
+    return { photos };
+  } catch (err) {
+    return { error: err instanceof ApiError ? (err.status === 403 ? 'Only owners and managers can change photos.' : err.message) : 'Something went wrong.' };
+  }
+}
+
+/** One photo per call (the dashboard uploads several one after another, showing progress). */
+export async function uploadGymPhoto(form: FormData): Promise<PhotosResult> {
+  const gym = await requireGym();
+  const file = form.get('photo');
+  if (!(file instanceof File) || file.size === 0) return { error: 'Choose a photo to upload.' };
+  if (file.size > MAX_PHOTO_BYTES) return { error: 'That photo is over 10 MB.' };
+  const body = new FormData();
+  body.set('photo', file, 'photo');
+  return photosCall(() => apiUpload<GymPhotoItem[]>(`/v1/staff/gyms/${gym.id}/photos`, body));
+}
+
+export async function makeCoverPhoto(photoId: string): Promise<PhotosResult> {
+  const gym = await requireGym();
+  const id = z.uuid().safeParse(photoId);
+  if (!id.success) return { error: 'Photo not found.' };
+  return photosCall(() => api<GymPhotoItem[]>(`/v1/staff/gyms/${gym.id}/photos/${id.data}/cover`, { method: 'POST' }));
+}
+
+export async function deleteGymPhoto(photoId: string): Promise<PhotosResult> {
+  const gym = await requireGym();
+  const id = z.uuid().safeParse(photoId);
+  if (!id.success) return { error: 'Photo not found.' };
+  return photosCall(() => api<GymPhotoItem[]>(`/v1/staff/gyms/${gym.id}/photos/${id.data}`, { method: 'DELETE' }));
 }

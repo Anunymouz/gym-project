@@ -1,1 +1,3 @@
 src/generated/
+storage/
+.test-storage/

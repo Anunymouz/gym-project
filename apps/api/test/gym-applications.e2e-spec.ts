@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
+import sharp from 'sharp';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
@@ -67,7 +68,7 @@ describe('Gym applications and review (e2e)', () => {
 
     const base = `/v1/staff/gyms/${gymId}`;
     let ready = (await http().get(`${base}/readiness`).set(owner.auth).expect(200)).body;
-    expect(ready).toMatchObject({ status: 'draft', canSubmit: false, steps: { profile: false, hours: false, plans: false, payout: false } });
+    expect(ready).toMatchObject({ status: 'draft', canSubmit: false, steps: { profile: false, photos: false, hours: false, plans: false, payout: false } });
     await http().post(`${base}/submit`).set(owner.auth).expect(400);
 
     // Fill in the checklist.
@@ -79,6 +80,8 @@ describe('Gym applications and review (e2e)', () => {
       .send({ name: profile.name, addressText: profile.addressText, phone: profile.phone, email: null, facilities: ['AC'], description: 'A friendly neighbourhood gym in Spintex with free weights.', openingHours: { mon: day, tue: day, wed: day, thu: day, fri: day, sat: [], sun: [] } })
       .expect(200);
     const plan = await http().post(`${base}/plans`).set(owner.auth).send({ name: 'Monthly', durationDays: 30, pricePesewas: 30000 }).expect(201);
+    const photo = await sharp({ create: { width: 1200, height: 800, channels: 3, background: '#0d1028' } }).jpeg().toBuffer();
+    await http().post(`${base}/photos`).set(owner.auth).attach('photo', photo, 'gym.jpg').expect(201);
     await prisma.gym.update({ where: { id: gymId }, data: { paystackSubaccountCode: `ACCT_${run}` } }); // payout step: own tests
     ready = (await http().get(`${base}/readiness`).set(owner.auth).expect(200)).body;
     expect(ready.canSubmit).toBe(true);
@@ -94,7 +97,7 @@ describe('Gym applications and review (e2e)', () => {
     // Members can't use the admin API.
     await http().get('/v1/admin/gyms').set(owner.auth).expect(403);
     const queue = (await http().get('/v1/admin/gyms').query({ status: 'pending_review' }).set(admin.auth).expect(200)).body;
-    expect(queue).toEqual(expect.arrayContaining([expect.objectContaining({ id: gymId, owner: { name: 'owner Tester', email: owner.email }, payoutReady: true, location: { lat: 5.6312, lng: -0.1009 } })]));
+    expect(queue).toEqual(expect.arrayContaining([expect.objectContaining({ id: gymId, owner: { name: 'owner Tester', email: owner.email }, payoutReady: true, location: { lat: 5.6312, lng: -0.1009 }, photos: [expect.stringMatching(/_t\.webp$/)] })]));
 
     // Sent back with a note, fixed, resubmitted, approved.
     await http().post(`/v1/admin/gyms/${gymId}/review`).set(admin.auth).send({ decision: 'return' }).expect(400); // note required

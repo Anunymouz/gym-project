@@ -1,5 +1,6 @@
 import {
   nearbyGymsQuerySchema,
+  resolveMediaUrl,
   type AuthSession,
   type AuthTokens,
   type AuthUser,
@@ -158,22 +159,27 @@ export interface NearbyGym {
   fromPricePesewas: number | null;
 }
 
-export function fetchNearbyGyms(query: NearbyGymsQuery): Promise<NearbyGym[]> {
+export async function fetchNearbyGyms(query: NearbyGymsQuery): Promise<NearbyGym[]> {
   const q = nearbyGymsQuerySchema.parse(query);
   const params = new URLSearchParams({ lat: String(q.lat), lng: String(q.lng), radiusKm: String(q.radiusKm) });
-  return request<NearbyGym[]>(`/v1/gyms/nearby?${params.toString()}`);
+  const gyms = await request<NearbyGym[]>(`/v1/gyms/nearby?${params.toString()}`);
+  return gyms.map((g) => ({ ...g, coverUrl: media(g.coverUrl) }));
 }
 
-export function fetchGym(slug: string): Promise<GymDetail> {
-  return request<GymDetail>(`/v1/gyms/${encodeURIComponent(slug)}`);
+export async function fetchGym(slug: string): Promise<GymDetail> {
+  const gym = await request<GymDetail>(`/v1/gyms/${encodeURIComponent(slug)}`);
+  return { ...gym, coverUrl: media(gym.coverUrl), photos: gym.photos.flatMap((p) => media(p) ?? []) };
 }
+
+/** Photo URLs can be relative to the API in development ("/v1/media/…"): make them absolute. */
+const media = (url: string | null) => resolveMediaUrl(url, API_URL);
 
 export const membershipsApi = {
   checkout: (planId: string) => authed<CheckoutResponse>('/v1/memberships/checkout', { method: 'POST', body: JSON.stringify({ planId }) }),
   paymentStatus: (reference: string) => authed<PaymentStatusResponse>(`/v1/payments/${reference}`),
   /** Development builds only: the API refuses this unless PAYMENTS_DRIVER=dev. */
   simulatePayment: (reference: string) => authed<PaymentStatusResponse>(`/v1/payments/${reference}/simulate`, { method: 'POST' }),
-  list: () => authed<MembershipSummary[]>('/v1/memberships'),
+  list: async () => (await authed<MembershipSummary[]>('/v1/memberships')).map((m) => ({ ...m, gym: { ...m.gym, coverUrl: media(m.gym.coverUrl) } })),
   pass: (membershipId: string) => authed<MembershipPass>(`/v1/memberships/${membershipId}/pass`),
 };
 

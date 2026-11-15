@@ -1,6 +1,10 @@
 import type { NextConfig } from 'next';
 
 const isDev = process.env.NODE_ENV === 'development';
+const apiUrl = (process.env.API_URL ?? 'http://localhost:4000').replace(/\/$/, '');
+// Production photos come from the media CDN (MEDIA_PUBLIC_URL); development photos are served
+// by the API and reached through the /media rewrite below, so they stay same-origin.
+const mediaOrigin = process.env.MEDIA_PUBLIC_URL ? new URL(process.env.MEDIA_PUBLIC_URL).origin : '';
 
 // Static CSP (no nonces). The browser never calls the API directly: every API call is made by
 // this server with the httpOnly session cookie, so connect-src stays 'self'.
@@ -9,7 +13,7 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data:",
+  `img-src 'self' blob: data:${mediaOrigin ? ` ${mediaOrigin}` : ''}`,
   "font-src 'self'",
   `connect-src 'self'${isDev ? ' ws:' : ''}`,
   "object-src 'none'",
@@ -33,6 +37,13 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
+  experimental: {
+    // Gym photo uploads go through a server action (the browser shrinks big photos first).
+    serverActions: { bodySizeLimit: '11mb' },
+  },
+  async rewrites() {
+    return [{ source: '/media/:path*', destination: `${apiUrl}/v1/media/:path*` }];
+  },
   reactStrictMode: true,
   turbopack: {
     rules: {

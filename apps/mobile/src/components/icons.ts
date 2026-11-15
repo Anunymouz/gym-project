@@ -42,3 +42,4 @@ export const UserCircleIcon: Icon = require('phosphor-react-native/src/icons/Use
 export const UsersThreeIcon: Icon = require('phosphor-react-native/src/icons/UsersThree').UsersThreeIcon;
 export const WarningCircleIcon: Icon = require('phosphor-react-native/src/icons/WarningCircle').WarningCircleIcon;
 export const WifiSlashIcon: Icon = require('phosphor-react-native/src/icons/WifiSlash').WifiSlashIcon;
+export const XIcon: Icon = require('phosphor-react-native/src/icons/X').XIcon;

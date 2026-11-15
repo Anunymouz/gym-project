@@ -7,6 +7,7 @@ import { SubmitForReview } from './submit-for-review';
 
 const steps: Array<{ key: keyof GymReadiness['steps']; title: string; detail: string; href: string }> = [
   { key: 'profile', title: 'Describe your gym', detail: 'A phone number and a few lines about the gym (30+ characters).', href: '/gym/settings' },
+  { key: 'photos', title: 'Add photos', detail: 'At least one photo of the gym. The first is your cover.', href: '/gym/settings#photos' },
   { key: 'hours', title: 'Set opening hours', detail: 'Members see whether you’re open now.', href: '/gym/settings' },
   { key: 'plans', title: 'Add a membership plan', detail: 'What members can buy, e.g. Monthly.', href: '/gym/plans' },
   { key: 'payout', title: 'Add your payout account', detail: 'The bank or MoMo account payments are sent to.', href: '/gym/settings#payout' },

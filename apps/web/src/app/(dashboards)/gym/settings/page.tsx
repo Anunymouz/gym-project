@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import type { GymPayout, GymProfile, PayoutBank } from '@bgym/shared';
+import type { GymPayout, GymPhotoItem, GymProfile, PayoutBank } from '@bgym/shared';
 import { PageSkeleton } from '@/components/dashboard-gate';
 import { GymSettingsForm } from '@/components/gym/gym-settings-form';
 import { PayoutSection } from '@/components/gym/payout-section';
+import { PhotosSection } from '@/components/gym/photos-section';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { api } from '@/lib/api.server';
@@ -30,7 +31,7 @@ export default function Page() {
 async function Settings() {
   const gym = await getCurrentGym();
   if (!gym) return null;
-  const profile = await api<GymProfile>(`/v1/staff/gyms/${gym.id}/profile`);
+  const [profile, photos] = await Promise.all([api<GymProfile>(`/v1/staff/gyms/${gym.id}/profile`), api<GymPhotoItem[]>(`/v1/staff/gyms/${gym.id}/photos`)]);
   const canEdit = canManagePlans(gym);
   const badge = statusBadge[profile.status];
   return (
@@ -40,6 +41,7 @@ async function Settings() {
         subtitle={canEdit ? 'Your gym’s details in the BGYM app.' : 'Only owners and managers can change these details.'}
         actions={<Badge tone={badge.tone}>{badge.label}</Badge>}
       />
+      <PhotosSection initial={photos} canEdit={canEdit} />
       <GymSettingsForm profile={profile} canEdit={canEdit} />
       {gym.role === 'owner' && <Payout gymId={gym.id} />}
     </div>

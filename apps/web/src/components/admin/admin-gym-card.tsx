@@ -2,6 +2,7 @@ import { ArrowSquareOut, CheckCircle, MapPin, Phone, UserCircle, WarningCircle }
 import { formatGhs, pesewas, planPeriodLabel, type AdminGym } from '@bgym/shared';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { formatDate } from '@/lib/format';
+import { mediaSrc } from '@/lib/media';
 import { GymDecision } from './gym-decision';
 import { GymFeeEditor } from './gym-fee-editor';
 
@@ -27,8 +28,23 @@ export function AdminGymCard({ gym, defaultFeeBps }: { gym: AdminGym; defaultFee
             {gym.addressText} · {gym.submittedAt ? `sent ${formatDate(gym.submittedAt)}` : `created ${formatDate(gym.createdAt)}`}
           </p>
         </div>
-        <GymDecision gymId={gym.id} gymName={gym.name} status={gym.status} canApprove={gym.payoutReady && gym.plans.some((p) => p.isActive)} />
+        <GymDecision gymId={gym.id} gymName={gym.name} status={gym.status} canApprove={gym.payoutReady && gym.plans.some((p) => p.isActive) && gym.photos.length > 0} />
       </div>
+
+      {gym.photos.length > 0 ? (
+        <ul className="mt-4 flex gap-2 overflow-x-auto pb-1" aria-label={`${gym.name} photos`}>
+          {gym.photos.map((src, i) => (
+            <li key={src} className="shrink-0">
+              <a href={mediaSrc(src.replace('_t.webp', '.webp'))} target="_blank" rel="noopener noreferrer" aria-label={`Open photo ${i + 1}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- server-resized thumbnail */}
+                <img src={mediaSrc(src)} alt="" width={160} height={120} loading="lazy" className="h-[90px] w-[120px] rounded-lg object-cover" />
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-sm font-semibold text-danger">No photos yet</p>
+      )}
 
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         <div className="flex flex-col gap-1.5 text-sm">

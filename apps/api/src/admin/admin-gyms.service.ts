@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service.js';
 import type { Env } from '../config/env.js';
 import { MailService } from '../mail/mail.service.js';
 import { gymApprovedEmail, gymReturnedEmail, gymSuspendedEmail } from '../mail/templates.js';
+import { StorageService } from '../media/storage.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 /** The BGYM team's view of gyms: review applications, pause and reactivate gyms. */
@@ -15,6 +16,7 @@ export class AdminGymsService {
     private readonly audit: AuditService,
     private readonly mail: MailService,
     private readonly config: ConfigService<Env, true>,
+    private readonly storage: StorageService,
   ) {}
 
   async list(status: GymStatus | 'all', q?: string): Promise<AdminGym[]> {
@@ -48,6 +50,7 @@ export class AdminGymsService {
           createdAt: true, submittedAt: true, reviewedAt: true, reviewNote: true,
           staff: { where: { role: 'owner' }, take: 1, orderBy: { createdAt: 'asc' }, select: { user: { select: { name: true, email: true } } } },
           plans: { orderBy: { pricePesewas: 'asc' }, select: { name: true, durationDays: true, pricePesewas: true, isActive: true } },
+          photos: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], select: { thumbKey: true } },
           _count: { select: { memberships: { where: { status: 'active', endsAt: { gt: now } } } } },
         },
       }),
@@ -63,6 +66,7 @@ export class AdminGymsService {
           location: loc.get(g.id) ?? { lat: 0, lng: 0 },
           owner: g.staff[0]?.user ?? null,
           plans: g.plans,
+          photos: g.photos.map((p) => this.storage.publicUrl(p.thumbKey)),
           payoutReady: !!g.paystackSubaccountCode,
           feeBps: g.platformFeeBps,
           activeMembers: g._count.memberships,
