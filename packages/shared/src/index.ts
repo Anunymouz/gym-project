@@ -17,3 +17,4 @@ export * from './team.js';
 export * from './posts.js';
 export * from './trainers.js';
 export * from './store.js';
+export * from './workouts.js';

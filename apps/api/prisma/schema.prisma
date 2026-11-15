@@ -87,6 +87,7 @@ enum PostAuthorKind {
 enum VideoPurpose {
   post
   story
+  exercise
 }
 
 enum VideoStatus {
@@ -595,6 +596,7 @@ model VideoUpload {
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   postMedia   PostMedia?
   story       Story?
+  exercise    Exercise?
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([status, createdAt])
@@ -827,33 +829,56 @@ model Booking {
 
 // ───────────────────────────── Workouts ─────────────────────────────
 
+/// An exercise in the library: written by BGYM or imported from a licensed library. Its demo is
+/// a photo or a short video the BGYM team uploads (or the licensed library's animation URL).
 model Exercise {
-  id           String            @id @default(uuid(7)) @db.Uuid
-  externalId   String            @unique // id in the licensed exercise library
-  name         String
-  bodyPart     String
-  targetMuscle String?
-  equipment    String?
-  animationUrl String?
-  instructions String[]
-  workouts     WorkoutExercise[]
+  id               String            @id @default(uuid(7)) @db.Uuid
+  /// Id in the source library ("bgym:<slug>" for BGYM's own).
+  externalId       String            @unique
+  source           String            @default("bgym")
+  name             String
+  bodyPart         String
+  targetMuscle     String?
+  secondaryMuscles String[]          @default([])
+  equipment        String?
+  animationUrl     String?
+  instructions     String[]
+  tips             String[]          @default([])
+  imageKey         String?
+  imageThumbKey    String?
+  videoUploadId    String?           @unique @db.Uuid
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime          @default(now()) @updatedAt @db.Timestamptz(3)
+  video            VideoUpload?      @relation(fields: [videoUploadId], references: [id])
+  workouts         WorkoutExercise[]
 
+  @@index([bodyPart, isActive])
   @@map("exercises")
 }
 
+/// A routine built by the BGYM team from library exercises. Free ones are for everyone; the
+/// rest unlock with an active membership at any gym.
 model Workout {
   id          String            @id @default(uuid(7)) @db.Uuid
+  slug        String?           @unique
   title       String
   description String?
   level       String
+  goal        String            @default("strength")
   durationMin Int
   coverUrl    String?
+  coverKey    String?
+  coverThumbKey String?
   isFree      Boolean           @default(false)
   isPublished Boolean           @default(false)
+  sortOrder   Int               @default(0)
   createdAt   DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime          @default(now()) @updatedAt @db.Timestamptz(3)
   exercises   WorkoutExercise[]
   sessions    WorkoutSession[]
 
+  @@index([isPublished, sortOrder])
   @@map("workouts")
 }
 
@@ -866,6 +891,7 @@ model WorkoutExercise {
   reps        Int?
   durationSec Int?
   restSec     Int?
+  notes       String?
   workout     Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   exercise    Exercise @relation(fields: [exerciseId], references: [id])
 
@@ -878,8 +904,14 @@ model WorkoutSession {
   userId      String   @db.Uuid
   workoutId   String   @db.Uuid
   completedAt DateTime @default(now()) @db.Timestamptz(3)
+  /// Time actually spent, and how much of the workout was done.
+  durationSec        Int      @default(0)
+  exercisesCompleted Int      @default(0)
+  exercisesTotal     Int      @default(0)
+  /// How it felt, 1 (easy) to 5 (very hard), if the member said.
+  effort             Int?
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workout     Workout  @relation(fields: [workoutId], references: [id])
+  workout     Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
 
   @@index([userId, completedAt])
   @@map("workout_sessions")

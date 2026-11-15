@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, ForbiddenException, Controller, Get, HttpCode, HttpStatus, Param, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
 import { rm } from 'node:fs/promises';
@@ -21,6 +21,8 @@ export class VideosController {
   @Post()
   @Throttle({ default: { limit: 30, ttl: 60 * 60_000 } })
   ticket(@CurrentUser() user: AccessClaims, @Body({ schema: videoUploadRequestSchema }) body: VideoUploadRequest): Promise<VideoUploadTicket> {
+    // Exercise demo videos are for the BGYM team's library only.
+    if (body.purpose === 'exercise' && !user.roles.includes('admin')) throw new ForbiddenException('Only the BGYM team can add exercise videos.');
     return this.videos.createTicket(user.userId, body.purpose);
   }
 

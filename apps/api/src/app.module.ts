@@ -7,6 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { FeedModule } from './feed/feed.module.js';
 import { TrainersModule } from './trainers/trainers.module.js';
 import { StoreModule } from './store/store.module.js';
+import { WorkoutsModule } from './workouts/workouts.module.js';
 import { FeesModule } from './fees/fees.module.js';
 import { MediaModule } from './media/media.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
@@ -68,6 +69,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     FeedModule,
     TrainersModule,
     StoreModule,
+    WorkoutsModule,
     NotificationsModule,
     RemindersModule,
     StaffModule,

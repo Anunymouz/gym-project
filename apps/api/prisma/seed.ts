@@ -9,7 +9,9 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { estimateWorkoutMinutes } from '@bgym/shared';
 import { PrismaClient } from '../src/generated/prisma/client.js';
+import { starterExercises, starterWorkouts } from './seed-workouts.js';
 
 if (process.env.NODE_ENV === 'production') {
   throw new Error('Refusing to seed a production database.');
@@ -245,6 +247,35 @@ async function seedPhoto(folder: string, ownerId: string, file: string): Promise
   return { key, thumbKey };
 }
 
+/** BGYM's starter workout library. Re-running updates the text and steps; covers are added once. */
+async function seedWorkouts(): Promise<void> {
+  const ids = new Map<string, string>();
+  for (const e of starterExercises) {
+    const { slug, ...data } = e;
+    const row = await prisma.exercise.upsert({ where: { externalId: `bgym:${slug}` }, update: data, create: { ...data, externalId: `bgym:${slug}`, source: 'bgym' }, select: { id: true } });
+    ids.set(slug, row.id);
+  }
+  for (const [sortOrder, w] of starterWorkouts.entries()) {
+    const steps = w.steps.map(([slug, sets, reps, durationSec, restSec], i) => {
+      const exerciseId = ids.get(slug);
+      if (!exerciseId) throw new Error(`Unknown exercise ${slug}`);
+      return { exerciseId, sortOrder: i, sets, reps, durationSec, restSec };
+    });
+    const data = { title: w.title, description: w.description, level: w.level, goal: w.goal, isFree: w.isFree, isPublished: true, sortOrder, durationMin: estimateWorkoutMinutes(steps) };
+    const existing = await prisma.workout.findUnique({ where: { slug: w.slug }, select: { id: true, coverKey: true } });
+    const workout = existing
+      ? await prisma.workout.update({ where: { id: existing.id }, data, select: { id: true, coverKey: true } })
+      : await prisma.workout.create({ data: { ...data, slug: w.slug }, select: { id: true, coverKey: true } });
+    await prisma.workoutExercise.deleteMany({ where: { workoutId: workout.id } });
+    await prisma.workoutExercise.createMany({ data: steps.map((s) => ({ ...s, workoutId: workout.id })) });
+    if (!workout.coverKey) {
+      const keys = await seedPhoto('workouts', workout.id, w.photo);
+      if (keys) await prisma.workout.update({ where: { id: workout.id }, data: { coverKey: keys.key, coverThumbKey: keys.thumbKey } });
+    }
+  }
+  console.log(`Workouts: ${starterExercises.length} exercises, ${starterWorkouts.length} workouts (${starterWorkouts.filter((w) => w.isFree).length} free).`);
+}
+
 async function main(): Promise<void> {
   // Re-running the seed resets the sample gyms to these values (they are fictional demo data).
   for (const g of gyms) {
@@ -287,6 +318,7 @@ async function main(): Promise<void> {
   });
 
   console.log(`Seeded ${gyms.length} gyms, 4 categories, platform seller and settings.`);
+  await seedWorkouts();
   await seedDemo();
 }
 

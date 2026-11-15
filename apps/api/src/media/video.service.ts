@@ -14,7 +14,7 @@ import type { Prisma, VideoPurpose, VideoUpload } from '../generated/prisma/clie
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StorageService } from './storage.service.js';
 
-export const maxSecondsFor = (purpose: VideoPurpose) => (purpose === 'story' ? MAX_STORY_VIDEO_SECONDS : MAX_POST_VIDEO_SECONDS);
+export const maxSecondsFor = (purpose: VideoPurpose) => (purpose === 'post' ? MAX_POST_VIDEO_SECONDS : MAX_STORY_VIDEO_SECONDS); // stories and exercise demos: 60 s
 /** Small grace for container rounding (a "3:00" phone clip can be 180.4 s). */
 const GRACE_SECONDS = 1;
 /** Members-only playback links last this long; the feed is re-fetched far more often. */

@@ -72,7 +72,7 @@ export const commentSchema = z.object({
 export type CommentInput = z.infer<typeof commentSchema>;
 
 // ── Videos ──
-export const videoUploadRequestSchema = z.object({ purpose: z.enum(['post', 'story']) });
+export const videoUploadRequestSchema = z.object({ purpose: z.enum(['post', 'story', 'exercise']) });
 export type VideoUploadRequest = z.infer<typeof videoUploadRequestSchema>;
 export interface VideoUploadTicket {
   id: string;
