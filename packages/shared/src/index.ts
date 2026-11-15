@@ -13,3 +13,4 @@ export * from './gym-applications.js';
 export * from './payouts.js';
 export * from './fees.js';
 export * from './media.js';
+export * from './team.js';

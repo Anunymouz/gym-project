@@ -28,6 +28,7 @@ export const dashboards: Record<DashboardId, DashboardConfig> = {
       { slug: 'feed', label: 'Feed', icon: 'feed', phase: 2 },
       { slug: 'trainers', label: 'Trainers', icon: 'trainers', phase: 2 },
       { slug: 'revenue', label: 'Revenue', icon: 'revenue', phase: 1 },
+      { slug: 'staff', label: 'Staff', icon: 'staff', phase: 1 },
       { slug: 'settings', label: 'Settings', icon: 'settings', phase: 1 },
     ],
   },

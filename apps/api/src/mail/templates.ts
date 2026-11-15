@@ -132,3 +132,16 @@ export const payoutChangedEmail = (to: string, gymName: string, account: string)
     `Payments for ${gymName} will now be sent to ${account}.`,
     'If you didn’t make this change, reply to this email immediately so we can freeze payouts.',
   ]);
+
+export const staffInvitationEmail = (to: string, gymName: string, role: string, inviter: string | null, signInUrl: string) =>
+  simpleEmail(
+    to,
+    `You're invited to ${gymName} on BGYM`,
+    `Join ${gymName} on BGYM`,
+    [
+      `${inviter ?? 'The gym'} invited you to the ${gymName} dashboard as ${role}.`,
+      `Sign in with this email address (${to}) to accept. The invitation lasts 7 days.`,
+      'Not expecting this? You can ignore this email.',
+    ],
+    { label: 'Sign in to accept', url: signInUrl },
+  );

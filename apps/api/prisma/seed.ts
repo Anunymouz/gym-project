@@ -57,6 +57,7 @@ const demoMembers: Array<[name: string, plan: 'Day pass' | 'Monthly' | 'Quarterl
 ];
 
 async function seedDemo(): Promise<void> {
+  await prisma.gymInvitation.deleteMany({ where: { email: { endsWith: DEMO_DOMAIN } } });
   const demoUsers = await prisma.user.findMany({ where: { email: { endsWith: DEMO_DOMAIN } }, select: { id: true } });
   const ids = demoUsers.map((u) => u.id);
   if (ids.length) {

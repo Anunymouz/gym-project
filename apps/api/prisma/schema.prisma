@@ -207,6 +207,7 @@ model User {
   trainer              Trainer?
   memberships          Membership[]
   remindersSent        MembershipReminder[]  @relation("ReminderSender")
+  invitationsSent      GymInvitation[]       @relation("InvitationSender")
   checkIns             CheckIn[]             @relation("CheckInMember")
   scannedCheckIns      CheckIn[]             @relation("CheckInScanner")
   posts                Post[]
@@ -320,6 +321,7 @@ model Gym {
 
   staff       GymStaff[]
   photos      GymPhoto[]
+  invitations GymInvitation[]
   plans       MembershipPlan[]
   memberships Membership[]
   checkIns    CheckIn[]
@@ -345,6 +347,27 @@ model GymStaff {
 
 /// A gym's photo. Files live in object storage (or on disk in development); only keys are
 /// stored here. The first photo (lowest sortOrder) is the gym's cover.
+/// An invitation for someone to join a gym's staff. It can only be accepted by a person signed
+/// in with the invited email address (their sign-in code proves they own it).
+model GymInvitation {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  gymId       String       @db.Uuid
+  email       String
+  role        GymStaffRole
+  invitedById String?      @db.Uuid
+  expiresAt   DateTime     @db.Timestamptz(3)
+  acceptedAt  DateTime?    @db.Timestamptz(3)
+  /// Revoked by staff, or declined by the person invited.
+  closedAt    DateTime?    @db.Timestamptz(3)
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+  gym         Gym          @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  invitedBy   User?        @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([email, acceptedAt, closedAt])
+  @@index([gymId, createdAt])
+  @@map("gym_invitations")
+}
+
 model GymPhoto {
   id          String   @id @default(uuid(7)) @db.Uuid
   gymId       String   @db.Uuid

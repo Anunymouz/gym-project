@@ -3,8 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import {
+  changeStaffRoleSchema,
   checkInByEmailSchema,
   createPlanSchema,
+  inviteStaffSchema,
   updateGymProfileSchema,
   updatePayoutSchema,
   updatePlanSchema,
@@ -13,6 +15,7 @@ import {
   type GymPayout,
   type GymPhotoItem,
   type GymProfile,
+  type GymTeam,
   type GymReadiness,
   type RemindResponse,
   type StaffPlan,
@@ -228,4 +231,45 @@ export async function deleteGymPhoto(photoId: string): Promise<PhotosResult> {
   const id = z.uuid().safeParse(photoId);
   if (!id.success) return { error: 'Photo not found.' };
   return photosCall(() => api<GymPhotoItem[]>(`/v1/staff/gyms/${gym.id}/photos/${id.data}`, { method: 'DELETE' }));
+}
+
+export type TeamResult = { team?: GymTeam; error?: string };
+
+async function teamCall(fn: () => Promise<GymTeam>): Promise<TeamResult> {
+  try {
+    const team = await fn();
+    revalidatePath('/gym', 'layout');
+    return { team };
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : 'Something went wrong.' };
+  }
+}
+
+export async function inviteStaff(email: string, role: string): Promise<TeamResult> {
+  const gym = await requireGym();
+  const input = inviteStaffSchema.safeParse({ email, role });
+  if (!input.success) return { error: input.error.issues[0]?.message ?? 'Check the email and role.' };
+  return teamCall(() => api<GymTeam>(`/v1/staff/gyms/${gym.id}/invitations`, { method: 'POST', body: JSON.stringify(input.data) }));
+}
+
+export async function cancelInvitation(invitationId: string): Promise<TeamResult> {
+  const gym = await requireGym();
+  const id = z.uuid().safeParse(invitationId);
+  if (!id.success) return { error: 'Invitation not found.' };
+  return teamCall(() => api<GymTeam>(`/v1/staff/gyms/${gym.id}/invitations/${id.data}`, { method: 'DELETE' }));
+}
+
+export async function changeStaffRole(userId: string, role: string): Promise<TeamResult> {
+  const gym = await requireGym();
+  const id = z.uuid().safeParse(userId);
+  const input = changeStaffRoleSchema.safeParse({ role });
+  if (!id.success || !input.success) return { error: 'Check the role.' };
+  return teamCall(() => api<GymTeam>(`/v1/staff/gyms/${gym.id}/team/${id.data}`, { method: 'PATCH', body: JSON.stringify(input.data) }));
+}
+
+export async function removeStaff(userId: string): Promise<TeamResult> {
+  const gym = await requireGym();
+  const id = z.uuid().safeParse(userId);
+  if (!id.success) return { error: 'Not found.' };
+  return teamCall(() => api<GymTeam>(`/v1/staff/gyms/${gym.id}/team/${id.data}`, { method: 'DELETE' }));
 }
