@@ -3,6 +3,7 @@
  * Safe to re-run: upserts by unique keys. Never run against production.
  */
 import 'dotenv/config';
+import { randomUUID } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 
@@ -34,6 +35,76 @@ const planDescriptions: Record<string, string> = {
   Quarterly: 'Unlimited access for 90 days. Best value.',
 };
 
+
+// ───────────── Demo gym activity (fictional people, reserved .test domain) ─────────────
+const DEMO_DOMAIN = '@bgym-demo.test';
+const DAY = 24 * 60 * 60 * 1000;
+const demoMembers: Array<[name: string, plan: 'Day pass' | 'Monthly' | 'Quarterly', startedDaysAgo: number, channel: 'mobile_money' | 'card']> = [
+  ['Ama Owusu', 'Monthly', 28, 'mobile_money'],
+  ['Kojo Darko', 'Quarterly', 86, 'mobile_money'],
+  ['Abena Ofori', 'Monthly', 25, 'mobile_money'],
+  ['Selorm Agbeko', 'Monthly', 24, 'card'],
+  ['Nana Yeboah', 'Monthly', 1, 'mobile_money'],
+  ['Kwesi Appiah', 'Quarterly', 3, 'card'],
+  ['Efua Mensah', 'Monthly', 12, 'mobile_money'],
+  ['Yaw Boateng', 'Quarterly', 40, 'mobile_money'],
+  ['Akosua Asante', 'Monthly', 8, 'mobile_money'],
+  ['Kwame Nkrumah-Addo', 'Monthly', 18, 'card'],
+  ['Adwoa Sarpong', 'Monthly', 45, 'mobile_money'],
+  ['Fiifi Quansah', 'Quarterly', 120, 'mobile_money'],
+  ['Esi Arthur', 'Monthly', 5, 'mobile_money'],
+  ['Kobby Tetteh', 'Monthly', 15, 'card'],
+];
+
+async function seedDemo(): Promise<void> {
+  const demoUsers = await prisma.user.findMany({ where: { email: { endsWith: DEMO_DOMAIN } }, select: { id: true } });
+  const ids = demoUsers.map((u) => u.id);
+  if (ids.length) {
+    await prisma.checkIn.deleteMany({ where: { OR: [{ userId: { in: ids } }, { scannedById: { in: ids } }] } });
+    const ms = await prisma.membership.findMany({ where: { userId: { in: ids } }, select: { paymentId: true } });
+    await prisma.membership.deleteMany({ where: { userId: { in: ids } } });
+    const paymentIds = ms.map((m) => m.paymentId).filter((x): x is string => !!x);
+    await prisma.paymentEvent.deleteMany({ where: { paymentId: { in: paymentIds } } });
+    await prisma.payment.deleteMany({ where: { userId: { in: ids } } });
+    await prisma.gymStaff.deleteMany({ where: { userId: { in: ids } } });
+    await prisma.auditLog.deleteMany({ where: { actorId: { in: ids } } });
+    await prisma.user.deleteMany({ where: { id: { in: ids } } });
+  }
+
+  const gym = await prisma.gym.findUniqueOrThrow({ where: { slug: 'iron-haven-east-legon' }, include: { plans: true } });
+  const owner = await prisma.user.create({ data: { email: `owner${DEMO_DOMAIN}`, name: 'Kofi Mensah', roles: ['member', 'gym_staff'] } });
+  const frontDesk = await prisma.user.create({ data: { email: `frontdesk${DEMO_DOMAIN}`, name: 'Esi Quaye', roles: ['member', 'gym_staff'] } });
+  await prisma.gymStaff.createMany({ data: [{ gymId: gym.id, userId: owner.id, role: 'owner' }, { gymId: gym.id, userId: frontDesk.id, role: 'front_desk' }] });
+
+  const now = Date.now();
+  let seed = 7;
+  const rand = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  for (const [name, planName, startedDaysAgo, channel] of demoMembers) {
+    const plan = gym.plans.find((p) => p.name === planName)!;
+    const user = await prisma.user.create({ data: { email: `${name.toLowerCase().replace(/[^a-z]+/g, '.')}${DEMO_DOMAIN}`, name } });
+    const startsAt = new Date(now - startedDaysAgo * DAY);
+    const payment = await prisma.payment.create({
+      data: {
+        userId: user.id, type: 'membership', provider: 'dev', reference: `bgym_${randomUUID().replace(/-/g, '')}`,
+        amountPesewas: plan.pricePesewas, status: 'success', channel, paidAt: startsAt, metadata: { demo: true },
+      },
+    });
+    const endsAt = new Date(startsAt.getTime() + plan.durationDays * DAY);
+    const membership = await prisma.membership.create({
+      data: { userId: user.id, gymId: gym.id, planId: plan.id, paymentId: payment.id, status: endsAt.getTime() > now ? 'active' : 'expired', startsAt, endsAt, createdAt: startsAt },
+    });
+    if (endsAt.getTime() > now) {
+      for (let d = 0; d < 7; d++) {
+        if (rand() < 0.55) {
+          const at = new Date(now - d * DAY - Math.floor(rand() * 10) * 60 * 60 * 1000);
+          if (at > startsAt) await prisma.checkIn.create({ data: { gymId: gym.id, membershipId: membership.id, userId: user.id, scannedById: frontDesk.id, result: 'ok', createdAt: at } });
+        }
+      }
+    }
+  }
+  console.log(`Demo: owner${DEMO_DOMAIN} (owner) and frontdesk${DEMO_DOMAIN} (front desk) at ${gym.name}, ${demoMembers.length} members.`);
+}
+
 async function main(): Promise<void> {
   for (const g of gyms) {
     const [row] = await prisma.$queryRaw<Array<{ id: string }>>`
@@ -44,10 +115,19 @@ async function main(): Promise<void> {
       ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description, phone = EXCLUDED.phone, location = EXCLUDED.location, "coverUrl" = EXCLUDED."coverUrl", "updatedAt" = now()
       RETURNING id`;
     if (!row) throw new Error(`Failed to upsert gym ${g.slug}`);
-    await prisma.membershipPlan.deleteMany({ where: { gymId: row.id, memberships: { none: {} } } });
-    await prisma.membershipPlan.createMany({
-      data: g.plans.map(([name, durationDays, pricePesewas]) => ({ gymId: row.id, name, durationDays, pricePesewas, description: planDescriptions[name] ?? null })),
-    });
+    // Upsert plans by name: plans that members bought must never be duplicated or deleted.
+    for (const [name, durationDays, pricePesewas] of g.plans) {
+      const existing = await prisma.membershipPlan.findMany({ where: { gymId: row.id, name }, orderBy: { createdAt: 'asc' } });
+      const [keep, ...extras] = existing;
+      const data = { durationDays, pricePesewas, description: planDescriptions[name] ?? null, isActive: true };
+      if (keep) await prisma.membershipPlan.update({ where: { id: keep.id }, data });
+      else await prisma.membershipPlan.create({ data: { gymId: row.id, name, ...data } });
+      for (const extra of extras) {
+        const used = await prisma.membership.count({ where: { planId: extra.id } });
+        if (used) await prisma.membershipPlan.update({ where: { id: extra.id }, data: { isActive: false } });
+        else await prisma.membershipPlan.delete({ where: { id: extra.id } });
+      }
+    }
   }
 
   for (const [name, slug] of [['Supplements', 'supplements'], ['Apparel', 'apparel'], ['Equipment', 'equipment'], ['Accessories', 'accessories']] as const) {
@@ -64,6 +144,7 @@ async function main(): Promise<void> {
   });
 
   console.log(`Seeded ${gyms.length} gyms, 4 categories, platform seller and settings.`);
+  await seedDemo();
 }
 
 main()

@@ -2,8 +2,10 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestj
 import { Throttle } from '@nestjs/throttler';
 import { z } from 'zod';
 import {
+  checkInByEmailSchema,
   checkInSchema,
   checkoutSchema,
+  type CheckInByEmailInput,
   type CheckInInput,
   type CheckInResponse,
   type CheckoutInput,
@@ -46,5 +48,12 @@ export class MembershipsController {
   @HttpCode(HttpStatus.OK)
   checkIn(@CurrentUser() user: AccessClaims, @Body({ schema: checkInSchema }) body: CheckInInput): Promise<CheckInResponse> {
     return this.checkIns.checkIn(user, body.gymId, body.token);
+  }
+
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Post('check-ins/by-email')
+  @HttpCode(HttpStatus.OK)
+  checkInByEmail(@CurrentUser() user: AccessClaims, @Body({ schema: checkInByEmailSchema }) body: CheckInByEmailInput): Promise<CheckInResponse> {
+    return this.checkIns.checkInByEmail(user, body.gymId, body.email);
   }
 }

@@ -8,7 +8,7 @@ import { TokenService } from '../src/auth/token.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { setupApp } from '../src/setup-app.js';
 
-const run = Date.now().toString(36);
+const run = `mem${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 const DAY = 24 * 60 * 60 * 1000;
 
 describe('Memberships, payments and check-in (e2e)', () => {

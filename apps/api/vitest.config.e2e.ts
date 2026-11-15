@@ -6,6 +6,8 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],
+    // End-to-end files share one database: run them one at a time.
+    fileParallelism: false,
     env: {
       LOG_LEVEL: 'silent',
       MAIL_DRIVER: 'memory',

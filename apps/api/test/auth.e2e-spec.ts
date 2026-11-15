@@ -7,7 +7,7 @@ import { MailService } from '../src/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { setupApp } from '../src/setup-app.js';
 
-const run = Date.now().toString(36);
+const run = `auth${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 const emailA = `ama.${run}@example.com`;
 const emailB = `kojo.${run}@example.com`;
 const emailC = `esi.${run}@example.com`;

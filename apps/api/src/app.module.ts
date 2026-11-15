@@ -12,6 +12,7 @@ import { HealthModule } from './health/health.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { MembershipsModule } from './memberships/memberships.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
+import { StaffModule } from './staff/staff.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -51,6 +52,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     HealthModule,
     GymsModule,
     PaymentsModule,
+    StaffModule,
     MembershipsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
