@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { reviewGymSchema, suspendGymSchema, type AdminGym } from '@bgym/shared';
+import { feeBpsSchema, percentToBps, reviewGymSchema, suspendGymSchema, type AdminGym, type FeeSettings, type GymFee } from '@bgym/shared';
 import { api, ApiError } from '@/lib/api.server';
 
 /* BGYM team actions. The API requires the admin role on every call. */
@@ -39,4 +39,42 @@ export async function reactivateGym(id: string): Promise<AdminActionResult> {
   const gym = gymId.safeParse(id);
   if (!gym.success) return { error: 'Unknown gym.' };
   return run(`/v1/admin/gyms/${gym.data}/reactivate`);
+}
+
+const percentInput = z
+  .string()
+  .trim()
+  .regex(/^\d{1,2}(\.\d{1,2})?$/, 'Enter a percentage like 2 or 2.5')
+  .transform((v) => percentToBps(Number(v)))
+  .pipe(feeBpsSchema);
+
+export async function saveDefaultFee(percent: string): Promise<AdminActionResult> {
+  const bps = percentInput.safeParse(percent);
+  if (!bps.success) return { error: bps.error.issues[0]?.message ?? 'Check the percentage.' };
+  try {
+    await api<FeeSettings>('/v1/admin/fees', { method: 'PUT', body: JSON.stringify({ membershipBps: bps.data }) });
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : 'Something went wrong.' };
+  }
+  revalidatePath('/admin', 'layout');
+  return {};
+}
+
+/** percent: '' removes the gym's special rate (it follows the default again). */
+export async function saveGymFee(id: string, percent: string): Promise<AdminActionResult> {
+  const gym = gymId.safeParse(id);
+  if (!gym.success) return { error: 'Unknown gym.' };
+  let bps: number | null = null;
+  if (percent.trim() !== '') {
+    const parsed = percentInput.safeParse(percent);
+    if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Check the percentage.' };
+    bps = parsed.data;
+  }
+  try {
+    await api<GymFee>(`/v1/admin/gyms/${gym.data}/fee`, { method: 'PUT', body: JSON.stringify({ bps }) });
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : 'Something went wrong.' };
+  }
+  revalidatePath('/admin', 'layout');
+  return {};
 }

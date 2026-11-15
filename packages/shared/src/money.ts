@@ -15,15 +15,11 @@ export function cedisToPesewas(cedis: number): Pesewas {
   return pesewas(Math.round(cedis * 100));
 }
 
-const formatter = new Intl.NumberFormat('en-GH', {
-  style: 'currency',
-  currency: 'GHS',
-  currencyDisplay: 'narrowSymbol',
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
+const options = { style: 'currency', currency: 'GHS', currencyDisplay: 'narrowSymbol' } as const;
+const whole = new Intl.NumberFormat('en-GH', { ...options, minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const withPesewas = new Intl.NumberFormat('en-GH', { ...options, minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-/** 35000 → "GH₵350" (the ₵ symbol is what Ghanaians expect to see). */
+/** 35000 → "GH₵350", 3960 → "GH₵39.60" (whole cedis drop the decimals; anything else shows two). */
 export function formatGhs(amount: Pesewas): string {
-  return formatter.format(amount / 100).replace(/^GH?₵|^₵/, 'GH₵');
+  return (amount % 100 === 0 ? whole : withPesewas).format(amount / 100).replace(/^GH?₵|^₵/, 'GH₵');
 }

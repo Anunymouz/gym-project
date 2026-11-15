@@ -1,15 +1,15 @@
 import Link from 'next/link';
-import { formatGhs, pesewas, type GymOverview as Overview, type StaffGym } from '@bgym/shared';
+import { formatGhs, formatPercent, pesewas, type GymOverview as Overview, type StaffGym } from '@bgym/shared';
 import { Scan } from '@phosphor-icons/react/ssr';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { api } from '@/lib/api.server';
 import { channelLabel, daysUntil, formatDateTime, greeting, initials, remindedLabel, requestTime, weekday } from '@/lib/format';
 import { RemindButton } from './remind-button';
-import { getMe } from '@/lib/session.server';
+import { getGymFee, getMe } from '@/lib/session.server';
 
 export async function GymOverview({ gym }: { gym: StaffGym }) {
-  const [me, data] = await Promise.all([getMe(), api<Overview>(`/v1/staff/gyms/${gym.id}/overview`)]);
+  const [me, data, fee] = await Promise.all([getMe(), api<Overview>(`/v1/staff/gyms/${gym.id}/overview`), getGymFee(gym.id)]);
   const now = requestTime();
   const peak = Math.max(1, ...data.checkInsByDay.map((c) => c.count));
   const weekTotal = data.checkInsByDay.reduce((sum, c) => sum + c.count, 0);
@@ -31,7 +31,7 @@ export async function GymOverview({ gym }: { gym: StaffGym }) {
         <StatCard label="Active members" value={String(data.activeMembers)} note="Paid and current" tone="success" />
         <StatCard label="New this month" value={String(data.newThisMonth)} note="First membership here" tone="success" />
         <StatCard label="Expiring in 7 days" value={String(data.expiringIn7Days)} note={data.expiringIn7Days ? 'Remind them to renew' : 'All good'} tone="warning" />
-        <StatCard label="Revenue this month" value={formatGhs(pesewas(data.revenueThisMonthPesewas))} note="After BGYM fee" tone="info" />
+        <StatCard label="Revenue this month" value={formatGhs(pesewas(data.revenueThisMonthPesewas))} note={`After BGYM’s ${formatPercent(fee.bps)} fee`} tone="info" />
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">

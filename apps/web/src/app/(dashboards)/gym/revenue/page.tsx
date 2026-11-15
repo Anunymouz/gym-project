@@ -2,13 +2,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { CaretLeft, CaretRight, DownloadSimple, LockKey, Wallet } from '@phosphor-icons/react/ssr';
-import { formatGhs, monthSchema, pesewas, type RevenueMonth } from '@bgym/shared';
+import { formatGhs, formatPercent, monthSchema, pesewas, type RevenueMonth } from '@bgym/shared';
 import { PageSkeleton } from '@/components/dashboard-gate';
 import { PageHeader } from '@/components/ui/page-header';
 import { api } from '@/lib/api.server';
 import { sectionTitle } from '@/lib/dashboards';
 import { channelLabel, formatDateTime } from '@/lib/format';
-import { canManagePlans, getCurrentGym } from '@/lib/session.server';
+import { canManagePlans, getCurrentGym, getGymFee } from '@/lib/session.server';
 
 export const metadata: Metadata = { title: sectionTitle('gym', 'revenue') };
 
@@ -44,7 +44,7 @@ async function Revenue({ searchParams }: Pick<PageProps<'/gym/revenue'>, 'search
   }
 
   const requested = monthSchema.safeParse((await searchParams).month);
-  const data = await api<RevenueMonth>(`/v1/staff/gyms/${gym.id}/revenue${requested.success ? `?month=${requested.data}` : ''}`);
+  const [data, fee] = await Promise.all([api<RevenueMonth>(`/v1/staff/gyms/${gym.id}/revenue${requested.success ? `?month=${requested.data}` : ''}`), getGymFee(gym.id)]);
   const current = data.months.at(0) ?? data.month;
   const isLatest = data.month >= current;
 
@@ -52,7 +52,7 @@ async function Revenue({ searchParams }: Pick<PageProps<'/gym/revenue'>, 'search
     <div className="flex flex-col gap-5">
       <PageHeader
         title="Revenue"
-        subtitle={`${gym.name} · membership payments through BGYM`}
+        subtitle={`${gym.name} · BGYM’s fee: ${formatPercent(fee.bps)} of each payment`}
         actions={
           data.totals.payments > 0 && (
             <a href={`/gym/revenue/export?month=${data.month}`} className="inline-flex h-11 items-center gap-2 rounded-control border-[1.5px] border-line bg-white px-4 text-sm font-bold hover:bg-cloud" download>

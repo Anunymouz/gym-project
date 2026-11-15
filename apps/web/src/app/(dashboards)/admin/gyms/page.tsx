@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import clsx from 'clsx';
 import { MagnifyingGlass } from '@phosphor-icons/react/ssr';
-import { adminGymsQuerySchema, type AdminGym } from '@bgym/shared';
+import { adminGymsQuerySchema, type AdminGym, type FeeSettings } from '@bgym/shared';
 import { AdminGymCard } from '@/components/admin/admin-gym-card';
 import { PageSkeleton } from '@/components/dashboard-gate';
 import { PageHeader } from '@/components/ui/page-header';
@@ -33,7 +33,7 @@ async function Gyms({ searchParams }: Pick<PageProps<'/admin/gyms'>, 'searchPara
   const parsed = adminGymsQuerySchema.safeParse({ status: sp.status, q: typeof sp.q === 'string' && sp.q.trim() ? sp.q : undefined });
   const query = parsed.success ? parsed.data : { status: 'all' as const, q: undefined };
   const params = new URLSearchParams({ status: query.status, ...(query.q && { q: query.q }) });
-  const gyms = await api<AdminGym[]>(`/v1/admin/gyms?${params}`);
+  const [gyms, fees] = await Promise.all([api<AdminGym[]>(`/v1/admin/gyms?${params}`), api<FeeSettings>('/v1/admin/fees')]);
   const href = (status: string) => `/admin/gyms?${new URLSearchParams({ status, ...(query.q && { q: query.q }) })}`;
 
   return (
@@ -54,7 +54,7 @@ async function Gyms({ searchParams }: Pick<PageProps<'/admin/gyms'>, 'searchPara
           <input id="gym-search" name="q" type="search" defaultValue={query.q ?? ''} maxLength={80} placeholder="Search name or area" className="h-11 w-full rounded-control border border-line bg-white pr-3 pl-10 text-sm outline-none focus:border-flare" />
         </form>
       </div>
-      {gyms.length === 0 ? <p className="rounded-card border border-line bg-white px-6 py-10 text-center text-mute">No gyms match.</p> : gyms.map((g) => <AdminGymCard key={g.id} gym={g} />)}
+      {gyms.length === 0 ? <p className="rounded-card border border-line bg-white px-6 py-10 text-center text-mute">No gyms match.</p> : gyms.map((g) => <AdminGymCard key={g.id} gym={g} defaultFeeBps={fees.membershipBps} />)}
     </div>
   );
 }

@@ -46,6 +46,7 @@ Please do **not** open a public issue. Email the BGYM team privately with the de
 - Payout changes need a step-up code from the owner's email. Codes are tied to a purpose: a sign-in code can't confirm a payout change and a payout code can't sign anyone in. Every owner is emailed when payout details change.
 - Full account numbers go to Paystack only; BGYM keeps the bank, account name and last four digits.
 - Revenue CSV exports neutralise spreadsheet formulas (CSV injection).
+- Only the BGYM team can change fees (audited, with history); the fee is fixed on each payment when it's created. Real checkout is refused for a gym with no payout account, so a gym's money can never be collected into BGYM's account by mistake.
 
 **Notifications**
 - Push tokens are tied to the account that signed in last on that phone and removed on sign-out; tokens Expo reports as dead are deleted.

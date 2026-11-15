@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { Confetti } from '@phosphor-icons/react/ssr';
-import type { AdminGym } from '@bgym/shared';
+import type { AdminGym, FeeSettings } from '@bgym/shared';
 import { AdminGymCard } from '@/components/admin/admin-gym-card';
 import { PageSkeleton } from '@/components/dashboard-gate';
 import { PageHeader } from '@/components/ui/page-header';
@@ -19,7 +19,7 @@ export default function Page() {
 }
 
 async function Approvals() {
-  const queue = await api<AdminGym[]>('/v1/admin/gyms?status=pending_review');
+  const [queue, fees] = await Promise.all([api<AdminGym[]>('/v1/admin/gyms?status=pending_review'), api<FeeSettings>('/v1/admin/fees')]);
   return (
     <div className="flex flex-col gap-5">
       <PageHeader title="Gym approvals" subtitle={queue.length ? `${queue.length} waiting · oldest first` : 'Gyms sent for review appear here.'} />
@@ -30,7 +30,7 @@ async function Approvals() {
           <p className="mt-1 text-mute">You’re all caught up.</p>
         </div>
       ) : (
-        queue.map((gym) => <AdminGymCard key={gym.id} gym={gym} />)
+        queue.map((gym) => <AdminGymCard key={gym.id} gym={gym} defaultFeeBps={fees.membershipBps} />)
       )}
     </div>
   );

@@ -67,6 +67,8 @@ export interface AdminGym {
   owner: { name: string | null; email: string } | null;
   plans: Array<{ name: string; durationDays: number; pricePesewas: number; isActive: boolean }>;
   payoutReady: boolean;
+  /** BGYM's special rate for this gym in bps, or null when it follows the default. */
+  feeBps: number | null;
   activeMembers: number;
   createdAt: string;
   submittedAt: string | null;

@@ -15,6 +15,8 @@ describe('money', () => {
   });
   it('formats with the cedi sign', () => {
     expect(formatGhs(pesewas(35000))).toMatch(/^GH₵\s?350$/);
+    expect(formatGhs(pesewas(3960))).toMatch(/^GH₵\s?39\.60$/);
+    expect(formatGhs(pesewas(875))).toMatch(/^GH₵\s?8\.75$/);
   });
 });
 
@@ -66,5 +68,19 @@ describe('parseCoordinates', () => {
     expect(parseCoordinates('https://www.google.com/maps/place/X/@5.6357114,-0.1573021,17z/data=x')).toEqual({ lat: 5.6357114, lng: -0.1573021 });
     expect(parseCoordinates('https://maps.google.com/?q=5.60521,-0.17181')).toEqual({ lat: 5.60521, lng: -0.17181 });
     expect(parseCoordinates('East Legon')).toBeNull();
+  });
+});
+
+describe('fees', () => {
+  it('converts percentages and charges exactly what checkout charges', async () => {
+    const { feeFor, formatPercent, percentToBps, feeBpsSchema } = await import('./fees.js');
+    expect(percentToBps(2.5)).toBe(250);
+    expect(formatPercent(250)).toBe('2.5%');
+    expect(formatPercent(200)).toBe('2%');
+    expect(feeFor(35000, 250)).toBe(875); // GH₵350 × 2.5% = GH₵8.75
+    expect(feeFor(4000, 333)).toBe(133); // rounds to the nearest pesewa
+    expect(feeBpsSchema.safeParse(3001).success).toBe(false);
+    expect(feeBpsSchema.safeParse(-1).success).toBe(false);
+    expect(feeBpsSchema.safeParse(2.5).success).toBe(false);
   });
 });

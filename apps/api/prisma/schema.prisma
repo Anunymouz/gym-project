@@ -980,5 +980,6 @@ model AuditLog {
 
   @@index([targetType, targetId])
   @@index([actorId, createdAt])
+  @@index([action, createdAt])
   @@map("audit_logs")
 }

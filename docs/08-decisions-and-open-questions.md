@@ -35,6 +35,7 @@
 | D30 | Notifications: members choose per topic and channel (renewals: phone + email, on by default; check-ins: phone, on; news and offers: phone + email, off until they opt in). The app asks for phone permission only when the member turns notifications on, never at launch. Every reminder email has a one-click unsubscribe. Sign-in codes and payment receipts are always emailed. Push goes through Expo's push service. |
 | D31 | Gyms join through the dashboard: "List your gym" creates a hidden draft; the owner completes a checklist (description and phone, opening hours, a plan, payout account) and sends it for review; the BGYM team approves it (live), sends it back with a note, or later pauses it. A person can have up to three gyms in progress. |
 | D32 | Payout accounts are Paystack subaccounts. Only owners can see or change them; every change needs a fresh code from the owner's email, is audited, and every owner is emailed. BGYM stores only the bank name, account name and last four digits. |
+| D33 | BGYM's fee is set by the BGYM team in the admin dashboard (Fees): one default percentage for memberships, plus optional special rates per gym. Each payment is split at Paystack: BGYM's fee goes to BGYM's Paystack account (transaction charge), the rest to the gym's subaccount, which bears Paystack's processing fee. The fee in force at checkout is stored on the payment, so changes never alter past payments. Real checkout is refused for a gym without a payout account. |
 | D28 | Dashboards sign in with the same email code; sessions are held by the dashboard's server in httpOnly cookies (the browser never holds a token). Front-desk staff can check members in and view members and plans; only owners and managers change plans. |
 
 ## Assumptions (please confirm or correct)
@@ -46,7 +47,7 @@
 | A7 | Gyms are verified/approved by admin before appearing in search. |
 
 ## Open questions
-1. Platform fee percentages for memberships, trainer bookings, and partner store sales.
+1. ~~Platform fee for memberships~~: now set in the admin dashboard (D33). Still to decide: fees for trainer bookings and partner store sales.
 2. Who bears Paystack processing fees — the gym/trainer/partner, or built into the platform fee?
 3. Refund and cancellation policies (memberships, bookings, store orders).
 4. Store partner: single warehouse location? Do they also want to self-deliver?

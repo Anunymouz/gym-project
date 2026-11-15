@@ -8,6 +8,7 @@ import {
   type CreatePlanInput,
   type GymMember,
   type GymOverview,
+  type GymFee,
   type GymProfile,
   type MembersQuery,
   updateGymProfileSchema,
@@ -20,6 +21,7 @@ import {
 } from '@bgym/shared';
 import { CurrentUser } from '../auth/decorators.js';
 import type { AccessClaims } from '../auth/token.service.js';
+import { FeesService } from '../fees/fees.service.js';
 import { RemindersService } from '../reminders/reminders.service.js';
 import { StaffAccessService } from './staff-access.service.js';
 import { StaffService } from './staff.service.js';
@@ -33,6 +35,7 @@ export class StaffController {
     private readonly staff: StaffService,
     private readonly access: StaffAccessService,
     private readonly reminders: RemindersService,
+    private readonly fees: FeesService,
   ) {}
 
   @Get('gyms')
@@ -63,6 +66,13 @@ export class StaffController {
   ): Promise<RemindResponse> {
     await this.access.require(user, gymId);
     return this.reminders.remindNow(gymId, membershipId, user.userId);
+  }
+
+  /** BGYM's fee on this gym's membership sales (shown in the gym portal). */
+  @Get('gyms/:gymId/fee')
+  async fee(@CurrentUser() user: AccessClaims, @Param('gymId', { schema: id }) gymId: string): Promise<GymFee> {
+    await this.access.require(user, gymId);
+    return this.fees.forGym(gymId);
   }
 
   @Get('gyms/:gymId/profile')

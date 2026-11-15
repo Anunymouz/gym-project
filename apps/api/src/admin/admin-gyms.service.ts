@@ -44,7 +44,7 @@ export class AdminGymsService {
       this.prisma.gym.findMany({
         where: { id: { in: ids } },
         select: {
-          id: true, name: true, slug: true, status: true, addressText: true, phone: true, description: true, paystackSubaccountCode: true,
+          id: true, name: true, slug: true, status: true, addressText: true, phone: true, description: true, paystackSubaccountCode: true, platformFeeBps: true,
           createdAt: true, submittedAt: true, reviewedAt: true, reviewNote: true,
           staff: { where: { role: 'owner' }, take: 1, orderBy: { createdAt: 'asc' }, select: { user: { select: { name: true, email: true } } } },
           plans: { orderBy: { pricePesewas: 'asc' }, select: { name: true, durationDays: true, pricePesewas: true, isActive: true } },
@@ -64,6 +64,7 @@ export class AdminGymsService {
           owner: g.staff[0]?.user ?? null,
           plans: g.plans,
           payoutReady: !!g.paystackSubaccountCode,
+          feeBps: g.platformFeeBps,
           activeMembers: g._count.memberships,
           createdAt: g.createdAt.toISOString(),
           submittedAt: g.submittedAt?.toISOString() ?? null,

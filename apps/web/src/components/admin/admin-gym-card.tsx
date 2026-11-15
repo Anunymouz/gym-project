@@ -3,6 +3,7 @@ import { formatGhs, pesewas, planPeriodLabel, type AdminGym } from '@bgym/shared
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { formatDate } from '@/lib/format';
 import { GymDecision } from './gym-decision';
+import { GymFeeEditor } from './gym-fee-editor';
 
 export const gymStatus: Record<AdminGym['status'], { label: string; tone: BadgeTone }> = {
   active: { label: 'Live', tone: 'success' },
@@ -12,7 +13,7 @@ export const gymStatus: Record<AdminGym['status'], { label: string; tone: BadgeT
 };
 
 /** Everything the BGYM team needs to decide on a gym, with the decision buttons. */
-export function AdminGymCard({ gym }: { gym: AdminGym }) {
+export function AdminGymCard({ gym, defaultFeeBps }: { gym: AdminGym; defaultFeeBps: number }) {
   const mapUrl = `https://www.google.com/maps?q=${gym.location.lat},${gym.location.lng}`;
   return (
     <article className="rounded-card border border-line bg-white p-5">
@@ -40,6 +41,7 @@ export function AdminGymCard({ gym }: { gym: AdminGym }) {
             {gym.payoutReady ? <CheckCircle size={18} weight="fill" aria-hidden /> : <WarningCircle size={18} weight="fill" aria-hidden />}
             {gym.payoutReady ? 'Payout account connected' : 'No payout account yet'}
           </p>
+          <GymFeeEditor gymId={gym.id} gymName={gym.name} feeBps={gym.feeBps} defaultBps={defaultFeeBps} />
         </div>
         <p className="text-sm text-midnight/80 md:col-span-1">{gym.description ?? <span className="text-mute">No description</span>}</p>
         <ul className="flex flex-col gap-1 text-sm">

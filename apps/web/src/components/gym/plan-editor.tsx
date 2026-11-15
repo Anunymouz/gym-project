@@ -1,8 +1,8 @@
 'use client';
 
-import { useActionState, useEffect, useId, useRef } from 'react';
+import { useActionState, useEffect, useId, useRef, useState } from 'react';
 import { CircleNotch, PencilSimple, Plus, X } from '@phosphor-icons/react';
-import type { StaffPlan } from '@bgym/shared';
+import { feeFor, formatGhs, formatPercent, pesewas, type StaffPlan } from '@bgym/shared';
 import { savePlan, type PlanFormState } from '@/app/(dashboards)/gym-actions';
 
 const presets = [
@@ -10,11 +10,13 @@ const presets = [
 ];
 
 /** Create or edit a plan in a native <dialog> (focus trap, Escape and backdrop for free). */
-export function PlanEditor({ mode, plan }: { mode: 'create' | 'edit'; plan?: StaffPlan }) {
+export function PlanEditor({ mode, plan, feeBps }: { mode: 'create' | 'edit'; plan?: StaffPlan; feeBps: number }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const form = useRef<HTMLFormElement>(null);
   const titleId = useId();
   const [state, action, pending] = useActionState(savePlan, {} as PlanFormState);
+  const [price, setPrice] = useState(plan ? (plan.pricePesewas / 100).toFixed(2) : '');
+  const pricePesewas = /^\d+(\.\d{1,2})?$/.test(price.replace(/[,\s]/g, '')) ? Math.round(Number(price.replace(/[,\s]/g, '')) * 100) : null;
 
   useEffect(() => {
     if (state.ok) {
@@ -30,7 +32,7 @@ export function PlanEditor({ mode, plan }: { mode: 'create' | 'edit'; plan?: Sta
   return (
     <>
       {mode === 'create' ? (
-        <button type="button" onClick={() => dialog.current?.showModal()} className="inline-flex h-11 items-center gap-2 rounded-control bg-flare px-4 text-sm font-bold text-white hover:bg-[#f04e14]">
+        <button type="button" onClick={() => { setPrice(''); dialog.current?.showModal(); }} className="inline-flex h-11 items-center gap-2 rounded-control bg-flare px-4 text-sm font-bold text-white hover:bg-[#f04e14]">
           <Plus size={20} weight="bold" aria-hidden /> New plan
         </button>
       ) : (
@@ -53,12 +55,17 @@ export function PlanEditor({ mode, plan }: { mode: 'create' | 'edit'; plan?: Sta
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Price (GH₵)" error={err.price} id={`${titleId}-price`}>
-              <input id={`${titleId}-price`} name="price" inputMode="decimal" defaultValue={v?.price ?? (plan ? (plan.pricePesewas / 100).toFixed(2) : '')} required placeholder="350.00" aria-invalid={!!err.price} className={`${field} tabular-nums`} />
+              <input id={`${titleId}-price`} name="price" inputMode="decimal" defaultValue={v?.price ?? (plan ? (plan.pricePesewas / 100).toFixed(2) : '')} onChange={(e) => setPrice(e.target.value)} required placeholder="350.00" aria-invalid={!!err.price} className={`${field} tabular-nums`} />
             </Field>
             <Field label="Length (days)" error={err.durationDays} id={`${titleId}-days`}>
               <input id={`${titleId}-days`} name="durationDays" type="number" min={1} max={366} defaultValue={v?.durationDays ?? plan?.durationDays ?? 30} required aria-invalid={!!err.durationDays} className={`${field} tabular-nums`} />
             </Field>
           </div>
+          {pricePesewas !== null && pricePesewas > 0 && (
+            <p className="-mt-2 text-sm text-mute">
+              You receive <span className="font-bold text-midnight">{formatGhs(pesewas(pricePesewas - feeFor(pricePesewas, feeBps)))}</span> per sale after BGYM’s {formatPercent(feeBps)} fee.
+            </p>
+          )}
           <div className="-mt-2 flex flex-wrap gap-1.5" aria-label="Quick lengths">
             {presets.map((p) => (
               <button key={p.days} type="button" className="rounded-full bg-cloud px-2.5 py-1 text-xs font-bold text-mute hover:text-midnight"

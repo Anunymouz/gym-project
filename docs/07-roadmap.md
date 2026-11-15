@@ -18,7 +18,8 @@ Phases are ordered so we can launch a paying product early, then layer on.
 - ✅ Push notifications (renewal reminders, check-in confirmations) and notification settings in the app (Me → Notifications); one-click unsubscribe in emails.
 - ✅ Gym Settings (profile, opening hours, facilities) and Revenue (monthly totals, CSV export).
 - ✅ List your gym → setup checklist → payout account (Paystack subaccount, confirmed by email code) → send for review → BGYM team approves, sends back with a note, pauses or reactivates.
-- Next: decide the platform fee (admin Fees page), gym photos, staff invitations, Apple & Google sign-in, live Paystack keys and gym subaccounts.
+- ✅ Platform fee set by the BGYM team (Fees page, special rates per gym, change history); admin Payments page showing what BGYM earned; gyms see the fee and what they receive per plan.
+- Next: gym photos, staff invitations, Apple & Google sign-in, live Paystack keys and gym subaccounts.
 - Member: onboarding, location + radius search, gym page, buy membership (MoMo/card), receipt, QR, My memberships, renewal reminders.
 - Gym dashboard: onboarding, plans, members list, QR scanning check-in, revenue view.
 - Admin: gym approval, fee settings, transactions.

@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { cookies } from 'next/headers';
-import type { AuthUser, StaffGym } from '@bgym/shared';
+import type { AuthUser, GymFee, StaffGym } from '@bgym/shared';
 import { api } from './api.server';
 import { COOKIE } from './auth/cookies';
 
@@ -22,3 +22,6 @@ export const getCurrentGym = cache(async (): Promise<StaffGym | null> => {
 });
 
 export const canManagePlans = (gym: StaffGym) => gym.role === 'owner' || gym.role === 'manager';
+
+/** BGYM's fee on this gym's membership sales. */
+export const getGymFee = cache((gymId: string) => api<GymFee>(`/v1/staff/gyms/${gymId}/fee`));

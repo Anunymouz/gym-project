@@ -1,14 +1,14 @@
-import { formatGhs, pesewas, planPeriodLabel, type StaffGym, type StaffPlan } from '@bgym/shared';
+import { feeFor, formatGhs, formatPercent, pesewas, planPeriodLabel, type StaffGym, type StaffPlan } from '@bgym/shared';
 import { Tag } from '@phosphor-icons/react/ssr';
 import { setPlanActive } from '@/app/(dashboards)/gym-actions';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { api } from '@/lib/api.server';
-import { canManagePlans } from '@/lib/session.server';
+import { canManagePlans, getGymFee } from '@/lib/session.server';
 import { PlanEditor } from './plan-editor';
 
 export async function GymPlans({ gym }: { gym: StaffGym }) {
-  const plans = await api<StaffPlan[]>(`/v1/staff/gyms/${gym.id}/plans`);
+  const [plans, fee] = await Promise.all([api<StaffPlan[]>(`/v1/staff/gyms/${gym.id}/plans`), getGymFee(gym.id)]);
   const manage = canManagePlans(gym);
 
   return (
@@ -16,7 +16,7 @@ export async function GymPlans({ gym }: { gym: StaffGym }) {
       <PageHeader
         title="Plans"
         subtitle={manage ? 'What members can buy in the BGYM app. Changes show in the app straight away.' : 'Only owners and managers can change plans.'}
-        actions={manage ? <PlanEditor mode="create" /> : undefined}
+        actions={manage ? <PlanEditor mode="create" feeBps={fee.bps} /> : undefined}
       />
 
       {plans.length === 0 ? (
@@ -37,11 +37,12 @@ export async function GymPlans({ gym }: { gym: StaffGym }) {
                 <Badge tone={p.isActive ? 'success' : 'info'}>{p.isActive ? 'On sale' : 'Paused'}</Badge>
               </div>
               <p className="mt-3 text-3xl font-extrabold tabular-nums">{formatGhs(pesewas(p.pricePesewas))}</p>
+              <p className="text-sm text-mute">You receive <span className="font-bold text-midnight">{formatGhs(pesewas(p.pricePesewas - feeFor(p.pricePesewas, fee.bps)))}</span> per sale</p>
               {p.description && <p className="mt-2 text-sm text-mute">{p.description}</p>}
               <p className="mt-3 text-sm font-semibold">{p.activeMembers} active {p.activeMembers === 1 ? 'member' : 'members'}</p>
               {manage && (
                 <div className="mt-auto flex gap-2 pt-4">
-                  <PlanEditor mode="edit" plan={p} />
+                  <PlanEditor mode="edit" plan={p} feeBps={fee.bps} />
                   <form action={setPlanActive}>
                     <input type="hidden" name="planId" value={p.id} />
                     <input type="hidden" name="isActive" value={String(!p.isActive)} />
@@ -55,7 +56,9 @@ export async function GymPlans({ gym }: { gym: StaffGym }) {
           ))}
         </ul>
       )}
-      {manage && <p className="text-sm text-mute">Pausing a plan stops new sales. Members who already paid keep their access until their end date.</p>}
+      <p className="text-sm text-mute">
+        BGYM’s fee is {formatPercent(fee.bps)} of each sale{fee.source === 'gym' ? ' (your special rate)' : ''}; Paystack’s processing fee also comes out of your share. {manage && 'Pausing a plan stops new sales. Members who already paid keep their access until their end date.'}
+      </p>
     </div>
   );
 }

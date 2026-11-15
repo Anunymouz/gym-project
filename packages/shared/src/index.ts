@@ -11,3 +11,4 @@ export * from './gym-profile.js';
 export * from './csv.js';
 export * from './gym-applications.js';
 export * from './payouts.js';
+export * from './fees.js';

@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
+import { FeesModule } from './fees/fees.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { RemindersModule } from './reminders/reminders.module.js';
 import { ClientIpThrottlerGuard } from './common/client-ip-throttler.guard.js';
@@ -58,6 +59,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     GymsModule,
     PaymentsModule,
     ScheduleModule.forRoot(),
+    FeesModule,
     NotificationsModule,
     RemindersModule,
     StaffModule,

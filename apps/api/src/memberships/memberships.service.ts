@@ -1,9 +1,10 @@
-import { ForbiddenException, Injectable, NotFoundException, type OnModuleInit } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
-import type { CheckoutResponse, MembershipPass, MembershipSummary } from '@bgym/shared';
+import { feeFor, type CheckoutResponse, type MembershipPass, type MembershipSummary } from '@bgym/shared';
 import type { Env } from '../config/env.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { FeesService } from '../fees/fees.service.js';
 import { FulfilmentRegistry } from '../payments/fulfilment.js';
 import { PaystackClient } from '../payments/paystack.client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -19,6 +20,7 @@ export class MembershipsService implements OnModuleInit {
     private readonly fulfilment: FulfilmentRegistry,
     private readonly passes: PassService,
     private readonly config: ConfigService<Env, true>,
+    private readonly fees: FeesService,
   ) {}
 
   onModuleInit(): void {
@@ -32,11 +34,17 @@ export class MembershipsService implements OnModuleInit {
       include: { gym: { select: { id: true, name: true, platformFeeBps: true, paystackSubaccountCode: true } } },
     });
     if (!plan) throw new NotFoundException('This plan is no longer available.');
+    const provider = this.config.get('PAYMENTS_DRIVER', { infer: true });
+    // Real payments are split at Paystack: without the gym's subaccount the whole amount would
+    // land in BGYM's account, so refuse rather than collect money that belongs to the gym.
+    if (provider === 'paystack' && !plan.gym.paystackSubaccountCode) {
+      throw new ConflictException('This gym can’t take payments in the app yet. Please try again later.');
+    }
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
 
-    const feeBps = plan.gym.platformFeeBps ?? (await this.defaultMembershipFeeBps());
-    const platformFeePesewas = Math.round((plan.pricePesewas * feeBps) / 10_000);
-    const provider = this.config.get('PAYMENTS_DRIVER', { infer: true });
+    // The fee in force right now is stored on the payment, so later fee changes never alter it.
+    const { bps: feeBps } = await this.fees.forGym(plan.gym.id);
+    const platformFeePesewas = feeFor(plan.pricePesewas, feeBps);
     const reference = `bgym_${randomUUID().replace(/-/g, '')}`;
     const now = new Date();
 
@@ -130,9 +138,4 @@ export class MembershipsService implements OnModuleInit {
     return this.passes.sign({ membershipId: m.id, gymId: m.gymId, userId });
   }
 
-  private async defaultMembershipFeeBps(): Promise<number> {
-    const setting = await this.prisma.platformSetting.findUnique({ where: { key: 'fees.default' } });
-    const value = (setting?.value as { membershipBps?: number | null } | null)?.membershipBps;
-    return typeof value === 'number' && value >= 0 && value <= 5000 ? value : 0;
-  }
 }
