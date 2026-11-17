@@ -84,6 +84,7 @@ function App() {
         <Stack.Screen name="workout/[id]" />
         <Stack.Screen name="workout/play/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom', gestureEnabled: false }} />
         <Stack.Screen name="workout-history" />
+        <Stack.Screen name="profile" />
       </Stack>
       {status === 'ready' && !showSplash && <NotificationTaps />}
       {showSplash && <AnimatedSplash onFinish={() => setShowSplash(false)} />}

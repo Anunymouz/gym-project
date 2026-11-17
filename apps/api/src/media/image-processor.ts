@@ -37,3 +37,28 @@ export async function processPhoto(input: Buffer): Promise<ProcessedPhoto> {
   ]);
   return { large: { data: large.data, width: large.info.width, height: large.info.height }, thumb: { data: thumb } };
 }
+
+/** Smallest photo we accept as a profile picture (the short side, after cropping square). */
+const MIN_AVATAR_SIDE = 200;
+
+/**
+ * A profile picture: the same safe decode and re-encode as other photos (metadata, including
+ * GPS, removed), cropped to a centred square. 512 px for the profile, 160 px for lists.
+ */
+export async function processAvatar(input: Buffer): Promise<{ large: Buffer; thumb: Buffer }> {
+  const options = { limitInputPixels: 50_000_000, failOn: 'error' as const };
+  let format: string | undefined;
+  let short = 0;
+  try {
+    const meta = await sharp(input, options).metadata();
+    format = meta.format;
+    short = Math.min(meta.autoOrient?.width ?? meta.width ?? 0, meta.autoOrient?.height ?? meta.height ?? 0);
+  } catch {
+    throw new BadRequestException('That file isn’t a photo we can read. Use a JPEG, PNG or WebP image.');
+  }
+  if (!format || !['jpeg', 'png', 'webp'].includes(format)) throw new BadRequestException('Use a JPEG, PNG or WebP photo.');
+  if (short < MIN_AVATAR_SIDE) throw new BadRequestException(`That photo is too small. Use one at least ${MIN_AVATAR_SIDE} pixels across.`);
+  const square = (size: number, quality: number) => sharp(input, options).rotate().resize({ width: size, height: size, fit: 'cover', position: 'attention' }).webp({ quality }).toBuffer();
+  const [large, thumb] = await Promise.all([square(512, 82), square(160, 78)]);
+  return { large, thumb };
+}

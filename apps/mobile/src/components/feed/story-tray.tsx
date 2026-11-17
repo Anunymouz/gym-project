@@ -16,7 +16,7 @@ export function StoryTray({ tray, onCreate }: { tray: Tray; onCreate: () => void
   const others = tray.groups.filter((g) => !g.mine);
   const canPost = tray.postableGyms.length > 0;
   if (!canPost && others.length === 0) return null;
-  const me = { kind: 'member' as const, id: user?.id ?? 'me', name: user?.name ?? 'You', avatarUrl: null };
+  const me = { kind: 'member' as const, id: user?.id ?? 'me', name: user?.name ?? 'You', avatarUrl: user?.avatarUrl ?? null };
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row} style={styles.scroll}>

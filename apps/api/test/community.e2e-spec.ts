@@ -182,6 +182,13 @@ describe('Gym communities: member posts, video, comments, stories, blocks (e2e)'
     const list = (await http().get(`/v1/posts/${post.id}/comments`).set(ama.auth).expect(200)).body;
     expect(list.comments.map((c: { id: string }) => c.id)).toEqual([c1.id, c2.id, c3.id]);
     expect(list.comments.every((c: { canDelete: boolean }) => c.canDelete)).toBe(true); // it's ama's post
+    // Profile photos show next to people's comments and posts (initials when there's none).
+    expect(list.comments[0].author.avatarUrl).toBeNull();
+    const key = `avatars/${kofi.id}/${crypto.randomUUID()}_t.webp`;
+    await prisma.user.update({ where: { id: kofi.id }, data: { avatarThumbKey: key } });
+    const withPhoto = (await http().get(`/v1/posts/${post.id}/comments`).set(ama.auth).expect(200)).body;
+    expect(withPhoto.comments[0].author.avatarUrl).toMatch(new RegExp(`${key}$`));
+    await prisma.user.update({ where: { id: kofi.id }, data: { avatarThumbKey: null } });
     const asKofi = (await http().get(`/v1/posts/${post.id}/comments`).set(kofi.auth).expect(200)).body.comments as { id: string; canDelete: boolean }[];
     expect(asKofi.find((c) => c.id === c3.id)?.canDelete).toBe(false);
     await http().delete(`/v1/comments/${c3.id}`).set(kofi.auth).expect(404);

@@ -44,6 +44,11 @@ const planDescriptions: Record<string, string> = {
 
 // ───────────── Demo gym activity (fictional people, reserved .test domain) ─────────────
 const DEMO_DOMAIN = '@bgym-demo.test';
+/** Demo people get both parts of their name, like someone who finished the profile step. */
+const named = (name: string) => {
+  const [firstName, ...rest] = name.split(' ');
+  return { name, firstName: firstName!, lastName: rest.join(' ') };
+};
 const DAY = 24 * 60 * 60 * 1000;
 const demoMembers: Array<[name: string, plan: 'Day pass' | 'Monthly' | 'Quarterly', startedDaysAgo: number, channel: 'mobile_money' | 'card']> = [
   ['Ama Owusu', 'Monthly', 28, 'mobile_money'],
@@ -104,10 +109,10 @@ async function seedDemo(): Promise<void> {
   await prisma.gym.deleteMany({ where: { slug: { notIn: gyms.map((g) => g.slug) }, staff: { none: {} }, memberships: { none: {} } } });
 
   const gym = await prisma.gym.findUniqueOrThrow({ where: { slug: 'iron-haven-east-legon' }, include: { plans: true } });
-  const owner = await prisma.user.create({ data: { email: `owner${DEMO_DOMAIN}`, name: 'Kofi Mensah', roles: ['member', 'gym_staff'] } });
-  const frontDesk = await prisma.user.create({ data: { email: `frontdesk${DEMO_DOMAIN}`, name: 'Esi Quaye', roles: ['member', 'gym_staff'] } });
+  const owner = await prisma.user.create({ data: { email: `owner${DEMO_DOMAIN}`, ...named('Kofi Mensah'), roles: ['member', 'gym_staff'] } });
+  const frontDesk = await prisma.user.create({ data: { email: `frontdesk${DEMO_DOMAIN}`, ...named('Esi Quaye'), roles: ['member', 'gym_staff'] } });
   // BGYM team member: reviews gym applications in the admin dashboard.
-  await prisma.user.create({ data: { email: `admin${DEMO_DOMAIN}`, name: 'Ama Darko', roles: ['member', 'admin'] } });
+  await prisma.user.create({ data: { email: `admin${DEMO_DOMAIN}`, ...named('Ama Darko'), roles: ['member', 'admin'] } });
   await prisma.gymStaff.createMany({ data: [{ gymId: gym.id, userId: owner.id, role: 'owner' }, { gymId: gym.id, userId: frontDesk.id, role: 'front_desk' }] });
 
   const now = Date.now();
@@ -115,7 +120,7 @@ async function seedDemo(): Promise<void> {
   const rand = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
   for (const [name, planName, startedDaysAgo, channel] of demoMembers) {
     const plan = gym.plans.find((p) => p.name === planName)!;
-    const user = await prisma.user.create({ data: { email: `${name.toLowerCase().replace(/[^a-z]+/g, '.')}${DEMO_DOMAIN}`, name } });
+    const user = await prisma.user.create({ data: { email: `${name.toLowerCase().replace(/[^a-z]+/g, '.')}${DEMO_DOMAIN}`, ...named(name) } });
     const startsAt = new Date(now - startedDaysAgo * DAY);
     const payment = await prisma.payment.create({
       data: {
@@ -161,7 +166,7 @@ async function seedTrainers(gymId: string): Promise<string[]> {
   ];
   const names: string[] = [];
   for (const p of people) {
-    const user = await prisma.user.create({ data: { email: p.email, name: p.name, roles: ['member', 'trainer'], phone: '+233240000000' } });
+    const user = await prisma.user.create({ data: { email: p.email, ...named(p.name), roles: ['member', 'trainer'], phone: '+233240000000' } });
     const trainer = await prisma.trainer.create({
       data: {
         userId: user.id, gymId, status: 'active', listed: true, bio: p.bio, specialties: p.specialties, certifications: p.certifications,
@@ -197,7 +202,7 @@ async function seedStore(): Promise<void> {
   ];
   for (const p of own) await upsertDemoProduct(platform.id, categories, p);
 
-  const user = await prisma.user.create({ data: { email: `partner${DEMO_DOMAIN}`, name: 'Yaw Mensah', roles: ['member', 'partner'] } });
+  const user = await prisma.user.create({ data: { email: `partner${DEMO_DOMAIN}`, ...named('Yaw Mensah'), roles: ['member', 'partner'] } });
   const partner = await prisma.seller.create({
     data: {
       type: 'partner', name: 'Accra Nutrition Hub', commissionBps: 1500, contactEmail: `partner${DEMO_DOMAIN}`, contactPhone: '+233201234567',

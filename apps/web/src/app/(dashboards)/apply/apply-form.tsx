@@ -8,7 +8,7 @@ import { applyForGym, type ApplyState } from './actions';
 const field = 'h-12 w-full rounded-control border border-line bg-white px-3 outline-none focus:border-flare aria-[invalid=true]:border-danger';
 
 export function ApplyForm({ askName }: { askName: boolean }) {
-  const [ownerName, setOwnerName] = useState('');
+  const [owner, setOwner] = useState({ firstName: '', lastName: '' });
   const [form, setForm] = useState({ name: '', addressText: '', phone: '', description: '' });
   const [location, setLocation] = useState<GymLocation | null>(null);
   const [pasted, setPasted] = useState('');
@@ -48,14 +48,19 @@ export function ApplyForm({ askName }: { askName: boolean }) {
       onSubmit={(e) => {
         e.preventDefault();
         if (!location) return setLocError('Set the gym’s location so members nearby can find it.');
-        start(async () => setState(await applyForGym({ ...form, description: form.description || undefined, location }, askName ? ownerName : undefined)));
+        start(async () => setState(await applyForGym({ ...form, description: form.description || undefined, location }, askName ? owner : undefined)));
       }}
       className="flex flex-col gap-4"
     >
       {askName && (
-        <Field id="ownerName" label="Your name" error={err.ownerName} hint="The gym owner or manager">
-          <input id="ownerName" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} maxLength={60} autoComplete="name" autoFocus aria-invalid={!!err.ownerName} className={field} />
-        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field id="firstName" label="Your first name" error={err.firstName} hint="Owner or manager">
+            <input id="firstName" value={owner.firstName} onChange={(e) => setOwner({ ...owner, firstName: e.target.value })} maxLength={30} autoComplete="given-name" autoFocus aria-invalid={!!err.firstName} className={field} />
+          </Field>
+          <Field id="lastName" label="Last name" error={err.lastName}>
+            <input id="lastName" value={owner.lastName} onChange={(e) => setOwner({ ...owner, lastName: e.target.value })} maxLength={30} autoComplete="family-name" aria-invalid={!!err.lastName} className={field} />
+          </Field>
+        </div>
       )}
       <Field id="name" label="Gym name" error={err.name}>
         <input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} maxLength={60} autoFocus={!askName} aria-invalid={!!err.name} className={field} />

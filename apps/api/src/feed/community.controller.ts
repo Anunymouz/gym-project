@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { BlockedUser } from '@bgym/shared';
 import { CurrentUser } from '../auth/decorators.js';
 import type { AccessClaims } from '../auth/token.service.js';
+import { StorageService } from '../media/storage.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const id = z.uuid();
@@ -11,7 +12,10 @@ const id = z.uuid();
 /** Community rules and blocking (required for apps where people post: App Store 1.2). */
 @Controller('me')
 export class CommunityController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   @Post('community-rules')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -21,8 +25,8 @@ export class CommunityController {
 
   @Get('blocks')
   async blocks(@CurrentUser() user: AccessClaims): Promise<BlockedUser[]> {
-    const rows = await this.prisma.userBlock.findMany({ where: { blockerId: user.userId }, orderBy: { createdAt: 'desc' }, select: { createdAt: true, blocked: { select: { id: true, name: true, avatarUrl: true } } } });
-    return rows.map((r) => ({ id: r.blocked.id, name: r.blocked.name ?? 'BGYM member', avatarUrl: r.blocked.avatarUrl, blockedAt: r.createdAt.toISOString() }));
+    const rows = await this.prisma.userBlock.findMany({ where: { blockerId: user.userId }, orderBy: { createdAt: 'desc' }, select: { createdAt: true, blocked: { select: { id: true, name: true, avatarThumbKey: true } } } });
+    return rows.map((r) => ({ id: r.blocked.id, name: r.blocked.name ?? 'BGYM member', avatarUrl: this.storage.avatarUrl(r.blocked.avatarThumbKey), blockedAt: r.createdAt.toISOString() }));
   }
 
   /** You and they stop seeing each other's posts, comments and stories. They aren't told. */

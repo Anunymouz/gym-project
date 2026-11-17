@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { updateProfileSchema } from '@bgym/shared';
+import { firstNameSchema, lastNameSchema } from '@bgym/shared';
 import { api, ApiError, publicApi } from '@/lib/api.server';
 import { COOKIE, clearSession, rememberGym } from '@/lib/auth/cookies';
 import { getStaffGyms } from '@/lib/session.server';
@@ -31,15 +31,15 @@ export async function switchGym(form: FormData): Promise<void> {
 }
 
 /** Accepts or declines a staff invitation for the signed-in person (the API checks it's theirs). */
-export async function respondToInvitation(invitationId: string, accept: boolean, name?: string): Promise<{ error?: string }> {
+export async function respondToInvitation(invitationId: string, accept: boolean, name?: { firstName: string; lastName: string }): Promise<{ error?: string }> {
   const id = z.uuid().safeParse(invitationId);
   if (!id.success) return { error: 'Invitation not found.' };
   // People who signed up on the dashboard may not have a name yet; their new team needs one.
   if (accept && name !== undefined) {
-    const parsed = updateProfileSchema.shape.name.safeParse(name);
+    const parsed = z.object({ firstName: firstNameSchema, lastName: lastNameSchema }).safeParse(name);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Enter your name.' };
     try {
-      await api('/v1/auth/me', { method: 'PATCH', body: JSON.stringify({ name: parsed.data }) });
+      await api('/v1/auth/me', { method: 'PATCH', body: JSON.stringify(parsed.data) });
     } catch (err) {
       return { error: err instanceof ApiError ? err.message : 'Something went wrong.' };
     }

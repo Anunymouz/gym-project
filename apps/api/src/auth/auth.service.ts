@@ -1,22 +1,25 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
-import { OTP_RESEND_COOLDOWN_SECONDS, type AuthSession, type AuthUser, type RequestEmailCodeResponse, type Role, type UpdateProfileInput } from '@bgym/shared';
+import { displayName, OTP_RESEND_COOLDOWN_SECONDS, type AuthSession, type AuthUser, type RequestEmailCodeResponse, type Role, type UpdateProfileInput } from '@bgym/shared';
 import { AuditService } from '../audit/audit.service.js';
 import { hmac } from '../common/crypto.js';
 import type { Env } from '../config/env.js';
+import { processAvatar } from '../media/image-processor.js';
+import { StorageService } from '../media/storage.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { OtpService } from './otp.service.js';
 import { TokenService } from './token.service.js';
 
-const userSelect = { id: true, email: true, name: true, phone: true, roles: true, memberProfile: { select: { goal: true } } } as const;
+const userSelect = { id: true, email: true, name: true, firstName: true, lastName: true, avatarKey: true, phone: true, roles: true, memberProfile: { select: { goal: true } } } as const;
 
-type UserRow = { id: string; email: string; name: string | null; phone: string | null; roles: Role[]; memberProfile: { goal: string | null } | null };
-const toAuthUser = ({ memberProfile, ...u }: UserRow): AuthUser => ({ ...u, goal: memberProfile?.goal ?? null });
+type UserRow = { id: string; email: string; name: string | null; firstName: string | null; lastName: string | null; avatarKey: string | null; phone: string | null; roles: Role[]; memberProfile: { goal: string | null } | null };
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
     private readonly otp: OtpService,
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
@@ -45,7 +48,7 @@ export class AuthService {
     const existing = await this.prisma.user.findUnique({ where: { email }, select: { ...userSelect, status: true } });
     if (existing && existing.status !== 'active') throw new ForbiddenException('This account is not active. Contact BGYM support.');
 
-    const user = toAuthUser(
+    const user = this.toAuthUser(
       existing
         ? await this.prisma.user.update({ where: { id: existing.id }, data: { lastLoginAt: new Date() }, select: userSelect })
         : await this.prisma.user.create({
@@ -60,14 +63,16 @@ export class AuthService {
   }
 
   async getUser(userId: string): Promise<AuthUser> {
-    return toAuthUser(await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: userSelect }));
+    return this.toAuthUser(await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: userSelect }));
   }
 
   async updateProfile(userId: string, input: UpdateProfileInput): Promise<AuthUser> {
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: {
-        name: input.name,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        name: displayName(input.firstName, input.lastName),
         ...(input.phone !== undefined && { phone: input.phone }),
         ...(input.goal !== undefined && {
           memberProfile: { upsert: { create: { goal: input.goal }, update: { goal: input.goal } } },
@@ -75,6 +80,33 @@ export class AuthService {
       },
       select: userSelect,
     });
-    return toAuthUser(user);
+    return this.toAuthUser(user);
+  }
+
+  /** A new profile photo: cropped square, re-encoded (metadata removed); the old one is deleted. */
+  async setAvatar(userId: string, file: Buffer): Promise<AuthUser> {
+    const photo = await processAvatar(file);
+    const id = randomUUID();
+    const key = `avatars/${userId}/${id}.webp`;
+    const thumbKey = `avatars/${userId}/${id}_t.webp`;
+    await this.storage.put(key, photo.large, 'image/webp');
+    await this.storage.put(thumbKey, photo.thumb, 'image/webp');
+    const before = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { avatarKey: true, avatarThumbKey: true } });
+    const user = await this.prisma.user.update({ where: { id: userId }, data: { avatarKey: key, avatarThumbKey: thumbKey }, select: userSelect });
+    await this.storage.delete([before.avatarKey, before.avatarThumbKey].filter((k): k is string => !!k));
+    await this.audit.record({ action: 'profile.photo_changed', actorId: userId, targetType: 'user', targetId: userId });
+    return this.toAuthUser(user);
+  }
+
+  async removeAvatar(userId: string): Promise<AuthUser> {
+    const before = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { avatarKey: true, avatarThumbKey: true } });
+    const user = await this.prisma.user.update({ where: { id: userId }, data: { avatarKey: null, avatarThumbKey: null }, select: userSelect });
+    await this.storage.delete([before.avatarKey, before.avatarThumbKey].filter((k): k is string => !!k));
+    if (before.avatarKey) await this.audit.record({ action: 'profile.photo_removed', actorId: userId, targetType: 'user', targetId: userId });
+    return this.toAuthUser(user);
+  }
+
+  private toAuthUser({ memberProfile, avatarKey, ...u }: UserRow): AuthUser {
+    return { ...u, avatarUrl: avatarKey ? this.storage.publicUrl(avatarKey) : null, goal: memberProfile?.goal ?? null };
   }
 }

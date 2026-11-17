@@ -1,12 +1,13 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { COMMENTS_PAGE_SIZE, type CommentPage, type PostComment, type ReportInput } from '@bgym/shared';
 import { AuditService } from '../audit/audit.service.js';
+import { StorageService } from '../media/storage.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { type Audience, CommunityAccessService, type Viewer } from './community-access.service.js';
 import { decodeCursor, encodeCursor } from './cursor.js';
 import { fileReport, PostsService } from './posts.service.js';
 
-const commentSelect = { id: true, body: true, createdAt: true, userId: true, user: { select: { id: true, name: true, avatarUrl: true } } } as const;
+const commentSelect = { id: true, body: true, createdAt: true, userId: true, user: { select: { id: true, name: true, avatarThumbKey: true } } } as const;
 
 /**
  * Comments on posts. Anyone who can see a post can read its comments; members and staff of
@@ -20,6 +21,7 @@ export class CommentsService {
     private readonly posts: PostsService,
     private readonly access: CommunityAccessService,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   /** Oldest first, like a conversation. */
@@ -91,14 +93,14 @@ export class CommentsService {
   }
 
   private toComment(
-    c: { id: string; body: string; createdAt: Date; userId: string; user: { id: string; name: string | null; avatarUrl: string | null } },
+    c: { id: string; body: string; createdAt: Date; userId: string; user: { id: string; name: string | null; avatarThumbKey: string | null } },
     a: Audience,
     post: { gymId: string; authorKind: string; authorUserId: string },
   ): PostComment {
     return {
       id: c.id,
       body: c.body,
-      author: { id: c.user.id, name: c.user.name ?? 'BGYM member', avatarUrl: c.user.avatarUrl },
+      author: { id: c.user.id, name: c.user.name ?? 'BGYM member', avatarUrl: this.storage.avatarUrl(c.user.avatarThumbKey) },
       canDelete: this.canDelete(a, c.userId, post),
       createdAt: c.createdAt.toISOString(),
     };

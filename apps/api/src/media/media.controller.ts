@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { Public } from '../auth/decorators.js';
 import { isValidKey, StorageService } from './storage.service.js';
 
-const kind = z.enum(['gyms', 'posts', 'stories', 'trainers', 'products', 'exercises', 'workouts', 'videos']);
+const kind = z.enum(['gyms', 'posts', 'stories', 'trainers', 'products', 'exercises', 'workouts', 'avatars', 'videos']);
 const segment = z.string().regex(/^[0-9a-f-]{36}$/);
 const file = z.string().regex(/^[0-9a-f-]{36}(_t\.webp|\.webp|\.mp4)$/);
 

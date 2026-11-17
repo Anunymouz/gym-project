@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Redirect } from 'expo-router';
-import Animated, { FadeInDown, ZoomIn, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { FadeInDown, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import type { IconProps } from 'phosphor-react-native';
 import type { ComponentType } from 'react';
 import { FITNESS_GOALS, updateProfileSchema } from '@bgym/shared';
 import { BarbellIcon, DeviceMobileIcon, FlameIcon, HeartbeatIcon, LightningIcon, PersonSimpleRunIcon } from '@/components/icons';
+import { AvatarEditor } from '@/components/profile/avatar-editor';
+import { NameFields } from '@/components/profile/name-fields';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
@@ -23,22 +25,21 @@ const goalIcons: Record<string, ComponentType<IconProps>> = {
 
 export default function ProfileStep() {
   const { status, user, saveProfile } = useSession();
-  const [name, setName] = useState(user?.name ?? '');
+  const [name, setName] = useState({ firstName: user?.firstName ?? '', lastName: user?.lastName ?? '' });
   const [goal, setGoal] = useState<string | null>(user?.goal ?? null);
-  const [phone, setPhone] = useState('');
-  const [errors, setErrors] = useState<{ name?: string; phone?: string; form?: string }>({});
+  const [phone, setPhone] = useState(user?.phone ?? '');
+  const [errors, setErrors] = useState<{ firstName?: string; lastName?: string; phone?: string; form?: string }>({});
   const [saving, setSaving] = useState(false);
 
   if (status !== 'needsProfile') return <Redirect href={homeFor(status)} />;
 
-  const initials = name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
-
   async function save() {
-    const parsed = updateProfileSchema.safeParse({ name, goal, phone: phone.trim() });
+    const parsed = updateProfileSchema.safeParse({ ...name, goal, phone: phone.trim() });
     if (!parsed.success) {
       const next: typeof errors = {};
       for (const issue of parsed.error.issues) {
-        const key = issue.path[0] === 'phone' ? 'phone' : issue.path[0] === 'name' ? 'name' : 'form';
+        const field = issue.path[0];
+        const key = field === 'phone' || field === 'firstName' || field === 'lastName' ? field : 'form';
         next[key] ??= issue.message;
       }
       return setErrors(next);
@@ -57,38 +58,17 @@ export default function ProfileStep() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Screen scroll edges={['top', 'bottom']} style={{ flexGrow: 1, gap: space.lg }}>
         <Animated.View entering={FadeInDown.duration(450)} style={styles.head}>
-          <View style={styles.avatar}>
-            {initials ? (
-              <Animated.Text key={initials} entering={ZoomIn.springify().damping(14)} style={styles.initials}>
-                {initials}
-              </Animated.Text>
-            ) : (
-              <PersonSimpleRunIcon size={34} color={colors.violet} weight="duotone" />
-            )}
-          </View>
-          <Text variant="title">Set up your profile</Text>
-          <Text muted>So your gyms and trainers know who you are.</Text>
+          <AvatarEditor size={88} firstName={name.firstName} lastName={name.lastName} onError={(m) => setErrors((e) => ({ ...e, form: m ?? undefined }))} />
+          <Text variant="title">What’s your name?</Text>
+          <Text muted>This is the name people see in BGYM: your gyms, trainers and community. Add a photo too if you like.</Text>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(80).duration(450)} style={{ gap: space.sm }}>
-          <Text variant="smallBold" nativeID="name-label">Your name</Text>
-          <TextInput
-            accessibilityLabelledBy="name-label"
-            value={name}
-            onChangeText={setName}
-            placeholder="e.g. Ama Owusu"
-            placeholderTextColor="#9AA0B4"
-            autoComplete="name"
-            textContentType="name"
-            autoCapitalize="words"
-            maxLength={60}
-            style={[styles.input, errors.name && styles.inputError]}
-          />
-          {errors.name && <Text variant="smallBold" style={styles.error}>{errors.name}</Text>}
+        <Animated.View entering={FadeInDown.delay(80).duration(450)}>
+          <NameFields firstName={name.firstName} lastName={name.lastName} onChange={(n) => { setErrors((e) => ({ ...e, ...(n.firstName !== name.firstName && { firstName: undefined }), ...(n.lastName !== name.lastName && { lastName: undefined }) })); setName(n); }} errors={errors} autoFocus />
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(160).duration(450)} style={{ gap: space.sm }}>
-          <Text variant="smallBold">Your main goal</Text>
+          <Text variant="smallBold">Your main goal <Text variant="small" muted>(optional)</Text></Text>
           <View style={styles.goals} accessibilityRole="radiogroup">
             {FITNESS_GOALS.map((g) => (
               <GoalChip key={g.id} label={g.label} Icon={goalIcons[g.id] ?? BarbellIcon} selected={goal === g.id} onPress={() => setGoal(goal === g.id ? null : g.id)} />
@@ -142,10 +122,7 @@ function GoalChip({ label, Icon, selected, onPress }: { label: string; Icon: Com
 }
 
 const styles = StyleSheet.create({
-  head: { gap: space.sm, marginTop: space.md },
-  avatar: { width: 76, height: 76, borderRadius: 38, backgroundColor: colors.violetSoft, alignItems: 'center', justifyContent: 'center', marginBottom: space.sm },
-  initials: { fontFamily: fonts.extrabold, fontSize: 28, color: colors.violet },
-  input: { height: 52, borderRadius: radii.md, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.white, paddingHorizontal: 14, fontFamily: fonts.medium, fontSize: 16, color: colors.text },
+  head: { gap: space.sm, marginTop: space.md, alignItems: 'flex-start' },
   inputError: { borderColor: colors.danger },
   error: { color: colors.danger },
   goals: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },

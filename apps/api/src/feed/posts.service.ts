@@ -15,7 +15,7 @@ const videoSelect = { provider: true, providerId: true, posterKey: true, width: 
 export const postSelect = {
   id: true, gymId: true, authorKind: true, authorUserId: true, body: true, status: true, likeCount: true, commentCount: true, createdAt: true,
   gym: { select: { id: true, name: true, slug: true, coverUrl: true } },
-  author: { select: { id: true, name: true, avatarUrl: true } },
+  author: { select: { id: true, name: true, avatarThumbKey: true } },
   media: { orderBy: { sortOrder: 'asc' }, select: { type: true, key: true, thumbKey: true, width: true, height: true, video: { select: videoSelect } } },
 } satisfies Prisma.PostSelect;
 type PostRow = Prisma.PostGetPayload<{ select: typeof postSelect }>;
@@ -93,7 +93,7 @@ export class PostsService {
       where: { gymId, status: { in: ['published', 'hidden', 'removed'] } },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 50,
-      select: { ...postSelect, author: { select: { id: true, name: true, email: true, avatarUrl: true } } },
+      select: { ...postSelect, author: { select: { id: true, name: true, email: true, avatarThumbKey: true } } },
     });
     const reports = await this.prisma.report.groupBy({ by: ['targetId'], where: { targetType: 'post', targetId: { in: rows.map((r) => r.id) }, status: 'open' }, _count: true });
     const open = new Map(reports.map((r) => [r.targetId, r._count]));
@@ -205,7 +205,7 @@ export class PostsService {
     return {
       id: p.id,
       gym: p.gym,
-      author: p.authorKind === 'gym' ? { kind: 'gym' } : { kind: 'member', id: p.author.id, name: p.author.name ?? 'BGYM member', avatarUrl: p.author.avatarUrl },
+      author: p.authorKind === 'gym' ? { kind: 'gym' } : { kind: 'member', id: p.author.id, name: p.author.name ?? 'BGYM member', avatarUrl: this.storage.avatarUrl(p.author.avatarThumbKey) },
       body: p.body,
       media: await Promise.all(
         p.media.map(async (m) => {

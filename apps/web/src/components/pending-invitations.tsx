@@ -7,7 +7,7 @@ import { respondToInvitation } from '@/app/(dashboards)/actions';
 
 /** Invitations waiting for the signed-in person, shown at the top of the gym dashboard. */
 export function PendingInvitations({ invitations, askName }: { invitations: MyInvitation[]; askName: boolean }) {
-  const [name, setName] = useState('');
+  const [name, setName] = useState({ firstName: '', lastName: '' });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [, start] = useTransition();
@@ -32,8 +32,10 @@ export function PendingInvitations({ invitations, askName }: { invitations: MyIn
           <div className="flex flex-wrap gap-2">
             {askName && (
               <>
-                <label htmlFor={`name-${inv.id}`} className="sr-only">Your name</label>
-                <input id={`name-${inv.id}`} value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" autoComplete="name" maxLength={60} className="h-11 w-48 rounded-control border border-line bg-white px-3 outline-none focus:border-flare" />
+                <label htmlFor={`first-${inv.id}`} className="sr-only">First name</label>
+                <input id={`first-${inv.id}`} value={name.firstName} onChange={(e) => setName({ ...name, firstName: e.target.value })} placeholder="First name" autoComplete="given-name" maxLength={30} className="h-11 w-36 rounded-control border border-line bg-white px-3 outline-none focus:border-flare" />
+                <label htmlFor={`last-${inv.id}`} className="sr-only">Last name</label>
+                <input id={`last-${inv.id}`} value={name.lastName} onChange={(e) => setName({ ...name, lastName: e.target.value })} placeholder="Last name" autoComplete="family-name" maxLength={30} className="h-11 w-36 rounded-control border border-line bg-white px-3 outline-none focus:border-flare" />
               </>
             )}
             <button type="button" disabled={busy !== null} onClick={() => respond(inv.id, false)} className="h-11 rounded-control border-[1.5px] border-line bg-white px-4 text-sm font-bold hover:bg-cloud">Decline</button>

@@ -1,6 +1,9 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, Patch, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { Throttle } from '@nestjs/throttler';
 import {
+  MAX_PHOTO_BYTES,
   refreshRequestSchema,
   updateProfileSchema,
   requestEmailCodeSchema,
@@ -68,5 +71,19 @@ export class AuthController {
   @Patch('me')
   updateMe(@CurrentUser() user: AccessClaims, @Body({ schema: updateProfileSchema }) body: UpdateProfileInput): Promise<AuthUser> {
     return this.auth.updateProfile(user.userId, body);
+  }
+
+  /** Profile photo: one image, held in memory and re-encoded before anything is stored. */
+  @Post('me/avatar')
+  @Throttle({ default: { limit: 20, ttl: 60 * 60_000 } })
+  @UseInterceptors(FileInterceptor('photo', { storage: memoryStorage(), limits: { fileSize: MAX_PHOTO_BYTES, files: 1, fields: 0 } }))
+  setAvatar(@CurrentUser() user: AccessClaims, @UploadedFile() file?: Express.Multer.File): Promise<AuthUser> {
+    if (!file) throw new BadRequestException('Choose a photo.');
+    return this.auth.setAvatar(user.userId, file.buffer);
+  }
+
+  @Delete('me/avatar')
+  removeAvatar(@CurrentUser() user: AccessClaims): Promise<AuthUser> {
+    return this.auth.removeAvatar(user.userId);
   }
 }

@@ -9,7 +9,12 @@ export type RefreshRequest = z.infer<typeof refreshRequestSchema>;
 export interface AuthUser {
   id: string;
   email: string;
+  /** "First Last", shown across BGYM (null until the profile step is done). */
   name: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  /** Profile photo (square), or null for initials. */
+  avatarUrl: string | null;
   phone: string | null;
   roles: Role[];
   goal: string | null;

@@ -2,7 +2,9 @@ import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
+import sharp from 'sharp';
 import { AppModule } from '../src/app.module.js';
+import { StorageService } from '../src/media/storage.service.js';
 import { sha256 } from '../src/common/crypto.js';
 import { MailService } from '../src/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
@@ -84,15 +86,41 @@ describe('Sign-in with email code (e2e)', () => {
     expect(res.body.email).toBe(emailA);
   });
 
-  it('saves the profile step', async () => {
-    const res = await http()
-      .patch('/v1/auth/me')
-      .set('Authorization', `Bearer ${accessA}`)
-      .send({ name: ' Ama Owusu ', goal: 'build_strength', phone: '024 123 4567' })
-      .expect(200);
-    expect(res.body).toMatchObject({ name: 'Ama Owusu', goal: 'build_strength', phone: '+233241234567' });
-    await http().patch('/v1/auth/me').set('Authorization', `Bearer ${accessA}`).send({ name: 'A' }).expect(400);
-    await http().patch('/v1/auth/me').send({ name: 'Ama Owusu' }).expect(401);
+  it('saves the profile step: first and last name, shown as one name', async () => {
+    const auth = { Authorization: `Bearer ${accessA}` };
+    const res = await http().patch('/v1/auth/me').set(auth).send({ firstName: ' Ama ', lastName: 'Owusu', goal: 'build_strength', phone: '024 123 4567' }).expect(200);
+    expect(res.body).toMatchObject({ name: 'Ama Owusu', firstName: 'Ama', lastName: 'Owusu', avatarUrl: null, goal: 'build_strength', phone: '+233241234567' });
+    await http().patch('/v1/auth/me').set(auth).send({ firstName: 'Ama', lastName: '' }).expect(400);
+    await http().patch('/v1/auth/me').set(auth).send({ name: 'Ama Owusu' }).expect(400);
+    await http().patch('/v1/auth/me').send({ firstName: 'Ama', lastName: 'Owusu' }).expect(401);
+    // Changing it later from the Me tab
+    const renamed = await http().patch('/v1/auth/me').set(auth).send({ firstName: 'Ama', lastName: 'Owusu-Mensah' }).expect(200);
+    expect(renamed.body).toMatchObject({ name: 'Ama Owusu-Mensah', phone: '+233241234567', goal: 'build_strength' });
+  });
+
+  it('sets, replaces and removes a profile photo (square, metadata removed)', async () => {
+    const auth = { Authorization: `Bearer ${accessA}` };
+    const storage = app.get(StorageService);
+    const jpeg = await sharp({ create: { width: 1200, height: 800, channels: 3, background: '#ff5a1f' } }).withMetadata({ exif: { IFD0: { Artist: 'secret' } } }).jpeg().toBuffer();
+    await http().post('/v1/auth/me/avatar').set(auth).attach('photo', Buffer.from('not an image'), 'x.jpg').expect(400);
+    const tiny = await sharp({ create: { width: 120, height: 120, channels: 3, background: '#000' } }).png().toBuffer();
+    await http().post('/v1/auth/me/avatar').set(auth).attach('photo', tiny, 'tiny.png').expect(400);
+    await http().post('/v1/auth/me/avatar').attach('photo', jpeg, 'me.jpg').expect(401);
+
+    const first = (await http().post('/v1/auth/me/avatar').set(auth).attach('photo', jpeg, 'me.jpg').expect(201)).body;
+    const user = await app.get(PrismaService).user.findUniqueOrThrow({ where: { email: emailA } });
+    expect(user.avatarKey).toMatch(new RegExp(`^avatars/${user.id}/[0-9a-f-]{36}\\.webp$`));
+    expect(first.avatarUrl).toContain(user.avatarKey);
+    const stored = await sharp(await storage.read(user.avatarKey!)).metadata();
+    expect(stored).toMatchObject({ format: 'webp', width: 512, height: 512 });
+    expect(stored.exif).toBeUndefined();
+
+    // A new photo replaces the old files; removing deletes them.
+    await http().post('/v1/auth/me/avatar').set(auth).attach('photo', jpeg, 'me.jpg').expect(201);
+    await expect(storage.read(user.avatarKey!)).rejects.toThrow();
+    const after = await app.get(PrismaService).user.findUniqueOrThrow({ where: { email: emailA } });
+    expect((await http().delete('/v1/auth/me/avatar').set(auth).expect(200)).body.avatarUrl).toBeNull();
+    await expect(storage.read(after.avatarThumbKey!)).rejects.toThrow();
   });
 
   it('rotates refresh tokens; a near-simultaneous reuse is refused without ending the session', async () => {

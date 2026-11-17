@@ -57,13 +57,24 @@ export const FITNESS_GOALS = [
 ] as const;
 export const fitnessGoalSchema = z.enum(FITNESS_GOALS.map((g) => g.id) as [string, ...string[]]);
 
-export const updateProfileSchema = z.object({
-  name: z
+/** One part of a person's name: letters (any language), spaces, apostrophes, hyphens and dots. */
+const namePart = (what: string) =>
+  z
     .string()
     .trim()
-    .min(2, 'Enter your name')
-    .max(60, 'That name is too long')
-    .regex(/^[\p{L}\p{M}' .-]+$/u, 'Use letters only'),
+    .min(1, `Enter your ${what}`)
+    .max(30, `That ${what} is too long`)
+    .regex(/^[\p{L}\p{M}' .-]+$/u, 'Use letters only')
+    .transform((s) => s.replace(/\s+/g, ' '));
+export const firstNameSchema = namePart('first name');
+export const lastNameSchema = namePart('last name');
+
+/** The name shown across BGYM: "First Last". */
+export const displayName = (firstName: string, lastName: string) => `${firstName} ${lastName}`;
+
+export const updateProfileSchema = z.object({
+  firstName: firstNameSchema,
+  lastName: lastNameSchema,
   goal: fitnessGoalSchema.nullable().optional(),
   /** Optional: speeds up Mobile Money checkout and store delivery. */
   phone: z

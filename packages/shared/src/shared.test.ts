@@ -38,15 +38,18 @@ describe('schemas', () => {
     expect(nearbyGymsQuerySchema.safeParse({ lat: 5.63, lng: -0.16, radiusKm: 7 }).success).toBe(false);
   });
   it('validates the profile step', () => {
-    expect(updateProfileSchema.parse({ name: '  Ama Owusu ', goal: 'build_strength', phone: '024 123 4567' })).toEqual({
-      name: 'Ama Owusu',
+    expect(updateProfileSchema.parse({ firstName: '  Ama ', lastName: 'Owusu', goal: 'build_strength', phone: '024 123 4567' })).toEqual({
+      firstName: 'Ama',
+      lastName: 'Owusu',
       goal: 'build_strength',
       phone: '+233241234567',
     });
-    expect(updateProfileSchema.parse({ name: "Kwame O'Neil-Mensah", phone: '' }).phone).toBeNull();
-    expect(updateProfileSchema.safeParse({ name: 'A' }).success).toBe(false);
-    expect(updateProfileSchema.safeParse({ name: '<script>' }).success).toBe(false);
-    expect(updateProfileSchema.safeParse({ name: 'Ama', goal: 'fly' }).success).toBe(false);
+    expect(updateProfileSchema.parse({ firstName: 'Kwame', lastName: "O'Neil-Mensah", phone: '' }).phone).toBeNull();
+    expect(updateProfileSchema.parse({ firstName: 'Nana  Akua', lastName: 'Boateng' }).firstName).toBe('Nana Akua');
+    expect(updateProfileSchema.safeParse({ firstName: 'Ama', lastName: '' }).success).toBe(false);
+    expect(updateProfileSchema.safeParse({ firstName: '<script>', lastName: 'X' }).success).toBe(false);
+    expect(updateProfileSchema.safeParse({ firstName: 'Ama', lastName: 'Owusu', goal: 'fly' }).success).toBe(false);
+    expect(updateProfileSchema.safeParse({ name: 'Ama Owusu' }).success).toBe(false);
   });
 });
 

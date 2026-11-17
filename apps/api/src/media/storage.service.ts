@@ -6,12 +6,12 @@ import { dirname, resolve, sep } from 'node:path';
 import type { Env } from '../config/env.js';
 
 /**
- * Keys we create: (gyms|posts|stories|trainers|products|exercises|workouts)/<uuid>/<uuid>[_t].webp for photos and
+ * Keys we create: (gyms|posts|stories|trainers|products|exercises|workouts|avatars)/<uuid>/<uuid>[_t].webp for photos and
  * videos/<uuid>/<uuid>(.mp4|_t.webp) for videos and their poster frames. Anything else is
  * refused (no path tricks).
  */
 const U = '[0-9a-f-]{36}';
-const KEY = new RegExp(`^(?:(?:gyms|posts|stories|trainers|products|exercises|workouts)/${U}/${U}(?:_t)?\\.webp|videos/${U}/${U}(?:\\.mp4|_t\\.webp))$`);
+const KEY = new RegExp(`^(?:(?:gyms|posts|stories|trainers|products|exercises|workouts|avatars)/${U}/${U}(?:_t)?\\.webp|videos/${U}/${U}(?:\\.mp4|_t\\.webp))$`);
 export const isValidKey = (key: string) => KEY.test(key);
 
 /**
@@ -44,6 +44,11 @@ export class StorageService {
   }
 
   /** Relative to the API in development ("/v1/media/…"), absolute CDN URL in production. */
+  /** A member's profile photo URL, or null (the apps show initials). */
+  avatarUrl(key: string | null): string | null {
+    return key ? this.publicUrl(key) : null;
+  }
+
   publicUrl(key: string): string {
     return this.driver === 's3' ? `${this.config.get('MEDIA_PUBLIC_URL', { infer: true })}/${key}` : `/v1/media/${key}`;
   }

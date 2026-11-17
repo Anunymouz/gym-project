@@ -3,7 +3,8 @@ import { router, type Href } from 'expo-router';
 import type { ComponentType } from 'react';
 import type { IconProps } from 'phosphor-react-native';
 import { Header } from '@/components/header';
-import { BellIcon, CaretRightIcon, MapPinIcon, ProhibitIcon, QrCodeIcon, ReceiptIcon, ShoppingBagIcon, UserCircleIcon } from '@/components/icons';
+import { BellIcon, CaretRightIcon, MapPinIcon, PencilSimpleIcon, ProhibitIcon, QrCodeIcon, ReceiptIcon, ShoppingBagIcon, UserCircleIcon } from '@/components/icons';
+import { UserAvatar } from '@/components/profile/avatar-editor';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
@@ -22,19 +23,24 @@ const rows: { label: string; detail: string; Icon: ComponentType<IconProps>; hre
 
 export default function Me() {
   const { user, area, signOut } = useSession();
-  const email = user?.email;
   return (
     <Screen scroll tabs>
       <Header title="Me" />
-      <View style={styles.profile}>
-        <View style={styles.avatar}>
-          <Text variant="heading" style={{ color: colors.violet }}>{email?.charAt(0).toUpperCase()}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${user?.name ?? 'Your profile'}, ${user?.email}. Edit your name and photo`}
+        onPress={() => router.push('/profile')}
+        style={({ pressed }) => [styles.profile, pressed && { transform: [{ scale: 0.985 }], opacity: 0.92 }]}
+      >
+        <UserAvatar size={60} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text variant="heading" numberOfLines={1}>{user?.name ?? 'Add your name'}</Text>
+          <Text variant="small" muted numberOfLines={1}>{user?.email}</Text>
         </View>
-        <View style={{ flex: 1 }}>
-          <Text variant="bodyBold">{email}</Text>
-          <Text variant="small" muted>{user?.name ?? 'Member'}</Text>
+        <View style={styles.edit}>
+          <PencilSimpleIcon size={16} color={colors.text} weight="bold" />
         </View>
-      </View>
+      </Pressable>
       <View style={styles.list}>
         {rows.map(({ label, detail, Icon, href }, i) => (
           <Pressable key={label} accessibilityRole="button" onPress={href ? () => router.push(href) : undefined} style={[styles.row, i < rows.length - 1 && styles.rowBorder]}>
@@ -54,7 +60,7 @@ export default function Me() {
 
 const styles = StyleSheet.create({
   profile: { flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, padding: space.md },
-  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.violetSoft, alignItems: 'center', justifyContent: 'center' },
+  edit: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
   list: { backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, paddingHorizontal: space.md },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },

@@ -222,8 +222,13 @@ model User {
   id          String     @id @default(uuid(7)) @db.Uuid
   email       String     @unique
   phone       String? // E.164, optional: MoMo and delivery only
+  /// "First Last": the name shown across BGYM (kept in step with the two parts below).
   name        String?
-  avatarUrl   String?
+  firstName   String?
+  lastName    String?
+  /// Profile photo (square WebP, 512 px) and its thumbnail, under avatars/<userId>/.
+  avatarKey      String?
+  avatarThumbKey String?
   roles       Role[]     @default([member])
   status      UserStatus @default(active)
   lastLoginAt DateTime?  @db.Timestamptz(3)

@@ -12,7 +12,7 @@ export type SessionStatus = 'loading' | 'signedOut' | 'needsProfile' | 'needsOnb
 
 /** Where a signed-in person goes next: profile first, then search area, then the app. */
 const nextStatus = (user: AuthUser, area: SearchArea | null): SessionStatus =>
-  !user.name ? 'needsProfile' : area ? 'ready' : 'needsOnboarding';
+  !user.firstName || !user.lastName ? 'needsProfile' : area ? 'ready' : 'needsOnboarding';
 
 export interface SearchArea {
   lat: number;
@@ -35,6 +35,8 @@ interface SessionContextValue {
    */
   verifyCode: (code: string) => Promise<() => void>;
   saveProfile: (input: UpdateProfileInput) => Promise<void>;
+  /** Keep the signed-in person in step after a change made elsewhere (e.g. a new profile photo). */
+  updateUser: (user: AuthUser) => Promise<void>;
   completeOnboarding: (area: SearchArea) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -126,6 +128,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [area],
   );
 
+  const updateUser = useCallback(async (updated: AuthUser) => {
+    await secureStorage.set(USER_KEY, JSON.stringify(updated));
+    setUser(updated);
+  }, []);
+
   const completeOnboarding = useCallback(async (next: SearchArea) => {
     await secureStorage.set(AREA_KEY, JSON.stringify(next));
     setArea(next);
@@ -144,8 +151,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [reset]);
 
   const value = useMemo(
-    () => ({ status, user, pendingEmail, area, startEmailSignIn, resendCode, verifyCode, saveProfile, completeOnboarding, signOut }),
-    [status, user, pendingEmail, area, startEmailSignIn, resendCode, verifyCode, saveProfile, completeOnboarding, signOut],
+    () => ({ status, user, pendingEmail, area, startEmailSignIn, resendCode, verifyCode, saveProfile, updateUser, completeOnboarding, signOut }),
+    [status, user, pendingEmail, area, startEmailSignIn, resendCode, verifyCode, saveProfile, updateUser, completeOnboarding, signOut],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

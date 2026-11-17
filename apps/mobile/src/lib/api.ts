@@ -233,9 +233,19 @@ export { authed };
 
 export const authApi = {
   requestEmailCode: (email: string) => post<RequestEmailCodeResponse>('/v1/auth/email/request', { email }),
-  verifyEmailCode: (email: string, code: string) => post<AuthSession>('/v1/auth/email/verify', { email, code }),
-  me: () => authed<AuthUser>('/v1/auth/me'),
-  updateProfile: (input: UpdateProfileInput) => authed<AuthUser>('/v1/auth/me', { method: 'PATCH', body: JSON.stringify(input) }),
+  verifyEmailCode: async (email: string, code: string) => {
+    const session = await post<AuthSession>('/v1/auth/email/verify', { email, code });
+    return { ...session, user: userMedia(session.user) };
+  },
+  me: async () => userMedia(await authed<AuthUser>('/v1/auth/me')),
+  updateProfile: async (input: UpdateProfileInput) => userMedia(await authed<AuthUser>('/v1/auth/me', { method: 'PATCH', body: JSON.stringify(input) })),
+  /** A new profile photo (the API crops it square and strips its metadata). */
+  setAvatar: async (photo: PickedFile) => {
+    const form = new FormData();
+    await appendFile(form, 'photo', photo);
+    return userMedia(await authedForm<AuthUser>('/v1/auth/me/avatar', form));
+  },
+  removeAvatar: async () => userMedia(await authed<AuthUser>('/v1/auth/me/avatar', { method: 'DELETE' })),
   async signOut(): Promise<void> {
     const refreshToken = await clearTokens();
     if (refreshToken) await post<void>('/v1/auth/sign-out', { refreshToken }).catch(() => undefined);
@@ -289,9 +299,13 @@ export const receiptsApi = {
   get: (id: string) => authed<Receipt>(`/v1/me/payments/${encodeURIComponent(id)}`),
 };
 
+const userMedia = (u: AuthUser): AuthUser => ({ ...u, avatarUrl: media(u.avatarUrl) });
+const authorMedia = <A extends object>(a: A): A => ('avatarUrl' in a && typeof a.avatarUrl === 'string' ? { ...a, avatarUrl: media(a.avatarUrl) } : a);
+
 /** Make post photo URLs absolute (they may be relative to the API in development). */
 const withMedia = (p: FeedPost): FeedPost => ({
   ...p,
+  author: authorMedia(p.author),
   gym: { ...p.gym, coverUrl: media(p.gym.coverUrl) },
   media: p.media.map((m) => ({ ...m, url: media(m.url) ?? m.url, thumbUrl: media(m.thumbUrl) ?? m.thumbUrl })),
 });
@@ -318,15 +332,21 @@ export const postsApi = {
     return withMedia(await authedForm<FeedPost>('/v1/posts', form));
   },
   remove: (id: string) => authed<void>(`/v1/posts/${id}`, { method: 'DELETE' }),
-  comments: (id: string, cursor?: string | null) => authed<CommentPage>(`/v1/posts/${id}/comments${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`),
-  comment: (id: string, body: string) => authed<PostComment>(`/v1/posts/${id}/comments`, { method: 'POST', body: JSON.stringify({ body }) }),
+  comments: async (id: string, cursor?: string | null) => {
+    const page = await authed<CommentPage>(`/v1/posts/${id}/comments${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`);
+    return { ...page, comments: page.comments.map((c) => ({ ...c, author: authorMedia(c.author) })) };
+  },
+  comment: async (id: string, body: string) => {
+    const c = await authed<PostComment>(`/v1/posts/${id}/comments`, { method: 'POST', body: JSON.stringify({ body }) });
+    return { ...c, author: authorMedia(c.author) };
+  },
   removeComment: (commentId: string) => authed<{ commentCount: number }>(`/v1/comments/${commentId}`, { method: 'DELETE' }),
   reportComment: (commentId: string, input: ReportInput) => authed<void>(`/v1/comments/${commentId}/report`, { method: 'POST', body: JSON.stringify(input) }),
 };
 
 const storyMedia = (t: StoryTray): StoryTray => ({
   ...t,
-  groups: t.groups.map((g) => ({ ...g, gym: { ...g.gym, coverUrl: media(g.gym.coverUrl) }, stories: g.stories.map((s) => ({ ...s, url: media(s.url) ?? s.url, thumbUrl: media(s.thumbUrl) ?? s.thumbUrl })) })),
+  groups: t.groups.map((g) => ({ ...g, author: authorMedia(g.author), gym: { ...g.gym, coverUrl: media(g.gym.coverUrl) }, stories: g.stories.map((s) => ({ ...s, url: media(s.url) ?? s.url, thumbUrl: media(s.thumbUrl) ?? s.thumbUrl })) })),
 });
 
 export const storiesApi = {
@@ -347,7 +367,7 @@ export const storiesApi = {
 
 export const communityApi = {
   acceptRules: () => authed<void>('/v1/me/community-rules', { method: 'POST' }),
-  blocks: () => authed<BlockedUser[]>('/v1/me/blocks'),
+  blocks: async () => (await authed<BlockedUser[]>('/v1/me/blocks')).map(authorMedia),
   block: (userId: string) => authed<void>(`/v1/me/blocks/${userId}`, { method: 'PUT' }),
   unblock: (userId: string) => authed<void>(`/v1/me/blocks/${userId}`, { method: 'DELETE' }),
 };

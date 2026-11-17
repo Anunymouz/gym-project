@@ -13,7 +13,7 @@ const storySelect = {
   id: true, gymId: true, authorKind: true, authorUserId: true, type: true, key: true, thumbKey: true, width: true, height: true, caption: true,
   likeCount: true, viewCount: true, createdAt: true, expiresAt: true,
   gym: { select: { id: true, name: true, slug: true, coverUrl: true } },
-  author: { select: { id: true, name: true, avatarUrl: true } },
+  author: { select: { id: true, name: true, avatarThumbKey: true } },
   video: { select: { provider: true, providerId: true, posterKey: true, width: true, height: true, durationSec: true } },
 } satisfies Prisma.StorySelect;
 type StoryRow = Prisma.StoryGetPayload<{ select: typeof storySelect }>;
@@ -210,7 +210,7 @@ export class StoriesService {
   }
 
   private author(r: StoryRow): StoryGroup['author'] {
-    return r.authorKind === 'gym' ? { kind: 'gym' } : { kind: 'member', id: r.author.id, name: r.author.name ?? 'BGYM member', avatarUrl: r.author.avatarUrl };
+    return r.authorKind === 'gym' ? { kind: 'gym' } : { kind: 'member', id: r.author.id, name: r.author.name ?? 'BGYM member', avatarUrl: this.storage.avatarUrl(r.author.avatarThumbKey) };
   }
 
   private async toItem(r: StoryRow, mine: boolean, seen: boolean, likedByMe: boolean): Promise<StoryItem> {
